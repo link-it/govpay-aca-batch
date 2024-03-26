@@ -2,6 +2,7 @@ package it.govpay.aca.client.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
@@ -17,11 +18,19 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import it.govpay.aca.client.SubscriptionKeyInterceptor;
+import it.govpay.aca.client.api.AcaApi;
+import it.govpay.aca.client.api.impl.ApiClient;
 import it.govpay.aca.utils.Utils;
 
 @Configuration
 public class RestTemplateConfig {
-
+	
+	@Value("${it.govpay.aca.batch.client.debugging:false}")
+	private boolean debugging;
+	
+    @Value("${it.govpay.aca.batch.client.baseUrl}")
+    protected String baseUrl;
+    
 	@Bean
 	RestTemplate restTemplate() {
 		RestTemplate restTemplate = new RestTemplate();
@@ -52,5 +61,13 @@ public class RestTemplateConfig {
 		restTemplate.setInterceptors(currentInterceptors);
 		
 		return restTemplate;
+	}
+	
+	@Bean("acaApi")
+	AcaApi acaApi(RestTemplate restTemplate) {
+		ApiClient apiClient= new ApiClient(restTemplate);
+		apiClient.setBasePath(this.baseUrl);
+		apiClient.setDebugging(this.debugging);
+		return new AcaApi(apiClient);
 	}
 }

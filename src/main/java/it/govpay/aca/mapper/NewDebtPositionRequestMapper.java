@@ -1,6 +1,5 @@
 package it.govpay.aca.mapper;
 
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -12,7 +11,6 @@ import org.mapstruct.Named;
 import it.govpay.aca.client.beans.NewDebtPositionRequest;
 import it.govpay.aca.entity.VersamentoAcaEntity;
 import it.govpay.aca.entity.VersamentoAcaEntity.StatoVersamento;
-import it.govpay.aca.utils.CausaleUtils;
 import it.govpay.aca.utils.Utils;
 
 @Mapper(componentModel = "spring")
@@ -23,21 +21,12 @@ public interface NewDebtPositionRequestMapper {
 	@Mapping(target = "entityFullName", source = "debitoreAnagrafica")
 	@Mapping(target = "iuv", source = "iuvVersamento")
 	@Mapping(target = "entityType", source = "debitoreTipo")
-	@Mapping(target = "description", source = "causaleVersamento", qualifiedByName = "descriptionMapper")
+	@Mapping(target = "description", source = "causaleVersamento")
 	@Mapping(target = "amount", source = "." , qualifiedByName = "amountMapper")
 	@Mapping(target = "expirationDate", source = ".", qualifiedByName = "expirationDateMapper")
 	public NewDebtPositionRequest versamentoAcaToNewDebtPositionRequest(VersamentoAcaEntity versamentoAcaEntity);
 
 	
-    @Named("descriptionMapper")
-    public default String descriptionMapper(String  causaleVersamento) {
-    	try {
-			return CausaleUtils.decode(causaleVersamento).getSimple();
-		} catch (UnsupportedEncodingException e) {
-			return null;
-		}
-    }
-
     @Named("amountMapper")
     public default Integer amountMapper(VersamentoAcaEntity versamentoAcaEntity) {
     	if(versamentoAcaEntity.getStatoVersamento().equals(StatoVersamento.NON_ESEGUITO)) {

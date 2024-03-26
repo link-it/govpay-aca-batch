@@ -1,35 +1,23 @@
 package it.govpay.aca.utils;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import it.govpay.aca.entity.VersamentoAcaEntity;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Utils {
 
 	private static final String PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-	private static final String PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS = "yyyy-MM-dd'T'HH:mm:ss";
-	private static final String PATTERN_DATA_JSON_YYYY_MM_DD = "yyyy-MM-dd";
 	
-	public static SimpleDateFormat newSimpleDateFormatNoMillis() {
-		return newSimpleDateFormat(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS);
-	}
-
-	public static SimpleDateFormat newSimpleDateFormatSoloData() {
-		return newSimpleDateFormat(Utils.PATTERN_DATA_JSON_YYYY_MM_DD);
-	}
-
 	public static SimpleDateFormat newSimpleDateFormat(String pattern) {
 		SimpleDateFormat sdf = new SimpleDateFormat(pattern);
 		sdf.setLenient(false);
@@ -38,26 +26,6 @@ public class Utils {
 	
 	public static SimpleDateFormat newSimpleDateFormat() {
 		return newSimpleDateFormat(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS);
-	}
-	
-	private static ObjectMapper mapper;
-	static {
-		mapper = new ObjectMapper();
-		mapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		mapper.setDateFormat (Utils.newSimpleDateFormat());
-	}
-	
-	public static String toJSON(Object obj) throws JsonProcessingException {
-		return mapper.writeValueAsString(obj);
-	}
-	
-	public static byte[] toJSONBytes(Object obj) throws JsonProcessingException {
-		return mapper.writeValueAsBytes(obj);
-	}
-	
-	public static <T> T fromJSONBytes(byte [] msg, Class<T> clazz) throws IOException {
-		return mapper.readValue(msg,clazz);
 	}
 	
 	public static String printImporto(BigDecimal value, boolean removeDecimalSeparator) {
@@ -89,8 +57,9 @@ public class Utils {
 		}   
 	}
 	
-	public static LocalDateTime toLocalDateTime(Date date) {
-		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
-		return date.toInstant().atOffset(offset).toLocalDateTime();
+	public static OffsetDateTime toOffsetDateTime(Date date, String timeZone) {
+		if(date == null) return null;
+		ZoneId zoneId = ZoneId.of(timeZone);
+		return date.toInstant().atZone(zoneId).toOffsetDateTime();
 	}
 }

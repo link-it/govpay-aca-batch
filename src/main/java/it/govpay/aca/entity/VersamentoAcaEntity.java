@@ -1,29 +1,26 @@
 package it.govpay.aca.entity;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import org.hibernate.annotations.Immutable;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter	
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@Immutable
 @Table(name = "v_versamenti_aca")
 public class VersamentoAcaEntity {
 
@@ -41,8 +38,6 @@ public enum StatoVersamento {
 public enum TIPO {F,G}
 	
 	@Id
-	@SequenceGenerator(name="seq_versamenti",sequenceName="seq_versamenti", initialValue=1, allocationSize=1)
-	@GeneratedValue(strategy= GenerationType.SEQUENCE, generator="seq_versamenti")
 	private Long id;
 	
 	@Column(name = "cod_versamento_ente", nullable = false)
@@ -77,9 +72,6 @@ public enum TIPO {F,G}
 	@Column(name = "iuv_versamento")
 	private String iuvVersamento;
 	
-	@Column(name = "numero_avviso")
-	private String numeroAvviso;
-	
 	@Column(name = "cod_applicazione", nullable = false)
 	private String codApplicazione;
 	
@@ -87,10 +79,10 @@ public enum TIPO {F,G}
 	private String codDominio;
 	
 	@Column(name = "data_ultima_modifica_aca")
-	private LocalDateTime dataUltimaModificaAca;
+	private OffsetDateTime dataUltimaModificaAca;
 	
 	@Column(name = "data_ultima_comunicazione_aca")
-	private LocalDateTime dataUltimaComunicazioneAca;
+	private OffsetDateTime dataUltimaComunicazioneAca;
 }
 
 /**

@@ -1,20 +1,17 @@
 package it.govpay.aca.step;
 
-import javax.annotation.PostConstruct;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
 
 import it.govpay.aca.client.api.AcaApi;
-import it.govpay.aca.client.api.impl.ApiClient;
 import it.govpay.aca.client.beans.NewDebtPositionRequest;
 import it.govpay.aca.entity.VersamentoAcaEntity;
 import it.govpay.aca.mapper.NewDebtPositionRequestMapperImpl;
@@ -27,25 +24,9 @@ public class SendPendenzaToAcaProcessor implements ItemProcessor<VersamentoAcaEn
 	@Autowired
 	NewDebtPositionRequestMapperImpl newDebtPositionRequestMapperImpl;
 
-	@Autowired
-	RestTemplate restTemplate;
-	
-	@Value("${it.govpay.aca.batch.client.debugging:false}")
-	private boolean debugging;
-	
-    @Value("${it.govpay.aca.batch.client.baseUrl}")
-    protected String baseUrl;
-	
-	private AcaApi acaApi;
-	
-	@PostConstruct
-	private void prepareClient() {
-		ApiClient apiClient= new ApiClient(this.restTemplate);
-		apiClient.setBasePath(this.baseUrl);
-		apiClient.setDebugging(this.debugging);
-		this.acaApi = new AcaApi(apiClient);
-		
-	}
+    @Autowired
+    @Qualifier("acaApi")
+	AcaApi acaApi;
 	
 	@Override
 	public VersamentoAcaEntity process(VersamentoAcaEntity item) throws Exception {
@@ -54,10 +35,13 @@ public class SendPendenzaToAcaProcessor implements ItemProcessor<VersamentoAcaEn
 			// conversione dell'entity in un oggetto da spedire
 			NewDebtPositionRequest newDebtPositionRequest = this.newDebtPositionRequestMapperImpl.versamentoAcaToNewDebtPositionRequest(item);
 			
-			this.acaApi.newDebtPosition(newDebtPositionRequest);
+			ResponseEntity<Void> responseEntity = this.acaApi.newDebtPositionWithHttpInfo(newDebtPositionRequest);
 			
-			logger.info("Spedizione Pendenza [IdA2A:{}, ID:{}] all'ACA completata con successo.", item.getCodApplicazione(), item.getCodVersamentoEnte());
-			return item;
+			logger.info("Spedizione Pendenza [IdA2A:{}, ID:{}] all'ACA completata con esito [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCodeValue());
+			
+			if(responseEntity.getStatusCode().is2xxSuccessful()) {
+				return item;
+			}
 		} catch (HttpClientErrorException e) {
 			this.logErrorResponse(e);
 		} catch (ResourceAccessException e) {

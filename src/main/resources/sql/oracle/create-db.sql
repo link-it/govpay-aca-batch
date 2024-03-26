@@ -1,3 +1,9 @@
+DECLARE FUNCTION fn_from_base64(t in varchar2) return varchar2 is
+  begin
+    return utl_raw.cast_to_varchar2(utl_encode.base64_decode(utl_raw.cast_to_raw(t)));
+  end fn_from_base64;
+
+
 CREATE VIEW v_versamenti_aca AS 
 SELECT versamenti.id,
     versamenti.cod_versamento_ente,
@@ -5,7 +11,7 @@ SELECT versamenti.id,
     versamenti.stato_versamento,
     versamenti.data_validita,
     versamenti.data_scadenza,
-    versamenti.causale_versamento,
+    fn_from_base64(SUBSTR(versamenti.causale_versamento, 3)) AS causale_versamento,
     versamenti.debitore_identificativo,
     versamenti.debitore_tipo,
     versamenti.debitore_anagrafica,

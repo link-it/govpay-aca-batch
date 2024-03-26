@@ -1,24 +1,31 @@
 package it.govpay.aca.step;
 
-import java.util.Date;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.springframework.batch.core.JobParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import it.govpay.aca.entity.VersamentoAcaEntity;
 import it.govpay.aca.entity.VersamentoEntity;
 import it.govpay.aca.repository.VersamentoRepository;
-import it.govpay.aca.service.AcaBatchService;
 import it.govpay.aca.utils.Utils;
 
 @Component
 public class PendenzaWriter implements ItemWriter<VersamentoAcaEntity>{
 
-	private JobParameters jobParameters;
+	private Logger logger = LoggerFactory.getLogger(PendenzaWriter.class);
+
+	@Value("${it.govpay.aca.time-zone:Europe/Rome}")
+	String timeZone;
 	
 	@Autowired
 	VersamentoRepository versamentoRepository;
@@ -26,16 +33,27 @@ public class PendenzaWriter implements ItemWriter<VersamentoAcaEntity>{
 	@Override
 	@Transactional
 	public void write(List<? extends VersamentoAcaEntity> items) throws Exception {
-		Date dataEsecuzioneJob = this.jobParameters.getDate(AcaBatchService.GOVPAY_ACA_JOB_PARAMETER_WHEN);
+		OffsetDateTime dataEsecuzioneJob = null;
+		
+		if(StepSynchronizationManager.getContext() != null 
+				&& StepSynchronizationManager.getContext().getStepExecution() != null 
+				&& StepSynchronizationManager.getContext().getStepExecution().getJobExecution() != null) {
+			JobExecution jobExecution = StepSynchronizationManager.getContext().getStepExecution().getJobExecution();
+			dataEsecuzioneJob = Utils.toOffsetDateTime(jobExecution.getStartTime(), this.timeZone);
+		}
+		
+		logger.debug("Salvataggio pendenze: {}, verra' impostata come DataUltimaComunicazioneACA la data di inizio esecuzione del JOB.", items.stream().map(VersamentoAcaEntity::getId).collect(Collectors.toList()));
 		
 		for (VersamentoAcaEntity item : items) {
-            // Esegui l'aggiornamento puntuale delle due date aggiornate del versamento
+			// Esegui l'aggiornamento puntuale delle due date aggiornate del versamento
 			VersamentoEntity existingEntity = versamentoRepository.findById(item.getId()).orElse(null);
-            if (existingEntity != null) {
-            	// Data ultima comunicazione ACA corrisponde al JobParameter di nome 'WHEN'
-                existingEntity.setDataUltimaComunicazioneAca(Utils.toLocalDateTime(dataEsecuzioneJob));
-                versamentoRepository.save(existingEntity);
-            }
-        }
+			logger.debug("trovata pendenza {}", existingEntity);
+			if (existingEntity != null) {
+				logger.debug("Aggiorno pendenza {}, modifica DataUltimaComunicazioneACA [corrente: {}, nuova: {}]", existingEntity.getId(), existingEntity.getDataUltimaComunicazioneAca(), dataEsecuzioneJob);
+				// Data ultima comunicazione ACA corrisponde al JobParameter di nome 'WHEN'
+				existingEntity.setDataUltimaComunicazioneAca(dataEsecuzioneJob);
+				versamentoRepository.save(existingEntity);
+			}
+		}
 	}
 }
