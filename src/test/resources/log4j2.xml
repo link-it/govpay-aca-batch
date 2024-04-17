@@ -9,7 +9,19 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="OFF">
+    	 <Logger name="org.springframework" level="error" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+
+        <Logger name="org.hibernate" level="error" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+
+        <Logger name="org.hibernate.type.descriptor.sql" level="error" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+    
+        <Root level="DEBUG">
             <AppenderRef ref="Console" />
         </Root>
     </Loggers>

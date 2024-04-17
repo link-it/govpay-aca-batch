@@ -54,7 +54,7 @@
 
 		<jacoco.version>0.8.8</jacoco.version>
 		<wagon-ssh-external.version>3.5.3</wagon-ssh-external.version>
-		
+
 		<env>localhost</env>
 		<rel-to-parent>.</rel-to-parent>
 		<filter-file>${rel-to-parent}/src/main/resources/filters/${env}.filter.properties</filter-file>
@@ -208,7 +208,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.springframework.batch</groupId>
 			<artifactId>spring-batch-integration</artifactId>
@@ -243,7 +243,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -339,7 +339,7 @@
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
@@ -350,7 +350,7 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -477,6 +477,33 @@
 								<modelPackage>it.govpay.aca.client.beans</modelPackage>
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
+							</configOptions>
+							<output>${project.basedir}/target</output>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+						</configuration>
+					</execution>
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<id>generate-sources-client-gde</id>
+						<phase>generate-sources</phase>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/gde/openapi.yaml</inputSpec>
+							<generatorName>java</generatorName>
+							<configOptions>
+								<booleanGetterPrefix>is</booleanGetterPrefix>
+								<dateLibrary>java8</dateLibrary>
+								<library>native</library>
+								<serializationLibrary>jackson</serializationLibrary>
+								<sourceFolder>generated-sources/java/</sourceFolder>
+								<apiPackage>it.govpay.gde.client.api</apiPackage>
+								<invokerPackage>it.govpay.gde.client.api.impl</invokerPackage>
+								<modelPackage>it.govpay.gde.client.beans</modelPackage>
+								<useAnnotatedBasePath>true</useAnnotatedBasePath>
+								<useBeanValidation>false</useBeanValidation>
+								<async>true</async>
 							</configOptions>
 							<output>${project.basedir}/target</output>
 							<generateApiTests>false</generateApiTests>

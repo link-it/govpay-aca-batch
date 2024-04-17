@@ -1,0 +1,678 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+  - url: http://localhost:8080/govpay/backend/api/gde
+    description: Generated server url
+paths:
+  /eventi:
+    get:
+      tags:
+        - eventi
+      summary: Ricerca eventi
+      description: Ricerca eventi
+      operationId: findEventi
+      parameters:
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/DataDa'
+        - $ref: '#/components/parameters/DataA'
+        - $ref: '#/components/parameters/IdDominio'
+        - $ref: '#/components/parameters/Iuv'
+        - $ref: '#/components/parameters/Ccp'
+        - $ref: '#/components/parameters/IdA2A'
+        - $ref: '#/components/parameters/IdPendenza'
+        - $ref: '#/components/parameters/CategoriaEvento'
+        - $ref: '#/components/parameters/EsitoEvento'
+        - $ref: '#/components/parameters/RuoloEvento'
+        - $ref: '#/components/parameters/SottotipoEvento'
+        - $ref: '#/components/parameters/TipoEvento'
+        - $ref: '#/components/parameters/ComponenteEvento'
+        - $ref: '#/components/parameters/SeveritaDa'
+        - $ref: '#/components/parameters/SeveritaA'
+      responses:
+        '200':
+          description: Successful operation.
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ListaEventi"
+        '400':
+          $ref: "#/components/responses/400BadRequest"
+        '401':
+          $ref: "#/components/responses/401Unauthorized"
+        '403':
+          $ref: "#/components/responses/403Forbidden"
+        '429':
+          $ref: "#/components/responses/429TooManyRequests"
+        '503':
+          $ref: "#/components/responses/503ServiceUnavailable"
+    post:
+      tags:
+        - eventi
+      summary: Salvataggio di un nuovo evento
+      description: Salvataggio di un nuovo evento
+      operationId: addEvento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuovoEvento'
+        required: true
+      responses:
+        '201':
+          $ref: "#/components/responses/201Created"
+        '400':
+          $ref: "#/components/responses/400BadRequest"
+        '401':
+          $ref: "#/components/responses/401Unauthorized"
+        '403':
+          $ref: "#/components/responses/403Forbidden"
+        '429':
+          $ref: "#/components/responses/429TooManyRequests"
+        '503':
+          $ref: "#/components/responses/503ServiceUnavailable"
+  /eventi/{id}:
+    get:
+      tags:
+        - eventi
+      summary: Dettaglio di un evento
+      description: Dettaglio di un evento
+      operationId: getEventoById
+      parameters:
+        - name: id
+          in: path
+          description: Id dell'evento da leggere.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation.
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Evento'
+        '400':
+          $ref: "#/components/responses/400BadRequest"
+        '401':
+          $ref: "#/components/responses/401Unauthorized"
+        '403':
+          $ref: "#/components/responses/403Forbidden"
+        '404':
+          $ref: "#/components/responses/404NotFound"
+        '429':
+          $ref: "#/components/responses/429TooManyRequests"
+        '503':
+          $ref: "#/components/responses/503ServiceUnavailable"
+components:
+  parameters:
+    CategoriaEvento:
+      name: categoriaEvento
+      in: query
+      description: Filtro per categoria evento
+      required: false
+      schema:
+        $ref: '#/components/schemas/CategoriaEvento'
+    Ccp:
+      name: ccp
+      in: query
+      description: Codice contesto pagamento
+      required: false
+      schema:
+        type: string
+    ComponenteEvento:
+      name: componente
+      in: query
+      description: Filtro per componente evento
+      required: false
+      schema:
+        $ref: '#/components/schemas/ComponenteEvento'
+    DataDa:
+      name: dataDa
+      in: query
+      description: Inizio della finestra temporale di osservazione
+      required: false
+      schema:
+        type: string
+        format: date-time
+    DataA:
+      name: dataA
+      in: query
+      description: Fine della finestra temporale di osservazione
+      required: false
+      schema:
+        type: string
+        format: date-time
+    EsitoEvento:
+      name: esito
+      in: query
+      description: Filtro per esito evento
+      required: false
+      schema:
+        $ref: '#/components/schemas/EsitoEvento'
+    IdA2A:
+      name: idA2A
+      in: query
+      description: Identificativo del gestionale proprietario della pendenza
+      required: false
+      schema:
+        type: string
+    IdDominio:
+      name: idDominio
+      in: query
+      description: Identificativo del dominio beneficiario
+      required: false
+      schema:
+        type: string
+        pattern: '(^([0-9]){11}$)'
+    IdPendenza:
+      name: idPendenza
+      in: query
+      description: Identificativo della pendenza nel gestionale proprietario
+      required: false
+      schema:
+        type: string
+    Iuv:
+      name: iuv
+      in: query
+      description: Identificativo univoco di versamento
+      required: false
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      description: Max number of provided items.
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+    Offset:
+      name: offset
+      in: query
+      description: offset (zero-based) of indexed results.
+      required: false
+      schema:
+        type: integer
+        format: int64
+        default: 0
+        minimum: 0
+        maximum: 9223372036854775807
+    RuoloEvento:
+      name: ruolo
+      in: query
+      description: filtro per ruolo evento
+      required: false
+      schema:
+        $ref: '#/components/schemas/RuoloEvento'
+    SeveritaDa:
+      name: severitaDa
+      in: query
+      description: filtro per severita errore
+      required: false
+      schema:
+        type: integer
+        format: int32
+    SeveritaA:
+      name: severitaA
+      in: query
+      description: filtro per severita errore
+      required: false
+      schema:
+        type: integer
+        format: int32
+    SottotipoEvento:
+      name: sottotipoEvento
+      in: query
+      description: filtro per sottotipo evento
+      required: false
+      schema:
+        type: string
+    TipoEvento:
+      name: tipoEvento
+      in: query
+      description: filtro per tipologia evento
+      required: false
+      schema:
+        type: string
+  responses:
+    '201Created':
+      description: Resource created.
+      headers:
+        Location:
+          $ref: "#/components/headers/Location"
+        Cache-Control:
+          $ref: "#/components/headers/Cache-Control"
+        X-RateLimit-Limit:
+          $ref: "#/components/headers/X-RateLimit-Limit"
+        X-RateLimit-Remaining:
+          $ref: "#/components/headers/X-RateLimit-Remaining"
+        X-RateLimit-Reset:
+          $ref: "#/components/headers/X-RateLimit-Reset"
+    '400BadRequest':
+      description: Bad Request.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: Missing required field.
+            status: 400
+            title: Bad Request
+            type: https://www.rfc-editor.org/rfc/rfc9110.html#name-400-bad-request
+    '401Unauthorized':
+      description: Required credentials missing.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: Invalid Credentials
+            status: 401
+            title: Unauthorized
+            type: https://www.rfc-editor.org/rfc/rfc9110.html#name-401-unauthorized
+    '403Forbidden':
+      description: Agent not authorized for the operation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: User not authorized for the operation.
+            status: 403
+            title: Forbidden
+            type: https://www.rfc-editor.org/rfc/rfc9110.html#name-403-forbidden
+    '404NotFound':
+      description: Not Found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: Resource not found.
+            status: 404
+            title: Not Found
+            type: https://www.rfc-editor.org/rfc/rfc9110.html#name-404-not-found
+    '409Conflict':
+      description: Conflict (The entity already exists).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: Resource with the same id already present.
+            status: 409
+            title: Conflict
+            type: https://www.rfc-editor.org/rfc/rfc9110.html#name-409-conflict
+    '429TooManyRequests':
+      description: Too many requests.
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/Retry-After"
+        X-RateLimit-Limit:
+          $ref: "#/components/headers/X-RateLimit-Limit"
+        X-RateLimit-Remaining:
+          $ref: "#/components/headers/X-RateLimit-Remaining"
+        X-RateLimit-Reset:
+          $ref: "#/components/headers/X-RateLimit-Reset"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: User has sent too many requests in a given amount of time.
+            status: 429
+            title: Too Many Requests
+            type: https://www.rfc-editor.org/rfc/rfc6585#section-4
+    '503ServiceUnavailable':
+      description: Service Unavailable.
+      headers:
+        Retry-After:
+          $ref: "#/components/headers/Retry-After"
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+          example:
+            detail: Request Can't be fulfilled at the moment.
+            status: 503
+            title: Service Unavailable
+            type: https://www.rfc-editor.org/rfc/rfc9110.html#name-503-service-unavailable
+  headers:
+    Location:
+      description: >
+        Header Location inserted in a response for a succesful POST request (201)
+        The value is a link that points to the created object.
+      schema:
+        type: string
+        format: url
+        maxLength: 255
+    Cache-Control:
+      description: Management of objects cache, no-cache is the only supported option.
+      schema:
+        type: string
+        pattern: ^[\w, -=]+$
+        maxLength: 255
+    Retry-After:
+      description: "Retry after a window of n seconds. See https://tools.ietf.org/html/rfc7231#section-7.1.3"
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 2147483647
+    X-RateLimit-Limit:
+      description: Maximum number of allowed requests in the current time window.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 2147483647
+    X-RateLimit-Remaining:
+      description: Number of remaining requests in the current time window.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 2147483647
+    X-RateLimit-Reset:
+      description: Seconds left until the next time window.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 2147483647
+  schemas:
+    CategoriaEvento:
+      type: string
+      enum:
+        - INTERNO
+        - INTERFACCIA
+        - UTENTE
+    ComponenteEvento:
+      type: string
+      enum:
+        - API_BACKOFFICE
+        - API_ENTE
+        - API_PAGOPA
+        - API_PAGAMENTO
+        - API_PENDENZE
+        - API_RAGIONERIA
+        - API_BACKEND_IO
+        - API_SECIM
+        - API_MYPIVOT
+        - API_MAGGIOLI_JPPA
+        - API_GOVPAY
+        - API_HYPERSIC_APK
+        - API_USER
+        - GOVPAY
+    DatiPagoPA:
+      type: object
+      properties:
+        idPsp:
+          type: string
+        idCanale:
+          type: string
+        idIntermediarioPsp:
+          type: string
+        tipoVersamento:
+          type: string
+        modelloPagamento:
+          type: string
+        idDominio:
+          type: string
+        idIntermediario:
+          type: string
+        idStazione:
+          type: string
+        idRiconciliazione:
+          type: string
+        sct:
+          type: string
+        idFlusso:
+          type: string
+        idTracciato:
+          type: number
+        identificativoErogatore:
+          type: string
+        identificativoFruitore:
+          type: string
+    DettaglioRichiesta:
+      type: object
+      properties:
+        principal:
+          type: string
+        utente:
+          type: string
+        dataOraRichiesta:
+          type: string
+          format: date-time
+        url:
+          type: string
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Header'
+        payload:
+          type: string
+          description: Base64 del messaggio di richiesta
+        method:
+          type: string
+    DettaglioRisposta:
+      type: object
+      properties:
+        dataOraRisposta:
+          type: string
+          format: date-time
+        status:
+          type: number
+          format: int32
+        headers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Header'
+        payload:
+          type: string
+          description: Base64 del messaggio di risposta
+    Evento:
+      allOf:
+        - $ref: '#/components/schemas/NuovoEvento'
+        - type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            _links:
+              $ref: '#/components/schemas/Links'
+    EsitoEvento:
+      type: string
+      enum:
+        - OK
+        - KO
+        - FAIL
+    Header:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+        valore:
+          type: string
+    NuovoEvento:
+      type: object
+      properties:
+        componente:
+          $ref: '#/components/schemas/ComponenteEvento'
+        categoriaEvento:
+          $ref: '#/components/schemas/CategoriaEvento'
+        ruolo:
+          $ref: '#/components/schemas/RuoloEvento'
+        tipoEvento:
+          maxLength: 255
+          minLength: 0
+          type: string
+        esito:
+          $ref: '#/components/schemas/EsitoEvento'
+        dataEvento:
+          type: string
+          format: date-time
+        durataEvento:
+          type: integer
+          format: int64
+        sottotipoEvento:
+          maxLength: 255
+          minLength: 0
+          type: string
+        sottotipoEsito:
+          maxLength: 255
+          minLength: 0
+          type: string
+        dettaglioEsito:
+          type: string
+        idDominio:
+          pattern: "(^([0-9]){11}$)"
+          type: string
+        iuv:
+          maxLength: 35
+          minLength: 0
+          type: string
+        ccp:
+          maxLength: 35
+          minLength: 0
+          type: string
+        idA2A:
+          pattern: "(^[a-zA-Z0-9\\-_]{1,35}$)"
+          type: string
+        idPendenza:
+          pattern: "(^[a-zA-Z0-9\\-_]{1,35}$)"
+          type: string
+        idPagamento:
+          maxLength: 35
+          minLength: 0
+          type: string
+        datiPagoPA:
+          $ref: '#/components/schemas/DatiPagoPA'
+        severita:
+          maximum: 5
+          minimum: 0
+          type: integer
+          format: int32
+        parametriRichiesta:
+          $ref: '#/components/schemas/DettaglioRichiesta'
+        parametriRisposta:
+          $ref: '#/components/schemas/DettaglioRisposta'
+        idTracciato:
+          type: integer
+          format: int64
+        idFr:
+          type: integer
+          format: int64
+        idRiconciliazione:
+          type: integer
+          format: int64
+        clusterId:
+          type: string
+          description: Identificativo del nodo dove viene registrata l'operazione
+          example: NODO_1
+        transactionId:
+          type: string
+          description: Identificativo della transazione registrata
+          example: 'f9866575-r5t8-4d10-awse-57ba88bec136'
+      description: Evento da salvare.
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+        hreflang:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        deprecation:
+          type: string
+        profile:
+          type: string
+        name:
+          type: string
+        templated:
+          type: boolean
+    Links:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Link'
+    ListaBase:
+      type: object
+      required:
+        - page
+      properties:
+        page:
+          $ref: "#/components/schemas/PageInfo"
+    PageInfo:
+      type: object
+      additionalProperties: false
+      required:
+        - offset
+        - limit
+      properties:
+        offset:
+          type: integer
+          description: Offset value (zero-based) for the results.
+          format: int64
+          minimum: 0
+          maximum: 9223372036854775807
+          example: 20
+        limit:
+          type: integer
+          description: numero massimo di elementi restituiti.
+          format: int32
+          minimum: 0
+          maximum: 2147483647
+          example: 25
+        total:
+          minimum: 0
+          maximum: 9223372036854775807
+          type: integer
+          description: Number of found elements.
+          format: int64
+          example: 32
+    ListaEventi:
+      allOf:
+        - $ref: "#/components/schemas/ListaBase"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Evento"
+              minItems: 0
+              maxItems: 2147483647
+          required:
+            - items
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+    RuoloEvento:
+      type: string
+      enum:
+        - CLIENT
+        - SERVER

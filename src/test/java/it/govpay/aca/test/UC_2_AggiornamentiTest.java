@@ -2,7 +2,10 @@ package it.govpay.aca.test;
 
 import static org.mockito.ArgumentMatchers.any;
 
+import java.io.InputStream;
+import java.net.http.HttpResponse;
 import java.time.OffsetDateTime;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +24,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -32,6 +36,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 import it.govpay.aca.Application;
 import it.govpay.aca.client.api.AcaApi;
+import it.govpay.aca.client.api.impl.ApiClient;
+import it.govpay.aca.client.gde.EventiApi;
 import it.govpay.aca.entity.VersamentoAcaEntity.StatoVersamento;
 import it.govpay.aca.repository.VersamentoAcaRepository;
 import it.govpay.aca.repository.VersamentoRepository;
@@ -53,6 +59,10 @@ class UC_2_AggiornamentiTest {
 	@Autowired
 	@MockBean(name = "acaApi")
 	AcaApi acaApi;
+	
+	@Autowired
+	@MockBean
+	EventiApi gdeApi;
 
 	@Autowired
 	@Qualifier(value = "acaSenderJob")
@@ -81,6 +91,9 @@ class UC_2_AggiornamentiTest {
 	@Autowired
 	VersamentoRepository versamentoRepository;
 	
+	@Value("${it.govpay.aca.batch.client.baseUrl}")
+	String acaBaseUrl;
+	
 
 	private void initailizeJobLauncherTestUtils() throws Exception {
 		this.jobLauncherTestUtils = new JobLauncherTestUtils();
@@ -93,6 +106,17 @@ class UC_2_AggiornamentiTest {
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		this.versamentoFullRepository.deleteAll();
+		
+		Mockito.lenient()
+		.when(acaApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
+
+			@Override
+			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
+				ApiClient apiClient = new ApiClient();
+				apiClient.setBasePath(acaBaseUrl);
+				return apiClient;
+			}
+		});
 	}
 
 	@Test
@@ -110,6 +134,15 @@ class UC_2_AggiornamentiTest {
 						public ResponseEntity<Void> answer(InvocationOnMock invocation) throws Throwable {
 							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(null, HttpStatus.CREATED);
 							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(null);
 						}
 					});
 
@@ -164,6 +197,15 @@ class UC_2_AggiornamentiTest {
 							return mockResponseEntity;
 						}
 					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(null);
+						}
+					});
 
 			Assert.assertEquals(1, this.versamentoFullRepository.count());
 			Assert.assertEquals(1, this.versamentoAcaRepository.count());
@@ -198,6 +240,15 @@ class UC_2_AggiornamentiTest {
 						public ResponseEntity<Void> answer(InvocationOnMock invocation) throws Throwable {
 							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(null, HttpStatus.CREATED);
 							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(null);
 						}
 					});
 
