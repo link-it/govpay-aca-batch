@@ -2,7 +2,7 @@
 <Configuration status="WARN" monitorInterval="30">
     <Properties>
         <Property name="LOG_PATTERN">%p &lt;%d{dd-MM-yyyy HH:mm:ss.SSS}&gt; %C.%M(%L): %m %n %n</Property>
-	<Property name="APP_LOG_ROOT">@it.govpay.aca.batch.log.path@</Property>
+	<Property name="APP_LOG_ROOT">/var/log/govpay</Property>
     </Properties>
     <Appenders>
         <RollingFile name="hibernate"
@@ -39,7 +39,7 @@
     <Loggers>
 
         
-        <Logger name="it.govpay" level="@it.govpay.aca.batch.log.level@" additivity="false">
+        <Logger name="it.govpay" level="DEBUG" additivity="false">
             <AppenderRef ref="core" />
         </Logger>
 
@@ -55,7 +55,7 @@
             <AppenderRef ref="hibernate" />
         </Logger>
 
-        <Root level="@it.govpay.aca.batch.log.level@">
+        <Root level="DEBUG">
             <AppenderRef ref="core" />
         </Root>
 

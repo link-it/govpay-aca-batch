@@ -54,10 +54,6 @@
 
 		<jacoco.version>0.8.8</jacoco.version>
 		<wagon-ssh-external.version>3.5.3</wagon-ssh-external.version>
-
-		<env>localhost</env>
-		<rel-to-parent>.</rel-to-parent>
-		<filter-file>${rel-to-parent}/src/main/resources/filters/${env}.filter.properties</filter-file>
 	</properties>
 
 	<profiles>
@@ -394,9 +390,6 @@
 	</dependencies>
 
 	<build>
-		<filters>
-			<filter>${filter-file}</filter>
-		</filters>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -405,24 +398,6 @@
 		</resources>
 		<finalName>govpay-aca-batch</finalName>
 		<plugins>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>properties-maven-plugin</artifactId>
-				<version>1.0.0</version>
-				<executions>
-					<execution>
-						<phase>initialize</phase>
-						<goals>
-							<goal>read-project-properties</goal>
-						</goals>
-						<configuration>
-							<files>
-								<file>${filter-file}</file>
-							</files>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>

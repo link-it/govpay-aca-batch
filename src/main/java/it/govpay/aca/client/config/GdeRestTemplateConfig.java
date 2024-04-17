@@ -10,9 +10,6 @@ import it.govpay.gde.client.api.impl.ApiClient;
 @Configuration
 public class GdeRestTemplateConfig {
 
-    @Value("${it.govpay.gde.client.debugging:false}")
-    private boolean debugging;
-
     @Value("${it.govpay.gde.client.baseUrl}")
     protected String baseUrl;
 
@@ -20,7 +17,6 @@ public class GdeRestTemplateConfig {
     EventiApi gdeApi() {
         ApiClient apiClient= new ApiClient();
         apiClient.setBasePath(this.baseUrl);
-//        apiClient.setDebugging(this.debugging);
         return new EventiApi(apiClient);
     }
 }
