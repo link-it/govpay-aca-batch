@@ -9,50 +9,50 @@ Per la compilazione eseguire il seguente comando, verranno eseguiti anche i test
 
 
 ``` bash
-mvn clean install -Denv=[localhost]
+mvn clean install -P [jar|war]
 ```
 
-Il parametro env invece consente di valorizzare le properties per l'ambiente di installazione scelto (default: localhost).
+Il profilo permette di selezionare il packaging dei progetti (jar o war).
 
 Per l'avvio dell'applicativo come standalone eseguire:
 
 ``` bash
-mvn spring-boot:run -Denv=[localhost]
+mvn spring-boot:run
+```
+
+Per sovrascrivere le proprieta' definite nel file `application.properties` utilizzare il seguente sistema:
+
+``` bash
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dspring.datasource.url=[NUOVO_VALORE] ..."
+
 ```
 
 # Configurazione
 
-All'interno del file di filtro si possono definire le seguenti proprieta':
+All'interno del file `application.properties` sono definite le seguenti proprieta':
 
 ``` bash
-# ------------ DIRECTORY LAVORO ESTERNA -----------
-
-it.govpay.aca.batch.resource.path=[WORK_DIR]
-
-# ------------ LOGGING -------------------
-
-it.govpay.aca.batch.log.path=[LOG_DIR]
-it.govpay.aca.batch.log.level=[LOG_LEVEL]
 
 # ----------- SPRING SERVLET ------------
 
-it.govpay.aca.batch.server.port=[Porta su cui esporre il servizio in caso di avvio come applicazione standalone]
+server.port=[Porta su cui esporre il servizio in caso di avvio come applicazione standalone]
 
 # Abilitazione Endpoint /actuator/health/liveness
-it.govpay.aca.batch.spring.actuator.path=[Basepath dove esporre i servizi di stato applicazione]
+management.endpoints.web.base-path=[Basepath dove esporre i servizi di stato applicazione]
 
 # ------------ HIBERNATE & JPA -------------------
 
 # Configurazione DB
-#it.govpay.aca.batch.spring.datasource.jndiName=[JNDI NAME del datasource]
-it.govpay.aca.batch.spring.datasource.url=[URL CONNESSIONE DB]
-it.govpay.aca.batch.spring.datasource.driverClassName=[CLASSE DRIVER JDBC]
-it.govpay.aca.batch.spring.datasource.username=[USERNAME DB]
-it.govpay.aca.batch.spring.datasource.password=[PASSWORD DB]
+#spring.datasource.jndiName=[JNDI NAME del datasource]
+spring.datasource.url=[URL CONNESSIONE DB]
+spring.datasource.driverClassName=[CLASSE DRIVER JDBC]
+spring.datasource.username=[USERNAME DB]
+spring.datasource.password=[PASSWORD DB]
 
-it.govpay.aca.batch.spring.jpa.database-platform=[DIALECT JPA]
+spring.jpa.database-platform=[DIALECT JPA]
+spring.jpa.properties.hibernate.dialect=[DIALECT JPA]
 
-it.govpay.aca.batch.spring.jpa.hibernate.ddl-auto=[Configura il comportamento di Hibernate nella generazione dello schema del database.]
+spring.jpa.hibernate.ddl-auto=[Configura il comportamento di Hibernate nella generazione dello schema del database.]
 
 # -------------- BUSINESS LOGIC PROPERTIES  ----------------
 
@@ -70,4 +70,12 @@ it.govpay.aca.batch.dbreader.numeroPendenze.limit=[LIMIT PER LA RICERCA SUL DB]
 
 # Numero di giorni su cui limitare la ricerca delle pendenze da spedire all'ACA
 it.govpay.aca.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=[LIMITE TEMPORALE RICERCA PENDENZE DA SPEDIRE]
+
+# Configurazione GDE
+
+# Abilita il servizio GDE
+it.govpay.gde.enabled=[TRUE|FALSE]
+
+# Base URL del servizio GDE
+it.govpay.gde.client.baseUrl=[BASE URL SERVIZIO GDE]
 ```

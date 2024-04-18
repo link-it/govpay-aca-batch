@@ -9,11 +9,15 @@
         </Console>
     </Appenders>
     <Loggers>
-    	 <Logger name="org.springframework" level="error" additivity="false">
+    	<Logger name="it.govpay" level="DEBUG" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+    
+    	 <Logger name="org.springframework" level="OFF" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
 
-        <Logger name="org.hibernate" level="error" additivity="false">
+        <Logger name="org.hibernate" level="OFF" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
 

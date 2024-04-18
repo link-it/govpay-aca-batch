@@ -2,6 +2,7 @@ package it.govpay.aca.test;
 
 import static org.mockito.ArgumentMatchers.any;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
 import java.time.OffsetDateTime;
@@ -45,6 +46,7 @@ import it.govpay.aca.test.entity.VersamentoFullEntity;
 import it.govpay.aca.test.repository.ApplicazioneRepository;
 import it.govpay.aca.test.repository.DominioRepository;
 import it.govpay.aca.test.repository.VersamentoFullRepository;
+import it.govpay.aca.test.utils.AcaUtils;
 import it.govpay.aca.test.utils.VersamentoUtils;
 
 
@@ -94,6 +96,8 @@ class UC_2_AggiornamentiTest {
 	@Value("${it.govpay.aca.batch.client.baseUrl}")
 	String acaBaseUrl;
 	
+	HttpResponse<InputStream> mockHttpResponseOk;
+	
 
 	private void initailizeJobLauncherTestUtils() throws Exception {
 		this.jobLauncherTestUtils = new JobLauncherTestUtils();
@@ -117,6 +121,13 @@ class UC_2_AggiornamentiTest {
 				return apiClient;
 			}
 		});
+		
+		// Creazione del mock della HttpResponse
+		mockHttpResponseOk = Mockito.mock(HttpResponse.class);
+
+		// Configurazione del comportamento del mock
+		Mockito.lenient().when(mockHttpResponseOk.statusCode()).thenReturn(200);
+		Mockito.lenient().when(mockHttpResponseOk.body()).thenReturn(new ByteArrayInputStream("".getBytes()));
 	}
 
 	@Test
@@ -132,7 +143,7 @@ class UC_2_AggiornamentiTest {
 					)).thenAnswer(new Answer<ResponseEntity<Void>>() {
 						@Override
 						public ResponseEntity<Void> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(null, HttpStatus.CREATED);
+							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(AcaUtils.getHeadersCreatedOk(), HttpStatus.CREATED);
 							return mockResponseEntity;
 						}
 					});
@@ -142,7 +153,7 @@ class UC_2_AggiornamentiTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(null);
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -193,7 +204,7 @@ class UC_2_AggiornamentiTest {
 					)).thenAnswer(new Answer<ResponseEntity<Void>>() {
 						@Override
 						public ResponseEntity<Void> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(null, HttpStatus.CREATED);
+							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(AcaUtils.getHeadersCreatedOk(), HttpStatus.CREATED);
 							return mockResponseEntity;
 						}
 					});
@@ -203,7 +214,7 @@ class UC_2_AggiornamentiTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(null);
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -238,7 +249,7 @@ class UC_2_AggiornamentiTest {
 					)).thenAnswer(new Answer<ResponseEntity<Void>>() {
 						@Override
 						public ResponseEntity<Void> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(null, HttpStatus.CREATED);
+							ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(AcaUtils.getHeadersCreatedOk(), HttpStatus.CREATED);
 							return mockResponseEntity;
 						}
 					});
@@ -248,7 +259,7 @@ class UC_2_AggiornamentiTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(null);
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 

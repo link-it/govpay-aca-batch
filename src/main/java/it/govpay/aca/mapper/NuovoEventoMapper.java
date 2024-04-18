@@ -127,10 +127,11 @@ public interface NuovoEventoMapper {
 		DettaglioRisposta dettaglioRisposta = new DettaglioRisposta();
 
 		dettaglioRisposta.setDataOraRisposta(dataEnd);
-		dettaglioRisposta.setStatus(BigDecimal.valueOf(responseEntity.getStatusCodeValue()));
+		dettaglioRisposta.setStatus(responseEntity != null ? BigDecimal.valueOf(responseEntity.getStatusCodeValue()) : BigDecimal.valueOf(500));
 		// mappa gli headers
 		List<Header> headers = new ArrayList<>();
-		responseEntity.getHeaders().forEach((key, value) -> {
+		HttpHeaders httpHeaders = responseEntity != null ? responseEntity.getHeaders() : new HttpHeaders();
+		httpHeaders.forEach((key, value) -> {
 			Header header = new Header();
 			header.setNome(key);
 			header.setValore(value.get(0));

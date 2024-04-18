@@ -22,144 +22,81 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.govpay.gde.client.api.impl.ApiClient;
 import it.govpay.gde.client.api.impl.ApiException;
-import it.govpay.gde.client.api.impl.ApiResponse;
 import it.govpay.gde.client.beans.NuovoEvento;
 
-@javax.annotation.processing.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", date = "2024-04-16T17:01:57.580757+02:00[Europe/Rome]")
 public class EventiApi {
-  private final HttpClient memberVarHttpClient;
-  private final ObjectMapper memberVarObjectMapper;
-  private final String memberVarBaseUri;
-  private final Consumer<HttpRequest.Builder> memberVarInterceptor;
-  private final Duration memberVarReadTimeout;
-  private final Consumer<HttpResponse<InputStream>> memberVarResponseInterceptor;
-  private final Consumer<HttpResponse<String>> memberVarAsyncResponseInterceptor;
 
-  public EventiApi() {
-    this(new ApiClient());
-  }
+	private final Logger logger = LoggerFactory.getLogger(EventiApi.class);
 
-  public EventiApi(ApiClient apiClient) {
-    memberVarHttpClient = apiClient.getHttpClient();
-    memberVarObjectMapper = apiClient.getObjectMapper();
-    memberVarBaseUri = apiClient.getBaseUri();
-    memberVarInterceptor = apiClient.getRequestInterceptor();
-    memberVarReadTimeout = apiClient.getReadTimeout();
-    memberVarResponseInterceptor = apiClient.getResponseInterceptor();
-    memberVarAsyncResponseInterceptor = apiClient.getAsyncResponseInterceptor();
-  }
+	private final HttpClient memberVarHttpClient;
+	private final ObjectMapper memberVarObjectMapper;
+	private final String memberVarBaseUri;
+	private final Consumer<HttpRequest.Builder> memberVarInterceptor;
+	private final Duration memberVarReadTimeout;
 
-  protected ApiException getApiException(String operationId, HttpResponse<InputStream> response) throws IOException {
-    String body = response.body() == null ? null : new String(response.body().readAllBytes());
-    String message = formatExceptionMessage(operationId, response.statusCode(), body);
-    return new ApiException(response.statusCode(), message, response.headers(), body);
-  }
+	public EventiApi() {
+		this(new ApiClient());
+	}
 
-  private String formatExceptionMessage(String operationId, int statusCode, String body) {
-    if (body == null || body.isEmpty()) {
-      body = "[no body]";
-    }
-    return operationId + " call failed with: " + statusCode + " - " + body;
-  }
+	public EventiApi(ApiClient apiClient) {
+		memberVarHttpClient = apiClient.getHttpClient();
+		memberVarObjectMapper = apiClient.getObjectMapper();
+		memberVarBaseUri = apiClient.getBaseUri();
+		memberVarInterceptor = apiClient.getRequestInterceptor();
+		memberVarReadTimeout = apiClient.getReadTimeout();
+	}
 
-  /**
-   * Salvataggio di un nuovo evento
-   * Salvataggio di un nuovo evento
-   * @param nuovoEvento  (required)
-   * @throws ApiException if fails to make API call
-   */
-  public void addEvento(NuovoEvento nuovoEvento) throws ApiException {
-    addEventoWithHttpInfo(nuovoEvento);
-  }
+	private HttpRequest.Builder addEventoRequestBuilder(NuovoEvento nuovoEvento) throws ApiException {
+		// verify the required parameter 'nuovoEvento' is set
+		if (nuovoEvento == null) {
+			throw new ApiException(400, "Missing the required parameter 'nuovoEvento' when calling addEvento");
+		}
 
-  /**
-   * Salvataggio di un nuovo evento
-   * Salvataggio di un nuovo evento
-   * @param nuovoEvento  (required)
-   * @return ApiResponse&lt;Void&gt;
-   * @throws ApiException if fails to make API call
-   */
-  public ApiResponse<Void> addEventoWithHttpInfo(NuovoEvento nuovoEvento) throws ApiException {
-    HttpRequest.Builder localVarRequestBuilder = addEventoRequestBuilder(nuovoEvento);
-    try {
-      HttpResponse<InputStream> localVarResponse = memberVarHttpClient.send(
-          localVarRequestBuilder.build(),
-          HttpResponse.BodyHandlers.ofInputStream());
-      if (memberVarResponseInterceptor != null) {
-        memberVarResponseInterceptor.accept(localVarResponse);
-      }
-      try {
-        if (localVarResponse.statusCode()/ 100 != 2) {
-          throw getApiException("addEvento", localVarResponse);
-        }
-        return new ApiResponse<Void>(
-          localVarResponse.statusCode(),
-          localVarResponse.headers().map(),
-          
-          null
-        );
-      } finally {
-        // Drain the InputStream
-        while (localVarResponse.body().read() != -1) {
-            // Ignore
-        }
-        localVarResponse.body().close();
-      }
-    } catch (IOException e) {
-      throw new ApiException(e);
-    }
-    catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new ApiException(e);
-    }
-  }
+		HttpRequest.Builder localVarRequestBuilder = HttpRequest.newBuilder();
 
-  private HttpRequest.Builder addEventoRequestBuilder(NuovoEvento nuovoEvento) throws ApiException {
-    // verify the required parameter 'nuovoEvento' is set
-    if (nuovoEvento == null) {
-      throw new ApiException(400, "Missing the required parameter 'nuovoEvento' when calling addEvento");
-    }
+		String localVarPath = "/eventi";
 
-    HttpRequest.Builder localVarRequestBuilder = HttpRequest.newBuilder();
+		localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
 
-    String localVarPath = "/eventi";
+		localVarRequestBuilder.header("Content-Type", "application/json");
+		localVarRequestBuilder.header("Accept", "application/problem+json");
 
-    localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
+		try {
+			byte[] localVarPostBody = memberVarObjectMapper.writeValueAsBytes(nuovoEvento);
+			localVarRequestBuilder.method("POST", HttpRequest.BodyPublishers.ofByteArray(localVarPostBody));
+		} catch (IOException e) {
+			throw new ApiException(e);
+		}
+		if (memberVarReadTimeout != null) {
+			localVarRequestBuilder.timeout(memberVarReadTimeout);
+		}
+		if (memberVarInterceptor != null) {
+			memberVarInterceptor.accept(localVarRequestBuilder);
+		}
+		return localVarRequestBuilder;
+	}
 
-    localVarRequestBuilder.header("Content-Type", "application/json");
-    localVarRequestBuilder.header("Accept", "application/problem+json");
-
-    try {
-      byte[] localVarPostBody = memberVarObjectMapper.writeValueAsBytes(nuovoEvento);
-      localVarRequestBuilder.method("POST", HttpRequest.BodyPublishers.ofByteArray(localVarPostBody));
-    } catch (IOException e) {
-      throw new ApiException(e);
-    }
-    if (memberVarReadTimeout != null) {
-      localVarRequestBuilder.timeout(memberVarReadTimeout);
-    }
-    if (memberVarInterceptor != null) {
-      memberVarInterceptor.accept(localVarRequestBuilder);
-    }
-    return localVarRequestBuilder;
-  }
- 
-  /**
-   * Salvataggio di un nuovo evento
-   *
-   * @param nuovoEvento (required)
-   * @return {@link CompletableFuture}
-   * @throws ApiException if fails to make API call
-   */
-  public CompletableFuture<HttpResponse<InputStream>> addEventoWithHttpInfoAsync(NuovoEvento nuovoEvento) throws ApiException {
-    HttpRequest.Builder localVarRequestBuilder = addEventoRequestBuilder(nuovoEvento);
-    return memberVarHttpClient.sendAsync(
-                    localVarRequestBuilder.build(),
-                    HttpResponse.BodyHandlers.ofInputStream())
-    ;
-  }
+	/**
+	 * Salvataggio di un nuovo evento
+	 *
+	 * @param nuovoEvento (required)
+	 * @return {@link CompletableFuture}
+	 * @throws ApiException if fails to make API call
+	 */
+	public CompletableFuture<HttpResponse<InputStream>> addEventoWithHttpInfoAsync(NuovoEvento nuovoEvento) throws ApiException {
+		HttpRequest.Builder localVarRequestBuilder = addEventoRequestBuilder(nuovoEvento);
+		logger.debug("Invio evento per la pendenza [IdA2A:{}, ID:{}] al GDE", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza());
+	       
+		return memberVarHttpClient.sendAsync(
+				localVarRequestBuilder.build(),
+				HttpResponse.BodyHandlers.ofInputStream())
+				;
+	}
 }

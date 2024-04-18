@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
@@ -46,7 +47,6 @@ public class SendPendenzaToAcaProcessor implements ItemProcessor<VersamentoAcaEn
 		NewDebtPositionRequest newDebtPositionRequest = this.newDebtPositionRequestMapperImpl.versamentoAcaToNewDebtPositionRequest(item);
 		
 		String basePath = this.acaApi.getApiClient().getBasePath();
-		logger.debug("basePath: {}", basePath);
 		try {
 			responseEntity = this.acaApi.newDebtPositionWithHttpInfo(newDebtPositionRequest);
 
@@ -57,7 +57,7 @@ public class SendPendenzaToAcaProcessor implements ItemProcessor<VersamentoAcaEn
 				this.gdeService.salvaInvioOk(newDebtPositionRequest, basePath, dataStart, OffsetDateTime.now(), item, responseEntity);
 				return item;
 			}
-		} catch (HttpClientErrorException e) {
+		} catch (HttpClientErrorException | HttpServerErrorException e) {
 			this.logErrorResponse(e);
 			ex = e;
 		} catch (ResourceAccessException e) {
