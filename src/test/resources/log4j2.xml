@@ -9,7 +9,7 @@
         </Console>
     </Appenders>
     <Loggers>
-    	<Logger name="it.govpay" level="DEBUG" additivity="false">
+    	<Logger name="it.govpay" level="OFF" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
     
@@ -21,11 +21,11 @@
             <AppenderRef ref="Console" />
         </Logger>
 
-        <Logger name="org.hibernate.type.descriptor.sql" level="error" additivity="false">
+        <Logger name="org.hibernate.type.descriptor.sql" level="OFF" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
     
-        <Root level="DEBUG">
+        <Root level="OFF">
             <AppenderRef ref="Console" />
         </Root>
     </Loggers>
