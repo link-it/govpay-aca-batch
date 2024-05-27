@@ -5,14 +5,16 @@ import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.scope.context.StepContext;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import it.govpay.aca.costanti.Costanti;
 import it.govpay.aca.entity.VersamentoAcaEntity;
 import it.govpay.aca.entity.VersamentoEntity;
 import it.govpay.aca.repository.VersamentoRepository;
@@ -23,26 +25,29 @@ public class PendenzaWriter implements ItemWriter<VersamentoAcaEntity>{
 
 	private Logger logger = LoggerFactory.getLogger(PendenzaWriter.class);
 
-	@Value("${it.govpay.aca.time-zone:Europe/Rome}")
+	@Value("${it.govpay.aca.time-zone}")
 	String timeZone;
+
+	private VersamentoRepository versamentoRepository;
 	
-	@Autowired
-	VersamentoRepository versamentoRepository;
-	
+	public PendenzaWriter(VersamentoRepository versamentoRepository) {
+		this.versamentoRepository = versamentoRepository;
+	}
+
 	@Transactional
 	@Override
 	public void write(Chunk<? extends VersamentoAcaEntity> chunk) throws Exception {
 		OffsetDateTime dataEsecuzioneJob = null;
-		
-		if(StepSynchronizationManager.getContext() != null 
-				&& StepSynchronizationManager.getContext().getStepExecution() != null 
-				&& StepSynchronizationManager.getContext().getStepExecution().getJobExecution() != null) {
-			JobExecution jobExecution = StepSynchronizationManager.getContext().getStepExecution().getJobExecution();
-			dataEsecuzioneJob = Utils.toOffsetDateTime(jobExecution.getStartTime(), this.timeZone);
+
+		StepContext context = StepSynchronizationManager.getContext();
+		if(context != null) {
+			StepExecution stepExecution = context.getStepExecution();
+			JobExecution jobExecution = stepExecution.getJobExecution();
+			dataEsecuzioneJob = Utils.toOffsetDateTime(jobExecution.getStartTime(), this.timeZone != null ? this.timeZone : Costanti.DEFAULT_TIME_ZONE);
 		}
-		
+
 		logger.debug("Salvataggio pendenze: verra' impostata come DataUltimaComunicazioneACA la data di inizio esecuzione del JOB.");
-		
+
 		for (VersamentoAcaEntity item : chunk) {
 			logger.debug("Ricerca pendenza con id {}", item.getId());
 			// Esegui l'aggiornamento puntuale delle due date aggiornate del versamento

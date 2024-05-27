@@ -3,11 +3,9 @@ package it.govpay.aca.costanti;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Costanti {
+	
+	private Costanti () {}
 
 	public static final String SEND_PENDENZE_ACA_STEPNAME = "spedizionePendenzeStep";
 	public static final String SEND_PENDENZE_ACA_JOBNAME= "acaSenderJob";
@@ -16,6 +14,8 @@ public class Costanti {
 	
 	public static final String GOVPAY_ACA_JOB_ID = "GovPay_ACA_JobID";
 	public static final String GOVPAY_ACA_JOB_PARAMETER_WHEN = "When";
+	
+	public static final String DEFAULT_TIME_ZONE = "Europe/Rome";
 	
 	
 	/* Costanti relative all'evento di invio all'aca da impostare per il salvataggio dell'evento */

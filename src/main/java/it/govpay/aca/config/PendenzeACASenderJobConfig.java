@@ -5,8 +5,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import javax.sql.DataSource;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -16,8 +14,6 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
-import org.springframework.batch.core.partition.PartitionHandler;
-import org.springframework.batch.core.partition.support.TaskExecutorPartitionHandler;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.integration.async.AsyncItemProcessor;
@@ -32,7 +28,6 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import it.govpay.aca.costanti.Costanti;
@@ -53,9 +48,6 @@ public class PendenzeACASenderJobConfig {
 	@Value("${it.govpay.aca.batch.jobs.acaSenderJob.steps.spedizionePendenzaStep.chunk-size:10}")
 	private Integer spedizionePendenzaStepChunkSize;
 
-	@Value("${it.govpay.aca.time-zone:Europe/Rome}")
-	String timeZone;
-	
 	@Value("${it.govpay.aca.batch.dbreader.numeroPendenze.limit:100}")
 	private Integer limit;
 	

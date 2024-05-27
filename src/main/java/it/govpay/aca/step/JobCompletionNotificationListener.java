@@ -1,5 +1,6 @@
 package it.govpay.aca.step;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import org.slf4j.Logger;
@@ -19,14 +20,16 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 	@Override
 	public void beforeJob(JobExecution jobExecution) {
 		String jobName = jobExecution.getJobInstance().getJobName();
-		String format =  jobExecution.getStartTime() != null ? jobExecution.getStartTime().format(formatter) : "-";
+		LocalDateTime startTime = jobExecution.getStartTime();
+		String format =  startTime != null ? startTime.format(formatter) : "-";
 		logger.info("Iniziata esecuzione Job: {}, {}", jobName, format);
 	}
 
 	@Override
 	public void afterJob(JobExecution jobExecution) {
 		String jobName = jobExecution.getJobInstance().getJobName();
-		String format = jobExecution.getEndTime() != null ? jobExecution.getEndTime().format(formatter) : "-";
+		LocalDateTime endTime = jobExecution.getEndTime();
+		String format = endTime != null ? endTime.format(formatter) : "-";
 		logger.info("Completata esecuzione del Job {}, {} Status: {}", jobName, format, jobExecution.getStatus());
 	}
 }
