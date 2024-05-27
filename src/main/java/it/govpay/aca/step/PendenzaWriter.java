@@ -1,13 +1,12 @@
 package it.govpay.aca.step;
 
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
+import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,9 +29,9 @@ public class PendenzaWriter implements ItemWriter<VersamentoAcaEntity>{
 	@Autowired
 	VersamentoRepository versamentoRepository;
 	
-	@Override
 	@Transactional
-	public void write(List<? extends VersamentoAcaEntity> items) throws Exception {
+	@Override
+	public void write(Chunk<? extends VersamentoAcaEntity> chunk) throws Exception {
 		OffsetDateTime dataEsecuzioneJob = null;
 		
 		if(StepSynchronizationManager.getContext() != null 
@@ -42,9 +41,10 @@ public class PendenzaWriter implements ItemWriter<VersamentoAcaEntity>{
 			dataEsecuzioneJob = Utils.toOffsetDateTime(jobExecution.getStartTime(), this.timeZone);
 		}
 		
-		logger.debug("Salvataggio pendenze: {}, verra' impostata come DataUltimaComunicazioneACA la data di inizio esecuzione del JOB.", items.stream().map(VersamentoAcaEntity::getId).collect(Collectors.toList()));
+		logger.debug("Salvataggio pendenze: verra' impostata come DataUltimaComunicazioneACA la data di inizio esecuzione del JOB.");
 		
-		for (VersamentoAcaEntity item : items) {
+		for (VersamentoAcaEntity item : chunk) {
+			logger.debug("Ricerca pendenza con id {}", item.getId());
 			// Esegui l'aggiornamento puntuale delle due date aggiornate del versamento
 			VersamentoEntity existingEntity = versamentoRepository.findById(item.getId()).orElse(null);
 			logger.debug("trovata pendenza {}", existingEntity);

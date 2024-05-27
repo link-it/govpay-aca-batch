@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+<configuration status="WARN" monitorInterval="30">
+
+	<Property name="LOG_PATTERN" value="%d{ISO8601} %-5level [%t] %C{1.}: %msg%n%throwable" />
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<Pattern>%white(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable</Pattern>
+		</encoder>
+	</appender>
+		
+	<logger name="it.govpay" level="INFO" additivity="false">
+		<appender-ref ref="STDOUT" />
+	</logger>
+	
+	<logger name="org.springframework" level="ERROR" additivity="false">
+		<appender-ref ref="STDOUT" />
+	</logger>
+	
+	<!--  Hibernate -->
+    <logger name="org.hibernate" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+	<root level="ERROR">
+		<appender-ref ref="STDOUT" />
+	</root>
+
+</configuration>
+	

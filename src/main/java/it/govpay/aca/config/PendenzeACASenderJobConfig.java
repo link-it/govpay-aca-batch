@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+import javax.sql.DataSource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
@@ -12,16 +14,16 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.partition.PartitionHandler;
+import org.springframework.batch.core.partition.support.TaskExecutorPartitionHandler;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.integration.async.AsyncItemProcessor;
 import org.springframework.batch.integration.async.AsyncItemWriter;
 import org.springframework.batch.item.data.RepositoryItemReader;
 import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,17 +32,20 @@ import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import it.govpay.aca.costanti.Costanti;
 import it.govpay.aca.entity.VersamentoAcaEntity;
 import it.govpay.aca.entity.VersamentoAcaEntity_;
 import it.govpay.aca.repository.VersamentoAcaRepository;
 import it.govpay.aca.repository.VersamentoFilters;
+import it.govpay.aca.step.JobCompletionNotificationListener;
 import it.govpay.aca.step.PendenzaWriter;
 import it.govpay.aca.step.SendPendenzaToAcaProcessor;
 
 @Configuration
-@EnableBatchProcessing
+//@EnableBatchProcessing
 public class PendenzeACASenderJobConfig {
 
 	private Logger logger = LoggerFactory.getLogger(PendenzeACASenderJobConfig.class);
@@ -48,15 +53,6 @@ public class PendenzeACASenderJobConfig {
 	@Value("${it.govpay.aca.batch.jobs.acaSenderJob.steps.spedizionePendenzaStep.chunk-size:10}")
 	private Integer spedizionePendenzaStepChunkSize;
 
-	@Autowired
-	private JobBuilderFactory jobs;
-
-	@Autowired
-	private StepBuilderFactory steps;
-
-	@Autowired
-	JobRepository jobRepository;
-	
 	@Value("${it.govpay.aca.time-zone:Europe/Rome}")
 	String timeZone;
 	
@@ -69,10 +65,11 @@ public class PendenzeACASenderJobConfig {
 	protected TaskExecutor taskExecutor() {
 		return new SimpleAsyncTaskExecutor(Costanti.MSG_SENDER_TASK_EXECUTOR_NAME);
 	}
-
+	
 	@Bean(name = Costanti.SEND_PENDENZE_ACA_JOBNAME)
-	public Job spedizionePendenzeACA(@Qualifier("spedizionePendenzaStep") Step spedizionePendenzaStep){
-		return jobs.get(Costanti.SEND_PENDENZE_ACA_JOBNAME)
+	public Job spedizionePendenzeACA(@Qualifier("spedizionePendenzaStep") Step spedizionePendenzaStep, JobRepository jobRepository, JobCompletionNotificationListener listener){
+		return new JobBuilder(Costanti.SEND_PENDENZE_ACA_JOBNAME, jobRepository)
+				.listener(listener)
 				.start(spedizionePendenzaStep)
 				.build();
 	}
@@ -112,46 +109,37 @@ public class PendenzeACASenderJobConfig {
                 .build();
     }
 
-	@Bean
-	@Qualifier("spedizionePendenzaStep")
+	@Bean(name = "spedizionePendenzaStep")
 	public Step spedizionePendenzaStep(
+			JobRepository jobRepository, PlatformTransactionManager transactionManager,
 			RepositoryItemReader<VersamentoAcaEntity> pendenzaItemReader,
 			SendPendenzaToAcaProcessor pendenzaSendProcessor,
 			PendenzaWriter pendenzaItemWriter)  {
-		return steps.get(Costanti.SEND_PENDENZE_ACA_STEPNAME)
-				.<VersamentoAcaEntity, Future<VersamentoAcaEntity>>chunk(this.spedizionePendenzaStepChunkSize)
+		return new StepBuilder(Costanti.SEND_PENDENZE_ACA_STEPNAME, jobRepository)
+				.<VersamentoAcaEntity, Future<VersamentoAcaEntity>>chunk(this.spedizionePendenzaStepChunkSize, transactionManager)
 				.reader(pendenzaItemReader)
 				.processor(asyncProcessor(pendenzaSendProcessor))
 				.writer(asyncMessageWriter(pendenzaItemWriter))
 				.faultTolerant()
-				.listener(new StepNotifyListener())
+				.listener(new StepListener())
 				.taskExecutor(taskExecutor())
 				.build();
 	}
 
-	// Listener per recuperare il numero di righe scritte nel file csv nello step notifyStep
-	public class StepNotifyListener implements StepExecutionListener {
+	public class StepListener implements StepExecutionListener {
 
 
 		@Override
 		public ExitStatus afterStep(StepExecution stepExecution)  {
-			logger.debug("afterStep {}", stepExecution); 
-			
-			logger.debug("afterStep: jobparams {}", stepExecution.getJobParameters());
-			
-			//			if(stepExecution.getReadCount()==0) {
-			//				throw new RuntimeException("Dati assenti nel csv delle notifiche");
-			//			}
-			//
-			//			stepExecution.getExecutionContext().put("NumRows", stepExecution.getWriteCount());
+			logger.debug("Completata {}", stepExecution); 
+			logger.debug("Jobparams utilizzati {}", stepExecution.getJobParameters());
 			return stepExecution.getExitStatus();
 		}
 
 		@Override
 		public void beforeStep(StepExecution stepExecution) {
-			logger.debug("beforeStep {}", stepExecution);
+			logger.debug("Inizio {}", stepExecution);
 		}
-
 	}
 
 }
