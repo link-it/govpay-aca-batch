@@ -2,10 +2,7 @@ package it.govpay.aca.test;
 
 import static org.mockito.ArgumentMatchers.any;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.http.HttpResponse;
-import java.util.concurrent.CompletableFuture;
+import java.net.URISyntaxException;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,10 +31,11 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import it.govpay.aca.Application;
 import it.govpay.aca.client.api.AcaApi;
 import it.govpay.aca.client.api.impl.ApiClient;
-import it.govpay.aca.client.beans.ProblemJson;
 import it.govpay.aca.client.gde.EventiApi;
 import it.govpay.aca.repository.VersamentoAcaRepository;
 import it.govpay.aca.repository.VersamentoRepository;
@@ -51,18 +49,17 @@ import it.govpay.aca.test.utils.VersamentoUtils;
 
 @SpringBootTest(classes = Application.class)
 @EnableAutoConfiguration
-@DisplayName("Test Invio ACA")
+@DisplayName("Test Invio ACA e GDE")
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
-class UC_1_HappyPathTest {
+class UC_4_GdeFailTest {
 
 	@Autowired
 	@MockBean(name = "acaApi")
 	AcaApi acaApi;
-	
+
 	@Autowired
-	@MockBean
 	EventiApi gdeApi;
 
 	@Autowired
@@ -88,15 +85,13 @@ class UC_1_HappyPathTest {
 
 	@Autowired
 	VersamentoAcaRepository versamentoAcaRepository;
-	
+
 	@Autowired
 	VersamentoRepository versamentoRepository;
-	
+
 	@Value("${it.govpay.aca.batch.client.baseUrl}")
 	String acaBaseUrl;
 	
-	HttpResponse<InputStream> mockHttpResponseOk;
-
 	private void initailizeJobLauncherTestUtils() throws Exception {
 		this.jobLauncherTestUtils = new JobLauncherTestUtils();
 		this.jobLauncherTestUtils.setJobLauncher(jobLauncher);
@@ -105,10 +100,10 @@ class UC_1_HappyPathTest {
 	}
 
 	@BeforeEach
-	void setUp() {
+	void setUp() throws URISyntaxException, JsonProcessingException {
 		MockitoAnnotations.openMocks(this);
 		this.versamentoFullRepository.deleteAll();
-	
+
 		Mockito.lenient()
 		.when(acaApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
 
@@ -119,45 +114,10 @@ class UC_1_HappyPathTest {
 				return apiClient;
 			}
 		});
-		
-		// Creazione del mock della HttpResponse
-		mockHttpResponseOk = Mockito.mock(HttpResponse.class);
-
-		// Configurazione del comportamento del mock
-		Mockito.lenient().when(mockHttpResponseOk.statusCode()).thenReturn(200);
-		Mockito.lenient().when(mockHttpResponseOk.body()).thenReturn(new ByteArrayInputStream("".getBytes()));
 	}
 
 	@Test
-	void TC_01_EmptyRunTest() throws Exception {
-		ResponseEntity<Void> mockResponseEntity = new ResponseEntity<>(AcaUtils.getHeadersCreatedOk(), HttpStatus.CREATED);
-
-		Mockito.lenient()
-		.when(acaApi.newDebtPositionWithHttpInfo(any()
-				)).thenAnswer(new Answer<ResponseEntity<Void>>() {
-					@Override
-					public ResponseEntity<Void> answer(InvocationOnMock invocation) throws Throwable {
-						return mockResponseEntity;
-					}
-				});
-		
-		Mockito.lenient()
-		.when(gdeApi.addEventoWithHttpInfoAsync(any()
-				)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-					@Override
-					public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-						return CompletableFuture.completedFuture(mockHttpResponseOk);
-					}
-				});
-
-
-		initailizeJobLauncherTestUtils();
-		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
-		Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
-	}
-
-	@Test
-	void TC_02_SendTestOk() throws Exception {
+	void TC_01_SendTest_GdeUnknowhost() throws Exception {
 		try {
 
 			VersamentoFullEntity versamentoAcaEntity = VersamentoUtils.creaVersamentoNonEseguito(this.versamentoFullRepository, this.applicazioneRepository, this.dominioRepository);
@@ -172,70 +132,17 @@ class UC_1_HappyPathTest {
 							return mockResponseEntity;
 						}
 					});
-			
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
 
 			Assert.assertEquals(1, this.versamentoFullRepository.count());
 			Assert.assertEquals(1, this.versamentoAcaRepository.count());
 			Assert.assertEquals(1, this.versamentoRepository.count());
-			
+
 			initailizeJobLauncherTestUtils();
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
 			Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
-			
+
 			Assert.assertEquals(1, this.versamentoFullRepository.count());
 			Assert.assertEquals(0, this.versamentoAcaRepository.count());
-			Assert.assertEquals(1, this.versamentoRepository.count());
-
-		} finally {
-			this.versamentoFullRepository.deleteAll();
-		}
-	}
-	
-	@Test
-	void TC_03_SendTest_KO() throws Exception {
-		try {
-
-			VersamentoFullEntity versamentoAcaEntity = VersamentoUtils.creaVersamentoNonEseguito(this.versamentoFullRepository, this.applicazioneRepository, this.dominioRepository);
-			this.versamentoFullRepository.save(versamentoAcaEntity);
-
-			Mockito.lenient()
-			.when(acaApi.newDebtPositionWithHttpInfo(any()
-					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
-						@Override
-						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = new ResponseEntity<>(AcaUtils.createProblem503(), AcaUtils.getHeadersProblem(), HttpStatus.SERVICE_UNAVAILABLE);
-							
-							return mockResponseEntity;
-						}
-					});
-			
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
-			Assert.assertEquals(1, this.versamentoFullRepository.count());
-			Assert.assertEquals(1, this.versamentoAcaRepository.count());
-			Assert.assertEquals(1, this.versamentoRepository.count());
-			
-			initailizeJobLauncherTestUtils();
-			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
-			Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
-			
-			Assert.assertEquals(1, this.versamentoFullRepository.count());
-			Assert.assertEquals(1, this.versamentoAcaRepository.count());
 			Assert.assertEquals(1, this.versamentoRepository.count());
 
 		} finally {

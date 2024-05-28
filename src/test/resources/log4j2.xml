@@ -9,6 +9,22 @@
         </Console>
     </Appenders>
     <Loggers>
+    	<Logger name="it.govpay" level="OFF" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+    
+    	 <Logger name="org.springframework" level="OFF" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+
+        <Logger name="org.hibernate" level="OFF" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+
+        <Logger name="org.hibernate.type.descriptor.sql" level="OFF" additivity="false">
+            <AppenderRef ref="Console" />
+        </Logger>
+    
         <Root level="OFF">
             <AppenderRef ref="Console" />
         </Root>
