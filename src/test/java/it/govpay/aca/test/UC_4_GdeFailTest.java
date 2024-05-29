@@ -1,10 +1,11 @@
 package it.govpay.aca.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.net.URISyntaxException;
 
-import org.junit.Assert;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,9 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.JobRepositoryTestUtils;
+import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +54,7 @@ import it.govpay.aca.test.utils.VersamentoUtils;
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
+@SpringBatchTest
 class UC_4_GdeFailTest {
 
 	@Autowired
@@ -63,16 +65,14 @@ class UC_4_GdeFailTest {
 	EventiApi gdeApi;
 
 	@Autowired
+	private JobLauncherTestUtils jobLauncherTestUtils;
+
+	@Autowired
+	private JobRepositoryTestUtils jobRepositoryTestUtils;
+
+	@Autowired
 	@Qualifier(value = "acaSenderJob")
 	private Job job;
-
-	@Autowired
-	private JobLauncher jobLauncher;
-
-	@Autowired
-	private JobRepository jobRepository;
-
-	private JobLauncherTestUtils jobLauncherTestUtils;
 
 	@Autowired
 	VersamentoFullRepository versamentoFullRepository;
@@ -93,11 +93,13 @@ class UC_4_GdeFailTest {
 	String acaBaseUrl;
 	
 	private void initailizeJobLauncherTestUtils() throws Exception {
-		this.jobLauncherTestUtils = new JobLauncherTestUtils();
-		this.jobLauncherTestUtils.setJobLauncher(jobLauncher);
-		this.jobLauncherTestUtils.setJobRepository(jobRepository);
-		this.jobLauncherTestUtils.setJob(job);
+		jobLauncherTestUtils.setJob(job);
 	}
+	
+	@AfterEach
+    void tearDown() {
+        jobRepositoryTestUtils.removeJobExecutions();
+    }
 
 	@BeforeEach
 	void setUp() throws URISyntaxException, JsonProcessingException {
@@ -133,17 +135,17 @@ class UC_4_GdeFailTest {
 						}
 					});
 
-			Assert.assertEquals(1, this.versamentoFullRepository.count());
-			Assert.assertEquals(1, this.versamentoAcaRepository.count());
-			Assert.assertEquals(1, this.versamentoRepository.count());
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, this.versamentoAcaRepository.count());
+			assertEquals(1, this.versamentoRepository.count());
 
 			initailizeJobLauncherTestUtils();
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
-			Assert.assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
-			Assert.assertEquals(1, this.versamentoFullRepository.count());
-			Assert.assertEquals(0, this.versamentoAcaRepository.count());
-			Assert.assertEquals(1, this.versamentoRepository.count());
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, this.versamentoAcaRepository.count());
+			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
 			this.versamentoFullRepository.deleteAll();

@@ -6,5 +6,5 @@ import it.govpay.aca.test.entity.VersamentoFullEntity;
 
 public interface VersamentoFullRepository extends JpaRepositoryImplementation<VersamentoFullEntity, Long>{
 
-	public Long findTopByOrderByIdDesc();
+	public VersamentoFullEntity findFirstByOrderByIdDesc();
 }

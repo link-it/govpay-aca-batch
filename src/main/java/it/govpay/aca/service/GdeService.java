@@ -48,13 +48,11 @@ public class GdeService {
 	                logger.info("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE completata con esito [{}].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), response.statusCode());
 	                return null;
 	            }).exceptionally(ex -> {
-	            	if (ex.getCause() instanceof HttpClientErrorException) {
-	                    HttpClientErrorException httpClientErrorException = (HttpClientErrorException) ex.getCause();
-	                    int statusCode = httpClientErrorException.getRawStatusCode();
+	            	if (ex.getCause() instanceof HttpClientErrorException httpClientErrorException) {
+	                    int statusCode = httpClientErrorException.getStatusCode().value();
 	                    logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore [%s],[%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), statusCode, ex.getMessage() ), ex);
-	                } else if (ex.getCause() instanceof HttpServerErrorException) {
-	                	HttpServerErrorException httpServerErrorException = (HttpServerErrorException) ex.getCause();
-	                    int statusCode = httpServerErrorException.getRawStatusCode();
+	                } else if (ex.getCause() instanceof HttpServerErrorException httpServerErrorException) {
+	                    int statusCode = httpServerErrorException.getStatusCode().value();
 	                    logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore [%s],[%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), statusCode, ex.getMessage() ), ex);
 	                } else {
 	                    logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore [%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), ex.getMessage()), ex);
@@ -62,7 +60,7 @@ public class GdeService {
 	                return null;
 	            });
 	        } catch (HttpClientErrorException | HttpServerErrorException e) {
-	        	 int statusCode = e.getRawStatusCode();
+	        	 int statusCode = e.getStatusCode().value();
 	            logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore: [%s],[%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), statusCode, e.getResponseBodyAsString()), e);
 	        } catch (ApiException e) {
 	            logger.error(String.format("GDE non raggiungibile: %s", e.getMessage()), e);

@@ -14,6 +14,7 @@ import it.govpay.gde.client.beans.RuoloEvento;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
@@ -68,10 +69,9 @@ public interface NuovoEventoMapper {
 		NuovoEvento nuovoEvento = mapEvento(objectMapper, newDebtPositionRequest, baseUrl, dataStart, dataEnd, versamentoAcaEntity, responseEntity, restClientException);
 
 		if(restClientException != null) {
-			if (restClientException instanceof HttpStatusCodeException) {
-				HttpStatusCodeException httpStatusCodeException = (HttpStatusCodeException) restClientException;
+			if (restClientException instanceof HttpStatusCodeException httpStatusCodeException) {
 				nuovoEvento.setDettaglioEsito(httpStatusCodeException.getResponseBodyAsString());
-				nuovoEvento.setSottotipoEsito(httpStatusCodeException.getRawStatusCode() + "");
+				nuovoEvento.setSottotipoEsito(httpStatusCodeException.getStatusCode() + "");
 				
 				if (httpStatusCodeException.getStatusCode().is5xxServerError()) {
 					nuovoEvento.setEsito(EsitoEvento.FAIL);
@@ -83,8 +83,8 @@ public interface NuovoEventoMapper {
 				nuovoEvento.setSottotipoEsito("500");
 			}
 		} else {
-			nuovoEvento.setDettaglioEsito(responseEntity.getStatusCode().getReasonPhrase());
-			nuovoEvento.setSottotipoEsito("" + responseEntity.getStatusCodeValue());
+			nuovoEvento.setDettaglioEsito(HttpStatus.valueOf(responseEntity.getStatusCode().value()).getReasonPhrase());
+			nuovoEvento.setSottotipoEsito("" + responseEntity.getStatusCode().value());
 			if (responseEntity.getStatusCode().is5xxServerError()) {
 				nuovoEvento.setEsito(EsitoEvento.FAIL);
 			} else {
@@ -127,7 +127,7 @@ public interface NuovoEventoMapper {
 		DettaglioRisposta dettaglioRisposta = new DettaglioRisposta();
 
 		dettaglioRisposta.setDataOraRisposta(dataEnd);
-		dettaglioRisposta.setStatus(responseEntity != null ? BigDecimal.valueOf(responseEntity.getStatusCodeValue()) : BigDecimal.valueOf(500));
+		dettaglioRisposta.setStatus(responseEntity != null ? BigDecimal.valueOf(responseEntity.getStatusCode().value()) : BigDecimal.valueOf(500));
 		// mappa gli headers
 		List<Header> headers = new ArrayList<>();
 		HttpHeaders httpHeaders = responseEntity != null ? responseEntity.getHeaders() : new HttpHeaders();

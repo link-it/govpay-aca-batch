@@ -50,7 +50,7 @@ public class SendPendenzaToAcaProcessor implements ItemProcessor<VersamentoAcaEn
 		try {
 			responseEntity = this.acaApi.newDebtPositionWithHttpInfo(newDebtPositionRequest);
 
-			logger.info("Spedizione Pendenza [IdA2A:{}, ID:{}] all'ACA completata con esito [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCodeValue());
+			logger.info("Spedizione Pendenza [IdA2A:{}, ID:{}] all'ACA completata con esito [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCode().value());
 
 			if(responseEntity.getStatusCode().is2xxSuccessful()) {
 				// salvataggio evento invio ok
@@ -78,7 +78,7 @@ public class SendPendenzaToAcaProcessor implements ItemProcessor<VersamentoAcaEn
 		else {
 			logger.error("Ricevuto client error da ACA: {}", e.getMessage());
 		}
-		logger.debug("HTTP Status Code: {}", e.getRawStatusCode());
+		logger.debug("HTTP Status Code: {}", e.getStatusCode().value());
 		logger.debug("Status Text: {}", e.getStatusText());
 		logger.debug("HTTP Headers: {}", e.getResponseHeaders());
 		logger.debug("Response Body: {}", e.getResponseBodyAsString());	

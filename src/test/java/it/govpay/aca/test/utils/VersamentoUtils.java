@@ -19,8 +19,9 @@ import it.govpay.aca.test.repository.VersamentoFullRepository;
 public class VersamentoUtils {
 	
 	public static Long getNextVersamentoId(VersamentoFullRepository versamentoFullRepository) {
-		Long maxId = versamentoFullRepository.findTopByOrderByIdDesc();
-		if(maxId == null) maxId = 1L;
+		VersamentoFullEntity versamentoFullEntity = versamentoFullRepository.findFirstByOrderByIdDesc();
+		Long maxId = 0L;
+		if(versamentoFullEntity != null) maxId = versamentoFullEntity.getId();
 		
 		return maxId + 1;
 	}

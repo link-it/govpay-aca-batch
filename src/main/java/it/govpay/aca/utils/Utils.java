@@ -62,4 +62,10 @@ public class Utils {
 		ZoneId zoneId = ZoneId.of(timeZone);
 		return date.toInstant().atZone(zoneId).toOffsetDateTime();
 	}
+	
+	public static OffsetDateTime toOffsetDateTime(LocalDateTime date, String timeZone) {
+		if(date == null) return null;
+		ZoneId zoneId = ZoneId.of(timeZone);
+		return date.atZone(zoneId).toOffsetDateTime();
+	}
 }

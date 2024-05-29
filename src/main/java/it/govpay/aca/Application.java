@@ -48,7 +48,7 @@ public class Application extends SpringBootServletInitializer {
 	}
 	
 	@Scheduled(fixedDelayString = "${scheduler.acaSenderJob.fixedDelayString:600000}", initialDelayString = "${scheduler.initialDelayString:1}")
-	public void verifyMessagesJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException  {
+	public void runBatchPendenzeJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException  {
 		this.log.info("Running scheduled {}", Costanti.SEND_PENDENZE_ACA_JOBNAME);
 		this.runSendPendenzeAcaJob();
 	}
