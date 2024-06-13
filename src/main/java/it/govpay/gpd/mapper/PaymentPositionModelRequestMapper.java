@@ -1,0 +1,272 @@
+package it.govpay.gpd.mapper;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+
+import it.govpay.gpd.client.beans.PaymentOptionMetadataModel;
+import it.govpay.gpd.client.beans.PaymentOptionModel;
+import it.govpay.gpd.client.beans.PaymentPositionModel;
+import it.govpay.gpd.client.beans.Stamp;
+import it.govpay.gpd.client.beans.TransferModel;
+import it.govpay.gpd.client.beans.TransferModel.IdTransferEnum;
+import it.govpay.gpd.costanti.Costanti;
+import it.govpay.gpd.entity.SingoloVersamentoGpdEntity;
+import it.govpay.gpd.entity.VersamentoGpdEntity;
+import it.govpay.gpd.utils.Utils;
+
+@Mapper(componentModel = "spring")
+public interface PaymentPositionModelRequestMapper {
+
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_IUPD, source = "versamentoGpdEntity", qualifiedByName = "mapIupd")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_ACA, source = "aca")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAY_STAND_IN, source = "standIn") // feature flag to enable a debt position in stand-in mode
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_TYPE, source = "versamentoGpdEntity.debitoreTipo")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_FISCAL_CODE, source = "versamentoGpdEntity.debitoreIdentificativo")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_FULL_NAME, source = "versamentoGpdEntity.debitoreAnagrafica")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_STREET_NAME, source = "versamentoGpdEntity.debitoreIndirizzo")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_CIVIC_NUMBER, source = "versamentoGpdEntity.debitoreCivico")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_POSTAL_CODE, source = "versamentoGpdEntity.debitoreCap")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_CITY, source = "versamentoGpdEntity.debitoreLocalita")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PROVINCE, source = "versamentoGpdEntity.debitoreProvincia")
+	//	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_REGION, source = "versamentoGpdEntity.debitoreRegione") // non c'e' nell'entity
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_COUNTRY, source = "versamentoGpdEntity.debitoreNazione")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_EMAIL, source = "versamentoGpdEntity.debitoreEmail")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PHONE, source = "versamentoGpdEntity.debitoreCellulare")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_SWITCH_TO_EXPIRED, source = "switchToExpired") // feature flag to enable the debt position to expire after the due date   
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_COMPANY_NAME, source = "versamentoGpdEntity.ragioneSocialeDominio")
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_OFFICE_NAME, source = "versamentoGpdEntity" , qualifiedByName = "mapUoAnagrafica" )
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_VALIDITY_DATE, source = "versamentoGpdEntity", qualifiedByName = "mapValidityDate" ) // se impostata a null la PD viene pubblicata in automatico
+	// @Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAYMENT_DATE, source = "versamentoGpdEntity") attributo read only viene restituito dal servizio e ignorato in request 
+	// @Mapping(target = PaymentPositionModel.JSON_PROPERTY_STATUS, source = "status")  attributo read only viene restituito dal servizio e ignorato in request 
+	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAYMENT_OPTION, source = "versamentoGpdEntity", qualifiedByName = "mapPaymentOption")
+	public PaymentPositionModel versamentoGpdToPaymentPositionModel(VersamentoGpdEntity versamentoGpdEntity, boolean aca, boolean standIn, boolean switchToExpired);
+
+
+	@Named("mapIupd")
+	public default String mapIupd(VersamentoGpdEntity versamentoGpdEntity) {
+		return Utils.generaIupd(versamentoGpdEntity);
+	}
+
+	@Named("mapUoAnagrafica")
+	public default String mapUoAnagrafica(VersamentoGpdEntity versamentoGpdEntity) {
+		if (versamentoGpdEntity == null || versamentoGpdEntity.getCodUo() == null) {
+	        return null;
+	    }
+
+	    if (!Costanti.EC.equals(versamentoGpdEntity.getCodUo())) {
+	        return versamentoGpdEntity.getUoDenominazione();
+	    }
+
+	    return null;
+	}
+
+	@Named("mapValidityDate")
+	public default OffsetDateTime mapValidityDate(VersamentoGpdEntity versamentoGpdEntity) {
+		// Otteniamo l'offset per il fuso orario di Roma
+		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
+		return Utils.calcolaDueDate(versamentoGpdEntity).atOffset(offset);
+	}
+
+	@Named("mapPaymentOption")
+	public default List<PaymentOptionModel> mapPaymentOption(VersamentoGpdEntity versamentoGpdEntity) {
+		List<PaymentOptionModel> list = new ArrayList<>();
+		list.add(versamentoGpdToPaymentOptionModel(versamentoGpdEntity));
+		return list;
+	}
+
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_NAV, source = "versamentoGpdEntity.numeroAvviso")
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_IUV, source = "versamentoGpdEntity.iuvVersamento")
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_AMOUNT, source = "versamentoGpdEntity.importoTotale", qualifiedByName = "amountMapper")
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_DESCRIPTION, source = "versamentoGpdEntity.causaleVersamento")
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_IS_PARTIAL_PAYMENT, source = "versamentoGpdEntity", qualifiedByName = "mapPartialPayment") // TODO pagamento parziale? rata?
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_DUE_DATE, source = "versamentoGpdEntity", qualifiedByName = "mapDueDate") 
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_RETENTION_DATE, source = "versamentoGpdEntity", qualifiedByName = "mapRetentionDate") 
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_FEE, source = "versamentoGpdEntity", qualifiedByName = "mapFee") 
+	// @Mapping(target = PaymentOptionModel.JSON_PROPERTY_NOTIFICATION_FEE, source = "versamentoGpdEntity", qualifiedByName = "mapNotificationFee") attributo readonly
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_TRANSFER, source = "versamentoGpdEntity", qualifiedByName = "mapTransfer")
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_PAYMENT_OPTION_METADATA, source = "versamentoGpdEntity", qualifiedByName = "mapMetadataVersamento")
+	public PaymentOptionModel versamentoGpdToPaymentOptionModel(VersamentoGpdEntity versamentoGpdEntity);
+
+	@Named("amountMapper")
+	public default Long amountMapper(Double importo) {
+		String printImporto = Utils.printImporto(BigDecimal.valueOf(importo), true);
+		return Long.valueOf(printImporto);
+	}
+
+	@Named("mapPartialPayment")
+	public default Boolean mapPartialPayment(VersamentoGpdEntity versamentoGpdEntity) {
+		return false;
+	}
+
+	@Named("mapDueDate")
+	public default OffsetDateTime mapDueDate(VersamentoGpdEntity versamentoGpdEntity) {
+		// Otteniamo l'offset per il fuso orario di Roma
+		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
+		return Utils.calcolaDueDate(versamentoGpdEntity).atOffset(offset);
+	}
+
+	@Named("mapRetentionDate")
+	public default OffsetDateTime mapRetentionDate(VersamentoGpdEntity versamentoGpdEntity) {
+		// Otteniamo l'offset per il fuso orario di Roma
+		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
+		return Utils.calcolaDueDate(versamentoGpdEntity).atOffset(offset);
+	}
+
+	@Named("mapFee")
+	public default Long mapFee(VersamentoGpdEntity versamentoGpdEntity) {
+		return null;
+	}
+
+	@Named("mapTransfer")
+	public default List<TransferModel> mapTransfer(VersamentoGpdEntity versamentoGpdEntity) {
+		List<TransferModel> list = new ArrayList<>();
+
+		for (SingoloVersamentoGpdEntity singoloVersamento : versamentoGpdEntity.getSingoliVersamenti()) {
+			list.add(singoloVersamentoGpdToTransferModel(singoloVersamento, versamentoGpdEntity));
+		}
+
+		return list;
+	}
+
+	@Named("mapMetadataVersamento")
+	public default List<PaymentOptionMetadataModel> mapMetadataVersamento(VersamentoGpdEntity versamentoGpdEntity) {
+		return new ArrayList<>();
+	}
+
+	public default TransferModel singoloVersamentoGpdToTransferModel(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, VersamentoGpdEntity versamentoGpdEntity) {
+		if ( singoloVersamentoGdpEntity == null || versamentoGpdEntity == null ) {
+			return null;
+		}
+
+		TransferModel transferModel = new TransferModel();
+
+		// TransferModel.JSON_PROPERTY_ID_TRANSFER
+		switch (singoloVersamentoGdpEntity.getIndiceDati()) {
+		case 1:
+			transferModel.setIdTransfer(IdTransferEnum._1); 
+			break;
+		case 2:
+			transferModel.setIdTransfer(IdTransferEnum._2); 
+			break;
+		case 3:
+			transferModel.setIdTransfer(IdTransferEnum._3); 
+			break;
+		case 4:
+			transferModel.setIdTransfer(IdTransferEnum._4); 
+			break;
+		case 5:
+			transferModel.setIdTransfer(IdTransferEnum._5); 
+			break;
+		default:
+			throw new IllegalArgumentException("Unexpected value: " + singoloVersamentoGdpEntity.getIndiceDati());
+		}
+
+		// TransferModel.JSON_PROPERTY_AMOUNT
+		transferModel.setAmount(amountMapper(singoloVersamentoGdpEntity.getImportoSingoloVersamento()));
+
+		// TransferModel.JSON_PROPERTY_ORGANIZATION_FISCAL_CODE
+		transferModel.setOrganizationFiscalCode(getCodDominioSingoloVersamento(singoloVersamentoGdpEntity, versamentoGpdEntity));
+
+		// TransferModel.JSON_PROPERTY_REMITTANCE_INFORMATION
+		transferModel.setRemittanceInformation(getRemittanceInformation(singoloVersamentoGdpEntity, versamentoGpdEntity.getIuvVersamento()));
+
+		// TransferModel.JSON_PROPERTY_CATEGORY
+		transferModel.setCategory(getCategory(singoloVersamentoGdpEntity));
+
+		// Bollo Telematico / IBAN
+		if(singoloVersamentoGdpEntity.getTipoBollo() != null) {
+			// TransferModel.JSON_PROPERTY_STAMP
+			Stamp stamp = new Stamp();
+			stamp.setHashDocument(singoloVersamentoGdpEntity.getHashDocumento());
+			stamp.setProvincialResidence(singoloVersamentoGdpEntity.getProvinciaResidenza());
+			stamp.setStampType(singoloVersamentoGdpEntity.getTipoBollo());
+			transferModel.setStamp(stamp );
+		} else {
+
+			boolean postale = false;
+			String ibanScelto = null;
+
+			if(singoloVersamentoGdpEntity.getCodContabilita() != null) { // in questo caso ho le informazioni relative all'iban direttamente nel sv
+				String ibanAccredito = singoloVersamentoGdpEntity.getIbanAccredito();
+				String ibanAppoggio = singoloVersamentoGdpEntity.getIbanAppoggio();
+
+				if(ibanAccredito != null) {
+					ibanScelto = ibanAccredito;
+					postale = singoloVersamentoGdpEntity.getIbanAccreditoPostale();
+				} else if (ibanAppoggio != null) {
+					ibanScelto = ibanAppoggio;
+					postale = singoloVersamentoGdpEntity.getIbanAppoggioPostale();
+				} else {
+					// eccezione??
+				}
+			} else  {
+				String tributoIbanAccredito = singoloVersamentoGdpEntity.getTributoIbanAccredito();
+				String tributoIbanAppoggio = singoloVersamentoGdpEntity.getTributoIbanAppoggio();	
+
+				if(tributoIbanAccredito != null) {
+					ibanScelto = tributoIbanAccredito;
+					postale = singoloVersamentoGdpEntity.getTributoIbanAccreditoPostale();
+				} else if (tributoIbanAppoggio != null) {
+					ibanScelto = tributoIbanAppoggio;
+					postale = singoloVersamentoGdpEntity.getTributoIbanAppoggioPostale();
+				} else {
+					// eccezione??
+				}
+			}
+
+			// TransferModel.JSON_PROPERTY_POSTAL_IBAN
+			if(postale) {
+				transferModel.setPostalIban(ibanScelto);
+			} else { 			// TransferModel.JSON_PROPERTY_IBAN
+				transferModel.setIban(ibanScelto);
+			}
+		}
+		
+		// TransferModel.JSON_PROPERTY_TRANSFER_METADATA
+		// TODO decodifica metadata
+		
+		return transferModel;
+	}
+
+	public default String getCodDominioSingoloVersamento(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, VersamentoGpdEntity versamentoGpdEntity) {
+		if(singoloVersamentoGdpEntity.getCodDominio() != null)
+			return singoloVersamentoGdpEntity.getCodDominio();
+
+		return versamentoGpdEntity.getCodDominio();
+	}
+
+	public default String getRemittanceInformation(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, String iuv) {
+		return Utils.buildCausaleSingoloVersamento(iuv, singoloVersamentoGdpEntity.getImportoSingoloVersamento(), singoloVersamentoGdpEntity.getDescrizione(), singoloVersamentoGdpEntity.getDescrizioneCausaleRPT());
+	}
+
+	public default String getCategory(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity) {
+		String tipoContabilita = singoloVersamentoGdpEntity.getTipoContabilita();
+
+		if(tipoContabilita == null) {
+			if(singoloVersamentoGdpEntity.getTributoTipoContabilita() != null) {
+				tipoContabilita = singoloVersamentoGdpEntity.getTributoTipoContabilita(); 
+			} else {
+				tipoContabilita = singoloVersamentoGdpEntity.getTipoTributoTipoContabilita();
+			}
+		}
+
+		String codContabilita = singoloVersamentoGdpEntity.getCodContabilita();
+
+		if(codContabilita == null) {
+			if(singoloVersamentoGdpEntity.getTributoCodContabilita() != null) {
+				codContabilita = singoloVersamentoGdpEntity.getTributoCodContabilita(); 
+			} else {
+				codContabilita = singoloVersamentoGdpEntity.getTipoTributoCodContabilita();
+			}
+		}
+
+		return tipoContabilita + "/" + codContabilita;
+	}
+}

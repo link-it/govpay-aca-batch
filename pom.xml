@@ -9,12 +9,12 @@
 		<version>3.2.5</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>it.govpay.aca</groupId>
-	<artifactId>aca-batch-spedizione-avvisi</artifactId>
+	<groupId>it.govpay.gpd</groupId>
+	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
 	<version>1.0.0</version>
 	<packaging>${packaging.type}</packaging>
-	<name>GovPay - Batch - Spedizione Avvisi ACA</name>
-	<description>GovPay Modulo per la spedizione degli avvisi di pagamento all'archivio centralizzato PagoPA</description>
+	<name>GovPay - Batch - Caricamento Posizioni Debitorie</name>
+	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
 
 	<properties>
 		<java.version>21</java.version>
@@ -288,10 +288,10 @@
 						<goals>
 							<goal>generate</goal>
 						</goals>
-						<id>generate-sources-client-aca</id>
+						<id>generate-sources-client-gpd</id>
 						<phase>generate-sources</phase>
 						<configuration>
-							<inputSpec>${project.basedir}/src/main/resources/paCreatePosition.yaml</inputSpec>
+							<inputSpec>${project.basedir}/src/main/resources/gpd.json</inputSpec>
 							<generatorName>java</generatorName>
 							<configOptions>
 								<booleanGetterPrefix>is</booleanGetterPrefix>
@@ -299,9 +299,9 @@
 								<library>resttemplate</library>
 								<serializationLibrary>jackson</serializationLibrary>
 								<sourceFolder>generated-sources/java/</sourceFolder>
-								<apiPackage>it.govpay.aca.client.api</apiPackage>
-								<invokerPackage>it.govpay.aca.client.api.impl</invokerPackage>
-								<modelPackage>it.govpay.aca.client.beans</modelPackage>
+								<apiPackage>it.govpay.gpd.client.api</apiPackage>
+								<invokerPackage>it.govpay.gpd.client.api.impl</invokerPackage>
+								<modelPackage>it.govpay.gpd.client.beans</modelPackage>
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
 							</configOptions>
