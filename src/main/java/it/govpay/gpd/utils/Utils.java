@@ -7,7 +7,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -23,6 +22,10 @@ public class Utils {
 	private static final String PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 	
 	private static final DecimalFormat nFormatter = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ENGLISH));
+	
+	public static boolean invocaPublish(OffsetDateTime validityDate, boolean toPublish) {
+		return !(toPublish && validityDate == null);
+	}
 	
 	public static String generaIupd(VersamentoGpdEntity versamentoGpdEntity) {
 		return versamentoGpdEntity.getCodDominio() + versamentoGpdEntity.getCodApplicazione() + versamentoGpdEntity.getCodVersamentoEnte();
@@ -67,15 +70,15 @@ public class Utils {
 		} else if(versamento.getDataScadenza() != null) {
 			return versamento.getDataScadenza(); // indicates the expiration payment date
 		} else {
-			return LocalDateTime.MAX; //31.12.2999
+			return null; //LocalDateTime.MAX; //31.12.2999
 		}   
 	}
 	
-	public static OffsetDateTime toOffsetDateTime(Date date, String timeZone) {
-		if(date == null) return null;
-		ZoneId zoneId = ZoneId.of(timeZone);
-		return date.toInstant().atZone(zoneId).toOffsetDateTime();
-	}
+//	public static OffsetDateTime toOffsetDateTime(Date date, String timeZone) {
+//		if(date == null) return null;
+//		ZoneId zoneId = ZoneId.of(timeZone);
+//		return date.toInstant().atZone(zoneId).toOffsetDateTime();
+//	}
 	
 	public static OffsetDateTime toOffsetDateTime(LocalDateTime date, String timeZone) {
 		if(date == null) return null;

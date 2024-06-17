@@ -7,17 +7,45 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import it.govpay.gpd.client.beans.PaymentPositionModel;
+import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModel.StatusEnum;
 
 public class PaymentPositionModelUtils {
 	
 	private PaymentPositionModelUtils() {}
 	
+	public static ResponseEntity<PaymentPositionModelBaseResponse> creaResponseGetPositionOk(InvocationOnMock invocation, it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum statusEnum) {
+		String codDominio = invocation.getArgument(0);
+		String iupd = invocation.getArgument(1);
+		String xRequestId = invocation.getArgument(2);
+		
+		PaymentPositionModelBaseResponse response = new PaymentPositionModelBaseResponse();
+		response.setOrganizationFiscalCode(codDominio);
+		response.setIupd(iupd);
+		response.setStatus(statusEnum);
+		
+		ResponseEntity<PaymentPositionModelBaseResponse> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
+		return mockResponseEntity;
+	}
+	
+	public static ResponseEntity<PaymentPositionModel> creaResponsePublishPositionOk(InvocationOnMock invocation) {
+		String codDominio = invocation.getArgument(0);
+		String iupd = invocation.getArgument(1);
+		String xRequestId = invocation.getArgument(2);
+		
+		PaymentPositionModel response = new PaymentPositionModel(null, StatusEnum.VALID);
+		response.setFiscalCode(codDominio);
+		response.setIupd(iupd);
+		
+		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
+		return mockResponseEntity;
+	}
+	
 	public static ResponseEntity<PaymentPositionModel> creaResponseCreatePaymentPositionModelOk(InvocationOnMock invocation) {
 		PaymentPositionModel paymentPositionModel = invocation.getArgument(1);
 		String xRequestId = invocation.getArgument(2);
 		Boolean toPublish = invocation.getArgument(3);
-		StatusEnum status = PaymentPositionModelUtils.getStatus(toPublish);
+		StatusEnum status = PaymentPositionModelUtils.getStatus(toPublish, paymentPositionModel.getValidityDate());
 		
 		PaymentPositionModel response = PaymentPositionModelUtils.createPaymentPositionModelResponse(paymentPositionModel, null, status);
 		
@@ -25,8 +53,8 @@ public class PaymentPositionModelUtils {
 		return mockResponseEntity;
 	}
 	
-	public static StatusEnum getStatus(Boolean toPublish) {
-		if(toPublish != null && toPublish.booleanValue())
+	public static StatusEnum getStatus(Boolean toPublish, OffsetDateTime validityDate) {
+		if(toPublish != null && toPublish.booleanValue() && validityDate == null)
 			return StatusEnum.VALID;
 		
 		return StatusEnum.DRAFT;

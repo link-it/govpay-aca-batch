@@ -30,12 +30,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 
 import it.govpay.gpd.Application;
+import it.govpay.gpd.client.api.DebtPositionActionsApiApi;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
@@ -58,6 +60,10 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 	@Autowired
 	@MockBean(name = "gpdApi")
 	DebtPositionsApiApi gpdApi;
+	
+	@Autowired
+	@MockBean(name = "gpdActionsApi")
+	DebtPositionActionsApiApi gpdActionsApi;
 	
 	@Autowired
 	@MockBean
@@ -98,6 +104,17 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 		
 		Mockito.lenient()
 		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
+
+			@Override
+			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
+				ApiClient apiClient = new ApiClient();
+				apiClient.setBasePath(gpdBaseUrl);
+				return apiClient;
+			}
+		});
+		
+		Mockito.lenient()
+		.when(gpdActionsApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
 
 			@Override
 			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
@@ -189,6 +206,16 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					});
 			
 			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
@@ -229,6 +256,16 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 							return mockResponseEntity;
 						}
 					});

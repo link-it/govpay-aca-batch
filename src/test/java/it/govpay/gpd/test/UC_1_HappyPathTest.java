@@ -150,7 +150,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 
 			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
 			VersamentoFullEntity save = this.versamentoFullRepository.save(versamentoGpdEntity);
-
+			
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {

@@ -8,9 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 
-import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.ProblemJson;
-import it.govpay.gpd.client.beans.PaymentPositionModel.StatusEnum;
 
 public class GpdUtils {
 	

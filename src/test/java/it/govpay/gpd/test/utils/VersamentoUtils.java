@@ -28,6 +28,10 @@ import it.govpay.gpd.test.repository.VersamentoFullRepository;
 
 public class VersamentoUtils {
 	
+	public static String generaIupd(String codDominio, String codApplicazione, String codVersamentoEnte) {
+		return codDominio + codApplicazione + codVersamentoEnte;
+	}
+	
 	public static Long getNextVersamentoId(VersamentoFullRepository versamentoFullRepository) {
 		VersamentoFullEntity versamentoFullEntity = versamentoFullRepository.findFirstByOrderByIdDesc();
 		Long maxId = 0L;
