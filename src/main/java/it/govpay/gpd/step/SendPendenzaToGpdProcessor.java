@@ -158,7 +158,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 				this.gdeService.salvaUpdatePositionOk(paymentPositionModel, basePath, xRequestId, toPublish, dataStart, OffsetDateTime.now(), item, responseEntity);
 				
 				// la posizione deve essere pubblicata. Viene pubblicata automaticamente se toPublish = true e validityDate == null
-				if(Utils.invocaPublish(dataStart, this.toPublish)) {
+				if(Utils.invocaPublish(paymentPositionModel.getValidityDate(), this.toPublish)) {
 					// se la publish non va a buon fine lascio il versamento come da aggiornare, nei tentativi successivi verra' riprovato l'update
 					return this.publishPosition(item);
 				}

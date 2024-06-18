@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
@@ -242,7 +241,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 	}
 	
 	@Test
-	void TC_02_SendTest_DataScadenzaOk() throws Exception {
+	void TC_03_SendTest_DataScadenzaOk() throws Exception {
 		try {
 
 			// caricamento presso GPD versamento in stato non eseguito
@@ -285,6 +284,280 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			initailizeJobLauncherTestUtils();
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+		} finally {
+			this.versamentoFullRepository.deleteAll();
+		}
+	}
+	
+	@Test
+	void TC_04_SendTest_UpdateValidityDateOk() throws Exception {
+		try {
+
+			// caricamento presso GPD versamento in stato non eseguito
+			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
+			versamentoGpdEntity.setDataScadenza(OffsetDateTime.now().plusMonths(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			initailizeJobLauncherTestUtils();
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			// update pendenza e nuovo giro batch
+			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
+			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			Mockito.lenient()
+			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+			
+			initailizeJobLauncherTestUtils();
+			jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+		} finally {
+			this.versamentoFullRepository.deleteAll();
+		}
+	}
+	
+	@Test
+	void TC_05_SendTest_UpdateNoValidityDateOk() throws Exception {
+		try {
+
+			// caricamento presso GPD versamento in stato non eseguito
+			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
+//			versamentoGpdEntity.setDataScadenza(OffsetDateTime.now().plusMonths(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			initailizeJobLauncherTestUtils();
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			// update pendenza e nuovo giro batch
+			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
+			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			Mockito.lenient()
+			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+			
+			initailizeJobLauncherTestUtils();
+			jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+		} finally {
+			this.versamentoFullRepository.deleteAll();
+		}
+	}
+	
+	@Test
+	void TC_06_SendTest_InvalidateOk() throws Exception {
+		try {
+
+			// caricamento presso GPD versamento in stato non eseguito
+			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
+			versamentoGpdEntity.setDataScadenza(OffsetDateTime.now().plusMonths(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			initailizeJobLauncherTestUtils();
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			// update pendenza e nuovo giro batch
+			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
+			versamentoGpdEntity.setStatoVersamento(StatoVersamento.ANNULLATO);
+			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+			
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			Mockito.lenient()
+			.when(gpdActionsApi.invalidatePositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseInvalidatePositionOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+			
+			initailizeJobLauncherTestUtils();
+			jobExecution = jobLauncherTestUtils.launchJob();
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 			
 			assertEquals(1, this.versamentoFullRepository.count());

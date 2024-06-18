@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -251,5 +252,17 @@ public class VersamentoUtils {
 	public static long countVersamentiDaSpedire(VersamentoGpdRepository versamentoGpdRepository, Integer numeroGiorni) {
 		Specification<VersamentoGpdEntity> spec = VersamentoFilters.creaFiltriRicercaVersamentiDaSpedire(numeroGiorni);
 		return versamentoGpdRepository.count(spec); 
+	}
+	
+	public static void listaVersamentiDaSpedire(VersamentoGpdRepository versamentoGpdRepository, Integer numeroGiorni) {
+		Specification<VersamentoGpdEntity> spec = VersamentoFilters.creaFiltriRicercaVersamentiDaSpedire(numeroGiorni);
+		List<VersamentoGpdEntity> all = versamentoGpdRepository.findAll(spec);
+		
+		for (VersamentoGpdEntity versamentoGpdEntity : all) {
+			System.out.println("ID: " + versamentoGpdEntity.getId());
+			System.out.println("Data ultima comunicazione aca: " + versamentoGpdEntity.getDataUltimaComunicazioneAca());
+			System.out.println("Data ultima modifica aca: " + versamentoGpdEntity.getDataUltimaModificaAca());
+		}
+		
 	}
 }

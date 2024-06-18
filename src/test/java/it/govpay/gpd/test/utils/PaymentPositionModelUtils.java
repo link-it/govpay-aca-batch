@@ -41,6 +41,19 @@ public class PaymentPositionModelUtils {
 		return mockResponseEntity;
 	}
 	
+	public static ResponseEntity<PaymentPositionModel> creaResponseInvalidatePositionOk(InvocationOnMock invocation) {
+		String codDominio = invocation.getArgument(0);
+		String iupd = invocation.getArgument(1);
+		String xRequestId = invocation.getArgument(2);
+		
+		PaymentPositionModel response = new PaymentPositionModel(null, StatusEnum.INVALID);
+		response.setFiscalCode(codDominio);
+		response.setIupd(iupd);
+		
+		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
+		return mockResponseEntity;
+	}
+	
 	public static ResponseEntity<PaymentPositionModel> creaResponseCreatePaymentPositionModelOk(InvocationOnMock invocation) {
 		PaymentPositionModel paymentPositionModel = invocation.getArgument(1);
 		String xRequestId = invocation.getArgument(2);
@@ -50,6 +63,18 @@ public class PaymentPositionModelUtils {
 		PaymentPositionModel response = PaymentPositionModelUtils.createPaymentPositionModelResponse(paymentPositionModel, null, status);
 		
 		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.CREATED);
+		return mockResponseEntity;
+	}
+	
+	public static ResponseEntity<PaymentPositionModel> creaResponseUpdatePaymentPositionModelOk(InvocationOnMock invocation) {
+		PaymentPositionModel paymentPositionModel = invocation.getArgument(2);
+		String xRequestId = invocation.getArgument(3);
+		Boolean toPublish = invocation.getArgument(4);
+		StatusEnum status = PaymentPositionModelUtils.getStatus(toPublish, paymentPositionModel.getValidityDate());
+		
+		PaymentPositionModel response = PaymentPositionModelUtils.createPaymentPositionModelResponse(paymentPositionModel, null, status);
+		
+		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
 		return mockResponseEntity;
 	}
 	
