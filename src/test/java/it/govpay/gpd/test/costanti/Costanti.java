@@ -24,6 +24,8 @@ public class Costanti {
 	public static final String MBT_HASH_DOCUMENTO = "a/CWqtFtCEyA/ymBySahGSaqKMiak5mlX3BoX0jupy8=";
 	public static final String MBT_TIPO_BOLLO_01 = "01";
 	public static final String MBT_PROVINCIA_RO = "RO";
+	
+	public static final String COD_RATA_01 = "1";
 }
 
 

@@ -22,7 +22,7 @@ public class IuvUtils {
 	}
 
 	public static String getCheckDigit(String reference) throws IuvException {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		String referenceUpperCase = reference.toUpperCase();
 		for (int i = 0; i < referenceUpperCase.length(); i++){
 			char c = referenceUpperCase.charAt(i);        

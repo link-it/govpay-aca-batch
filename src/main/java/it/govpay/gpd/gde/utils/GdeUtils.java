@@ -1,6 +1,5 @@
 package it.govpay.gpd.gde.utils;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,8 +53,7 @@ public class GdeUtils {
 		Map<String, String> urlParams = new HashMap<>();
 		queryParams.put(("{" + Costanti.ORGANIZATION_FISCAL_CODE + "}"), codDominio);
 
-		String url = GdeUtils.valorizzaUrl(baseUrl, operationPath, urlParams, queryParams);
-		return url;
+		return GdeUtils.valorizzaUrl(baseUrl, operationPath, urlParams, queryParams);
 	}
 	
 	public static String creaUrlUpdatePosition(String codDominio, String iupd, String baseUrl, String operationPath, Boolean toPublish) {
@@ -68,8 +66,7 @@ public class GdeUtils {
 		queryParams.put(("{" + Costanti.ORGANIZATION_FISCAL_CODE + "}"), codDominio);
 		queryParams.put(("{" + Costanti.IUPD + "}"), iupd);
 
-		String url = GdeUtils.valorizzaUrl(baseUrl, operationPath, urlParams, queryParams);
-		return url;
+		return GdeUtils.valorizzaUrl(baseUrl, operationPath, urlParams, queryParams);
 	}
 
 	public static String valorizzaUrl(String url, String operationPath, Map<String, String> urlParams, Map<String, String> queryParams) {
@@ -88,6 +85,12 @@ public class GdeUtils {
 			}
 		}
 
+		url = appendQueryString(url, queryParams);
+
+		return url;
+	}
+
+	private static String appendQueryString(String url, Map<String, String> queryParams) {
 		if(queryParams != null && queryParams.size() > 0) {
 			StringBuilder sb = new StringBuilder();
 			for (Entry<String, String> queryParam : queryParams.entrySet()) {
@@ -104,7 +107,6 @@ public class GdeUtils {
 				url = url + "?" + sb.toString();
 			}
 		}
-
 		return url;
 	}
 

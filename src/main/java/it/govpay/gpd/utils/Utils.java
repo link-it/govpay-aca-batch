@@ -73,13 +73,7 @@ public class Utils {
 			return null; //LocalDateTime.MAX; //31.12.2999
 		}   
 	}
-	
-//	public static OffsetDateTime toOffsetDateTime(Date date, String timeZone) {
-//		if(date == null) return null;
-//		ZoneId zoneId = ZoneId.of(timeZone);
-//		return date.toInstant().atZone(zoneId).toOffsetDateTime();
-//	}
-	
+
 	public static OffsetDateTime toOffsetDateTime(LocalDateTime date, String timeZone) {
 		if(date == null) return null;
 		ZoneId zoneId = ZoneId.of(timeZone);

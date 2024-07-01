@@ -42,9 +42,6 @@ public class VersamentoFilters {
 	        List<String> stati = Arrays.asList(StatoVersamento.NON_ESEGUITO.name(), StatoVersamento.ANNULLATO.name());
 	        return root.get(VersamentoGpdEntity_.STATO_VERSAMENTO).in(stati);
 	    };
-	    
-//		return (Root<VersamentoGpdEntity> root, CriteriaQuery<?> query, CriteriaBuilder cb) ->
-//		cb.in(root.get(VersamentoGpdEntity_.STATO_VERSAMENTO)).value(StatoVersamento.NON_ESEGUITO.name()).value(StatoVersamento.ANNULLATO.name());
 	}
 	
 	public static Specification<VersamentoGpdEntity> creaFiltriRicercaVersamentiDaSpedire(Integer numeroGiorni) {

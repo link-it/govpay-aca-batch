@@ -13,7 +13,7 @@
 		</encoder>
 	</appender>
 
-	<logger name="it.govpay" level="DEBUG" additivity="false">
+	<logger name="it.govpay" level="OFF" additivity="false">
 		<appender-ref ref="STDOUT" />
 	</logger>
 
@@ -30,7 +30,7 @@
 		<appender-ref ref="STDOUT" />
 	</logger>
 	
-	<root level="DEBUG">
+	<root level="OFF">
 		<appender-ref ref="STDOUT" />
 	</root>
 

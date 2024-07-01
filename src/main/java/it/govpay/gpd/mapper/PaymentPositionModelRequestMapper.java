@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -28,6 +29,8 @@ import it.govpay.gpd.entity.MapEntry;
 import it.govpay.gpd.entity.Metadata;
 import it.govpay.gpd.entity.SingoloVersamentoGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
+import it.govpay.gpd.repository.SingoloVersamentoFilters;
+import it.govpay.gpd.repository.SingoloVersamentoGpdRepository;
 import it.govpay.gpd.utils.Utils;
 
 @Mapper(componentModel = "spring")
@@ -35,6 +38,9 @@ public abstract class PaymentPositionModelRequestMapper {
 	
 	@Autowired
 	ObjectMapper objectMapper;
+	
+	@Autowired
+	SingoloVersamentoGpdRepository singoloVersamentoGpdRepository; 
 	
 	@Value("${it.govpay.gpd.aca.enabled:true}")
 	Boolean aca;
@@ -123,7 +129,7 @@ public abstract class PaymentPositionModelRequestMapper {
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_IUV, source = "versamentoGpdEntity.iuvVersamento")
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_AMOUNT, source = "versamentoGpdEntity.importoTotale", qualifiedByName = "amountMapper")
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_DESCRIPTION, source = "versamentoGpdEntity.causaleVersamento")
-	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_IS_PARTIAL_PAYMENT, source = "versamentoGpdEntity", qualifiedByName = "mapPartialPayment") // TODO pagamento parziale? rata?
+	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_IS_PARTIAL_PAYMENT, source = "versamentoGpdEntity", qualifiedByName = "mapPartialPayment")
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_DUE_DATE, source = "versamentoGpdEntity", qualifiedByName = "mapDueDate") 
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_RETENTION_DATE, source = "versamentoGpdEntity", qualifiedByName = "mapRetentionDate") 
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_FEE, source = "versamentoGpdEntity", qualifiedByName = "mapFee") 
@@ -140,7 +146,7 @@ public abstract class PaymentPositionModelRequestMapper {
 
 	@Named("mapPartialPayment")
 	public Boolean mapPartialPayment(VersamentoGpdEntity versamentoGpdEntity) {
-		return false;
+		return versamentoGpdEntity.getCodRata() != null;
 	}
 
 	@Named("mapDueDate")
@@ -168,7 +174,8 @@ public abstract class PaymentPositionModelRequestMapper {
 	public List<TransferModel> mapTransfer(VersamentoGpdEntity versamentoGpdEntity) {
 		List<TransferModel> list = new ArrayList<>();
 
-		for (SingoloVersamentoGpdEntity singoloVersamento : versamentoGpdEntity.getSingoliVersamenti()) {
+		List<SingoloVersamentoGpdEntity> singoliVersamenti = this.singoloVersamentoGpdRepository.findAll(SingoloVersamentoFilters.byVersamentoId(versamentoGpdEntity.getId()));
+		for (SingoloVersamentoGpdEntity singoloVersamento : singoliVersamenti) {
 			list.add(singoloVersamentoGpdToTransferModel(singoloVersamento, versamentoGpdEntity));
 		}
 
@@ -188,6 +195,82 @@ public abstract class PaymentPositionModelRequestMapper {
 		TransferModel transferModel = new TransferModel();
 
 		// TransferModel.JSON_PROPERTY_ID_TRANSFER
+		mapIdTransfer(singoloVersamentoGdpEntity, transferModel);
+
+		// TransferModel.JSON_PROPERTY_AMOUNT
+		transferModel.setAmount(amountMapper(singoloVersamentoGdpEntity.getImportoSingoloVersamento()));
+
+		// TransferModel.JSON_PROPERTY_ORGANIZATION_FISCAL_CODE
+		transferModel.setOrganizationFiscalCode(getCodDominioSingoloVersamento(singoloVersamentoGdpEntity, versamentoGpdEntity));
+
+		// TransferModel.JSON_PROPERTY_REMITTANCE_INFORMATION
+		transferModel.setRemittanceInformation(getRemittanceInformation(singoloVersamentoGdpEntity, versamentoGpdEntity.getIuvVersamento()));
+		
+
+		// Bollo Telematico / IBAN
+		if(singoloVersamentoGdpEntity.getTipoBollo() != null) {
+			// TransferModel.JSON_PROPERTY_STAMP
+			Stamp stamp = new Stamp();
+			stamp.setHashDocument(singoloVersamentoGdpEntity.getHashDocumento());
+			stamp.setProvincialResidence(singoloVersamentoGdpEntity.getProvinciaResidenza());
+			stamp.setStampType(singoloVersamentoGdpEntity.getTipoBollo());
+			transferModel.setStamp(stamp );
+		} else {
+			mapInformazioniEntrata(singoloVersamentoGdpEntity, transferModel);
+		}
+		
+		// TransferModel.JSON_PROPERTY_TRANSFER_METADATA
+		transferModel.setTransferMetadata(this.getTransferMetadata(singoloVersamentoGdpEntity));
+		
+		return transferModel;
+	}
+
+
+	private void mapInformazioniEntrata(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, TransferModel transferModel) {
+		// TransferModel.JSON_PROPERTY_CATEGORY
+		transferModel.setCategory(getCategory(singoloVersamentoGdpEntity));
+
+		boolean postale = false;
+		String ibanScelto = null;
+
+		if(singoloVersamentoGdpEntity.getCodContabilita() != null) { // in questo caso ho le informazioni relative all'iban direttamente nel sv
+			String ibanAccredito = singoloVersamentoGdpEntity.getIbanAccredito();
+			String ibanAppoggio = singoloVersamentoGdpEntity.getIbanAppoggio();
+
+			if(ibanAccredito != null) {
+				ibanScelto = ibanAccredito;
+				postale = singoloVersamentoGdpEntity.getIbanAccreditoPostale();
+			} else if (ibanAppoggio != null) {
+				ibanScelto = ibanAppoggio;
+				postale = singoloVersamentoGdpEntity.getIbanAppoggioPostale();
+			} else {
+				// eccezione??
+			}
+		} else  {
+			String tributoIbanAccredito = singoloVersamentoGdpEntity.getTributoIbanAccredito();
+			String tributoIbanAppoggio = singoloVersamentoGdpEntity.getTributoIbanAppoggio();	
+
+			if(tributoIbanAccredito != null) {
+				ibanScelto = tributoIbanAccredito;
+				postale = singoloVersamentoGdpEntity.getTributoIbanAccreditoPostale();
+			} else if (tributoIbanAppoggio != null) {
+				ibanScelto = tributoIbanAppoggio;
+				postale = singoloVersamentoGdpEntity.getTributoIbanAppoggioPostale();
+			} else {
+				// eccezione??
+			}
+		}
+
+		// TransferModel.JSON_PROPERTY_POSTAL_IBAN
+		if(postale) {
+			transferModel.setPostalIban(ibanScelto);
+		} else { 			// TransferModel.JSON_PROPERTY_IBAN
+			transferModel.setIban(ibanScelto);
+		}
+	}
+
+
+	private void mapIdTransfer(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, TransferModel transferModel) {
 		switch (singoloVersamentoGdpEntity.getIndiceDati()) {
 		case 1:
 			transferModel.setIdTransfer(IdTransferEnum._1); 
@@ -207,72 +290,6 @@ public abstract class PaymentPositionModelRequestMapper {
 		default:
 			throw new IllegalArgumentException("Unexpected value: " + singoloVersamentoGdpEntity.getIndiceDati());
 		}
-
-		// TransferModel.JSON_PROPERTY_AMOUNT
-		transferModel.setAmount(amountMapper(singoloVersamentoGdpEntity.getImportoSingoloVersamento()));
-
-		// TransferModel.JSON_PROPERTY_ORGANIZATION_FISCAL_CODE
-		transferModel.setOrganizationFiscalCode(getCodDominioSingoloVersamento(singoloVersamentoGdpEntity, versamentoGpdEntity));
-
-		// TransferModel.JSON_PROPERTY_REMITTANCE_INFORMATION
-		transferModel.setRemittanceInformation(getRemittanceInformation(singoloVersamentoGdpEntity, versamentoGpdEntity.getIuvVersamento()));
-
-		// TransferModel.JSON_PROPERTY_CATEGORY
-		transferModel.setCategory(getCategory(singoloVersamentoGdpEntity));
-
-		// Bollo Telematico / IBAN
-		if(singoloVersamentoGdpEntity.getTipoBollo() != null) {
-			// TransferModel.JSON_PROPERTY_STAMP
-			Stamp stamp = new Stamp();
-			stamp.setHashDocument(singoloVersamentoGdpEntity.getHashDocumento());
-			stamp.setProvincialResidence(singoloVersamentoGdpEntity.getProvinciaResidenza());
-			stamp.setStampType(singoloVersamentoGdpEntity.getTipoBollo());
-			transferModel.setStamp(stamp );
-		} else {
-
-			boolean postale = false;
-			String ibanScelto = null;
-
-			if(singoloVersamentoGdpEntity.getCodContabilita() != null) { // in questo caso ho le informazioni relative all'iban direttamente nel sv
-				String ibanAccredito = singoloVersamentoGdpEntity.getIbanAccredito();
-				String ibanAppoggio = singoloVersamentoGdpEntity.getIbanAppoggio();
-
-				if(ibanAccredito != null) {
-					ibanScelto = ibanAccredito;
-					postale = singoloVersamentoGdpEntity.getIbanAccreditoPostale();
-				} else if (ibanAppoggio != null) {
-					ibanScelto = ibanAppoggio;
-					postale = singoloVersamentoGdpEntity.getIbanAppoggioPostale();
-				} else {
-					// eccezione??
-				}
-			} else  {
-				String tributoIbanAccredito = singoloVersamentoGdpEntity.getTributoIbanAccredito();
-				String tributoIbanAppoggio = singoloVersamentoGdpEntity.getTributoIbanAppoggio();	
-
-				if(tributoIbanAccredito != null) {
-					ibanScelto = tributoIbanAccredito;
-					postale = singoloVersamentoGdpEntity.getTributoIbanAccreditoPostale();
-				} else if (tributoIbanAppoggio != null) {
-					ibanScelto = tributoIbanAppoggio;
-					postale = singoloVersamentoGdpEntity.getTributoIbanAppoggioPostale();
-				} else {
-					// eccezione??
-				}
-			}
-
-			// TransferModel.JSON_PROPERTY_POSTAL_IBAN
-			if(postale) {
-				transferModel.setPostalIban(ibanScelto);
-			} else { 			// TransferModel.JSON_PROPERTY_IBAN
-				transferModel.setIban(ibanScelto);
-			}
-		}
-		
-		// TransferModel.JSON_PROPERTY_TRANSFER_METADATA
-		transferModel.setTransferMetadata(this.getTransferMetadata(singoloVersamentoGdpEntity));
-		
-		return transferModel;
 	}
 
 	public String getCodDominioSingoloVersamento(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, VersamentoGpdEntity versamentoGpdEntity) {

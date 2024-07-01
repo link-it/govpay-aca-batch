@@ -2,7 +2,6 @@ package it.govpay.gpd.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -51,14 +50,12 @@ import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.gde.client.EventiApi;
-import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.utils.GdeProblemUtils;
 import it.govpay.gpd.test.utils.GpdUtils;
 import it.govpay.gpd.test.utils.ObjectMapperUtils;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
-import it.govpay.gpd.utils.Utils;
 
 
 @SpringBootTest(classes = Application.class)
@@ -1070,6 +1067,27 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
 					))
 					.thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT, "Conflict"));
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModelBaseResponse> mockResponseEntity = PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.DRAFT);
+
+							return mockResponseEntity;
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
+							return mockResponseEntity;
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
@@ -1089,7 +1107,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
 			assertEquals(1, this.versamentoFullRepository.count());
-			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {

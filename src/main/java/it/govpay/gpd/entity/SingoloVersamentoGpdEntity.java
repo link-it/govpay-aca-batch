@@ -93,9 +93,12 @@ public class SingoloVersamentoGpdEntity {
 	@Column(name = "metadata")
 	private String metadata;
 	
-	@ManyToOne
-	@JoinColumn(name="id_versamento")
-	private VersamentoGpdEntity versamento;
+	@Column(name = "id_versamento")
+	private Long idVersamento;
+	
+//	@ManyToOne
+//	@JoinColumn(name="id_versamento")
+//	private VersamentoGpdEntity versamento;
 }
 
 /**

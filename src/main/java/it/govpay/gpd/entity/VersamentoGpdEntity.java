@@ -130,8 +130,8 @@ public class VersamentoGpdEntity {
 	@Column(name = "data_ultima_comunicazione_aca")
 	private OffsetDateTime dataUltimaComunicazioneAca;
 	
-	@OneToMany(mappedBy = "versamento")
-	private Set<SingoloVersamentoGpdEntity> singoliVersamenti;
+//	@OneToMany(mappedBy = "versamento")
+//	private Set<SingoloVersamentoGpdEntity> singoliVersamenti;
 }
 
 /**
