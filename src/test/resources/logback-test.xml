@@ -13,12 +13,12 @@
 		</encoder>
 	</appender>
 
-	<logger name="it.govpay" level="DEBUG" additivity="false">
+	<logger name="it.govpay" level="OFF" additivity="false">
 		<appender-ref ref="STDOUT" />
 	</logger>
 
 	<!-- Hibernate -->
-	<logger name="org.hibernate" level="INFO" additivity="false">
+	<logger name="org.hibernate" level="OFF" additivity="false">
 		<appender-ref ref="STDOUT" />
 	</logger>
 	
@@ -30,7 +30,7 @@
 		<appender-ref ref="STDOUT" />
 	</logger>
 	
-	<root level="INFO">
+	<root level="OFF">
 		<appender-ref ref="STDOUT" />
 	</root>
 
