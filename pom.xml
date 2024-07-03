@@ -6,18 +6,18 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.7.17</version>
+		<version>3.2.5</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>it.govpay.aca</groupId>
-	<artifactId>aca-batch-spedizione-avvisi</artifactId>
+	<groupId>it.govpay.gpd</groupId>
+	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
 	<version>1.0.0</version>
 	<packaging>${packaging.type}</packaging>
-	<name>GovPay - Batch - Spedizione Avvisi ACA</name>
-	<description>GovPay Modulo per la spedizione degli avvisi di pagamento all'archivio centralizzato PagoPA</description>
+	<name>GovPay - Batch - Caricamento Posizioni Debitorie</name>
+	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
 
 	<properties>
-		<java.version>11</java.version>
+		<java.version>21</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<maven.compiler.release>${java.version}</maven.compiler.release>
@@ -34,7 +34,7 @@
 		<commons-io.version>2.11.0</commons-io.version>
 
 		<!-- Swagger-codegen -->
-		<openapi.tool.codegen.version>6.2.1</openapi.tool.codegen.version>
+		<openapi.tool.codegen.version>6.4.0</openapi.tool.codegen.version>
 
 		<!-- jackson-databind-nullable -->
 		<jackson.databind.nullable.version>0.2.1</jackson.databind.nullable.version>
@@ -43,7 +43,6 @@
 		<javax.annotation.version>1.3.2</javax.annotation.version>
 
 		<!-- Swagger-annotations -->
-		<swagger.version>2.1.2</swagger.version>
 		<swagger-annotations.version>1.6.2</swagger-annotations.version>
 
 		<!-- annotazione bean generati notnull -->
@@ -52,8 +51,10 @@
 		<!-- mapper conversione oggetti -->
 		<mapstruct.version>1.5.1.Final</mapstruct.version>
 
-		<jacoco.version>0.8.8</jacoco.version>
+		<jacoco.version>0.8.12</jacoco.version>
 		<wagon-ssh-external.version>3.5.3</wagon-ssh-external.version>
+		
+		<javax.annotation-api.version>1.3.2</javax.annotation-api.version>
 	</properties>
 
 	<profiles>
@@ -108,171 +109,43 @@
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-starter-logging</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jcl-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jul-to-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>log4j-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate-validator</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classicr</artifactId>
-				</exclusion>
 			</exclusions>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
+			<artifactId>spring-boot-starter-logging</artifactId>
 			<exclusions>
 				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jcl-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jul-to-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>log4j-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate-validator</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classicr</artifactId>
+					<artifactId>logback-classic</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
-
+		
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-batch</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jcl-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jul-to-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>log4j-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate-validator</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classicr</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.batch</groupId>
-			<artifactId>spring-batch-integration</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jcl-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jul-to-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>log4j-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate-validator</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classicr</artifactId>
-				</exclusion>
-			</exclusions>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-api</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jcl-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>jul-to-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>log4j-over-slf4j</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.hibernate</groupId>
-					<artifactId>hibernate-validator</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classicr</artifactId>
-				</exclusion>
-			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-batch</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.batch</groupId>
+			<artifactId>spring-batch-integration</artifactId>
 		</dependency>
 
 		<dependency>
@@ -311,6 +184,7 @@
 		<dependency>
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
+			<version>${javax.annotation-api.version}</version>
 		</dependency>
 
 		<dependency>
@@ -345,28 +219,6 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-1.2-api</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-slf4j-impl</artifactId>
 		</dependency>
 
 		<!-- Integration Test -->
@@ -436,10 +288,10 @@
 						<goals>
 							<goal>generate</goal>
 						</goals>
-						<id>generate-sources-client-aca</id>
+						<id>generate-sources-client-gpd</id>
 						<phase>generate-sources</phase>
 						<configuration>
-							<inputSpec>${project.basedir}/src/main/resources/paCreatePosition.yaml</inputSpec>
+							<inputSpec>${project.basedir}/src/main/resources/gpd.json</inputSpec>
 							<generatorName>java</generatorName>
 							<configOptions>
 								<booleanGetterPrefix>is</booleanGetterPrefix>
@@ -447,9 +299,9 @@
 								<library>resttemplate</library>
 								<serializationLibrary>jackson</serializationLibrary>
 								<sourceFolder>generated-sources/java/</sourceFolder>
-								<apiPackage>it.govpay.aca.client.api</apiPackage>
-								<invokerPackage>it.govpay.aca.client.api.impl</invokerPackage>
-								<modelPackage>it.govpay.aca.client.beans</modelPackage>
+								<apiPackage>it.govpay.gpd.client.api</apiPackage>
+								<invokerPackage>it.govpay.gpd.client.api.impl</invokerPackage>
+								<modelPackage>it.govpay.gpd.client.beans</modelPackage>
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
 							</configOptions>
