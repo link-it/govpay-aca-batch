@@ -1,5 +1,5 @@
 # govpay-batch-aca
-Batch di alimentazione dell'ACA degli Avvisi pagoPA
+Batch di alimentazione del GPD degli Avvisi pagoPA
 
 ## Istruzioni di compilazione
 
@@ -57,19 +57,28 @@ spring.jpa.hibernate.ddl-auto=[Configura il comportamento di Hibernate nella gen
 # -------------- BUSINESS LOGIC PROPERTIES  ----------------
 
 # Informazioni per la connessione verso PagoPA
-it.govpay.aca.batch.client.header.subscriptionKey.name=[NOME HEADER SUBSCRIPTION-KEY]
-it.govpay.aca.batch.client.header.subscriptionKey.value=[VALORE SUBSCRIPTION-KEY]
-it.govpay.aca.batch.client.debugging=[DEBUG CHIAMATE VERSO IL SERVIZIO]
-it.govpay.aca.batch.client.baseUrl=[BASE URL SERVIZIO ACA PAGOPA]
+it.govpay.gpd.batch.client.header.subscriptionKey.name=[NOME HEADER SUBSCRIPTION-KEY]
+it.govpay.gpd.batch.client.header.subscriptionKey.value=[VALORE SUBSCRIPTION-KEY]
+it.govpay.gpd.batch.client.debugging=[DEBUG CHIAMATE VERSO IL SERVIZIO]
+it.govpay.gpd.batch.client.baseUrl=[BASE URL SERVIZIO ACA PAGOPA]
+
+# Indica se alimentare anche l'aca
+it.govpay.gpd.aca.enabled=[TRUE|FALSE]
+
+#Indica se la pendenza e' disponibile per la funzionalita' di standin
+it.govpay.gpd.standIn.enabled=[TRUE|FALSE]
+ 
+#Indica se tentare la pubblicazione direttamente senza passare dallo stato draft (valido solo se la pendenza non ha data scadenza)
+it.govpay.gpd.toPublish.enabled=[TRUE|FALSE]
 
 # Dimensione del chunk di lavoro
-it.govpay.aca.batch.jobs.acaSenderJob.steps.spedizionePendenzaStep.chunk-size=[DIMENSIONE CHUNK]
+it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=[DIMENSIONE CHUNK]
 
 # Limit da impostare nella query di ricerca sul DB
-it.govpay.aca.batch.dbreader.numeroPendenze.limit=[LIMIT PER LA RICERCA SUL DB]
+it.govpay.gpd.batch.dbreader.numeroPendenze.limit=[LIMIT PER LA RICERCA SUL DB]
 
 # Numero di giorni su cui limitare la ricerca delle pendenze da spedire all'ACA
-it.govpay.aca.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=[LIMITE TEMPORALE RICERCA PENDENZE DA SPEDIRE]
+it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=[LIMITE TEMPORALE RICERCA PENDENZE DA SPEDIRE]
 
 # Configurazione GDE
 
