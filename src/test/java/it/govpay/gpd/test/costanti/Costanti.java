@@ -12,6 +12,7 @@ public class Costanti {
 	public static final String CODTRIBUTO_SEGRETERIA = "SEGRETERIA";
 	public static final String CODTRIBUTO_DOVUTO = "DOVUTO";
 	public static final String CODTRIBUTO_SPONTANEO = "SPONTANEO";
+	public static final String CODTRIBUTO_DOVUTO_APPOGGIO = "DOVUTO_APPOGGIO";
 	
 	public static final String CODIBAN_ACCREDITO_DOM_1 = "IT02L1234512345123451111111";
 	public static final String CODIBAN_ACCREDITO_POSTALE_DOM_1 = "IT02L0760112345123452222211";

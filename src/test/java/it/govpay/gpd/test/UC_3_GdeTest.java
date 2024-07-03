@@ -50,7 +50,6 @@ import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.gde.client.EventiApi;
-import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.utils.GdeProblemUtils;
 import it.govpay.gpd.test.utils.GpdUtils;
 import it.govpay.gpd.test.utils.ObjectMapperUtils;
@@ -113,7 +112,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	@BeforeEach
 	void setUp() throws URISyntaxException, JsonProcessingException {
 		MockitoAnnotations.openMocks(this);
-		this.versamentoFullRepository.deleteAll();
+		this.cleanDB();
 
 		Mockito.lenient()
 		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
@@ -163,8 +162,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_01_SendTest_GpdOk() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoRifermentoConTributoIbanAppoggio();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -198,7 +197,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
@@ -206,8 +205,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_02_SendTest_GpdKO() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -242,7 +241,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -250,8 +249,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_03_SendTest_Gde400BadRequest_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -285,15 +284,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
 	@Test
 	void TC_04_SendTest_Gde400BadRequest_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -322,7 +321,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -330,8 +329,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_05_SendTest_Gde503ServiceUnavailable_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -365,15 +364,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
 	@Test
 	void TC_06_SendTest_Gde503ServiceUnavailable_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -402,7 +401,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -410,8 +409,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_07_SendTest_Gde401Unauthorized_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 					.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -449,15 +448,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
 	@Test
 	void TC_08_SendTest_Gde401Unauthorized_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -486,7 +485,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -494,8 +493,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_09_SendTest_Gde403Forbidden_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 					.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -533,15 +532,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
 	@Test
 	void TC_10_SendTest_Gde403Forbidden_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -570,7 +569,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -578,8 +577,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_11_SendTest_Gde404NotFound_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 					.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -617,15 +616,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
 	@Test
 	void TC_12_SendTest_Gde404NotFound_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -654,7 +653,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -662,8 +661,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_13_SendTest_Gde409Conflict_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 			
 			Mockito.lenient()
 					.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -701,15 +700,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
 	@Test
 	void TC_14_SendTest_Gde409Conflict_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -738,7 +737,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -746,8 +745,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_15_SendTest_Gde429TooManyRequests_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 					.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -785,15 +784,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
 	@Test
 	void TC_16_SendTest_Gde429TooManyRequests_WithException() throws Exception {
 		try {
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
@@ -822,7 +821,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
@@ -831,8 +830,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_17_SendTest_GpdKO_400BadRequest_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -867,7 +866,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -875,8 +874,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_18_SendTest_GpdKO_400BadRequest_WithException() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -905,7 +904,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -913,8 +912,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_19_SendTest_GpdKO_404NotFound_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -949,7 +948,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -957,8 +956,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_20_SendTest_GpdKO_404NotFound_WithException() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -987,7 +986,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -995,8 +994,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_21_SendTest_GpdKO_409Conflict_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -1052,7 +1051,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -1060,8 +1059,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_22_SendTest_GpdKO_409Conflict_WithException() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -1111,7 +1110,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -1119,8 +1118,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_23_SendTest_GpdKO_500InternalServerError_WithProblem() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -1155,7 +1154,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -1163,8 +1162,8 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	void TC_24_SendTest_GpdKO_500InternalServerError_WithException() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -1193,7 +1192,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 }

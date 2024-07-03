@@ -77,15 +77,15 @@ public class SingoloVersamentoFullEntity {
 	@Column(name = "id_iban_appoggio")
 	private Long idIbanAppoggio;
 	
-//	@Column(name = "id_versamento", nullable = false)
-//	private long idVersamento;
+	@Column(name = "id_versamento", nullable = false)
+	private long idVersamento;
 	
 	@Column(name = "metadata")
 	private String metadata;
 		
-	@ManyToOne
-    @JoinColumn(name = "id_versamento", nullable = false)
-	private VersamentoFullEntity versamento;
+//	@ManyToOne
+//    @JoinColumn(name = "id_versamento", nullable = false)
+//	private VersamentoFullEntity versamento;
 }
 
 

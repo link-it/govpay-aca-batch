@@ -106,7 +106,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 	@BeforeEach
 	void setUp() throws Exception {
 		MockitoAnnotations.openMocks(this);
-		this.versamentoFullRepository.deleteAll();
+		this.cleanDB();
 
 		Mockito.lenient()
 		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
@@ -171,8 +171,8 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 	void TC_02_SendTestOk() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 			
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -205,7 +205,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 
@@ -213,8 +213,8 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 	void TC_03_SendTest_KO() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoDefinitoConIbanAppoggio();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -249,7 +249,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -257,16 +257,11 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 	void TC_04_SendTestPendenzeMultipleOk() throws Exception {
 		try {
 
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
+			this.creaVersamentoNonEseguitoDefinito();
+			this.creaVersamentoNonEseguitoMBT();
 			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
-			
-			versamentoGpdEntity = this.creaVersamentoNonEseguitoDefinito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
-			
-			versamentoGpdEntity = this.creaVersamentoNonEseguitoMBT();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
-			
-			versamentoGpdEntity = this.creaVersamentoNonEseguito();
 			versamentoGpdEntity.setDataScadenza(OffsetDateTime.now().plusDays(30));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			
@@ -311,7 +306,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			assertEquals(4, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -319,8 +314,8 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 	void TC_05_SendTestPendenzaConRataOk() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguitoConRata(Costanti.COD_RATA_01);
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoConRata(Costanti.COD_RATA_01);
 			
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -358,7 +353,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 	
@@ -366,8 +361,8 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 	void TC_06_SendTestPendenzaConMetadataOk() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguitoConRata(Costanti.COD_RATA_01);
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoConMetadata();
 			
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -418,7 +413,59 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
+		}
+	}
+	
+	@Test
+	void TC_07_SendTestPendenzaMultivoceOk() throws Exception {
+		try {
+
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoMultivoceDefinito();
+			
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							PaymentPositionModel paymentPositionModel = invocation.getArgument(1);
+							List<PaymentOptionModel> paymentOption = paymentPositionModel.getPaymentOption();
+							assertNotNull(paymentOption);
+							
+							PaymentOptionModel paymentOptionModel = paymentOption.get(0);
+							
+							List<TransferModel> transferList = paymentOptionModel.getTransfer();
+							assertNotNull(transferList);
+							assertEquals(2, transferList.size());
+							
+							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+							return mockResponseEntity;
+						}
+					});
+
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
 		}
 	}
 }

@@ -7,7 +7,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -175,6 +174,7 @@ public abstract class PaymentPositionModelRequestMapper {
 		List<TransferModel> list = new ArrayList<>();
 
 		List<SingoloVersamentoGpdEntity> singoliVersamenti = this.singoloVersamentoGpdRepository.findAll(SingoloVersamentoFilters.byVersamentoId(versamentoGpdEntity.getId()));
+		
 		for (SingoloVersamentoGpdEntity singoloVersamento : singoliVersamenti) {
 			list.add(singoloVersamentoGpdToTransferModel(singoloVersamento, versamentoGpdEntity));
 		}

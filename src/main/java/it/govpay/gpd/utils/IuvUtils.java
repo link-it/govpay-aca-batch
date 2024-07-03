@@ -73,4 +73,14 @@ public class IuvUtils {
 		int diff98 = 98 - mod97.intValue();
 		return String.format("%02d", diff98);
 	}
+	
+	public static String getCheckDigit93(String reference, int auxDigit, int code) {
+		long resto93 = (Long.parseLong(String.valueOf(auxDigit) + String.format("%02d", code) + reference)) % 93;
+		return String.format("%02d", resto93);
+	}
+	
+	public static String getCheckDigit93(String reference, int auxDigit) {
+		long resto93 = (Long.parseLong(String.valueOf(auxDigit) + reference)) % 93;
+		return String.format("%02d", resto93);
+	}
 }

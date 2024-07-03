@@ -32,9 +32,17 @@ public class GpdUtils {
 		return headers;
 	}
 	
+	public static ResponseEntity<ProblemJson> creaResponseUpdateKo(InvocationOnMock invocation, HttpStatus httpStatus) throws URISyntaxException {
+		String xRequestId = invocation.getArgument(3);
+		return creaResponseKo(xRequestId, httpStatus);
+	}
+	
 	public static ResponseEntity<ProblemJson> creaResponseKo(InvocationOnMock invocation, HttpStatus httpStatus) throws URISyntaxException {
 		String xRequestId = invocation.getArgument(2);
-		
+		return creaResponseKo(xRequestId, httpStatus);
+	}
+	
+	public static ResponseEntity<ProblemJson> creaResponseKo(String xRequestId, HttpStatus httpStatus) throws URISyntaxException {
 		ProblemJson response = null;
 		
 		switch (httpStatus) {

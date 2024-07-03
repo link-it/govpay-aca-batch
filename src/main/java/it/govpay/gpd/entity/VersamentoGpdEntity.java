@@ -2,7 +2,6 @@ package it.govpay.gpd.entity;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.Set;
 
 import org.hibernate.annotations.Immutable;
 
@@ -11,7 +10,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -130,8 +128,6 @@ public class VersamentoGpdEntity {
 	@Column(name = "data_ultima_comunicazione_aca")
 	private OffsetDateTime dataUltimaComunicazioneAca;
 	
-//	@OneToMany(mappedBy = "versamento")
-//	private Set<SingoloVersamentoGpdEntity> singoliVersamenti;
 }
 
 /**

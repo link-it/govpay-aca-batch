@@ -54,11 +54,6 @@ public class EventiApi {
 	}
 
 	private HttpRequest.Builder addEventoRequestBuilder(NuovoEvento nuovoEvento) throws ApiException {
-		// verify the required parameter 'nuovoEvento' is set
-		if (nuovoEvento == null) {
-			throw new ApiException(400, "Missing the required parameter 'nuovoEvento' when calling addEvento");
-		}
-
 		HttpRequest.Builder localVarRequestBuilder = HttpRequest.newBuilder();
 
 		String localVarPath = "/eventi";

@@ -2,30 +2,37 @@ package it.govpay.gpd.test.utils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import org.springframework.data.jpa.domain.Specification;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import it.govpay.gpd.entity.MapEntry;
+import it.govpay.gpd.entity.Metadata;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity.StatoVersamento;
 import it.govpay.gpd.entity.VersamentoGpdEntity.TIPO;
-import it.govpay.gpd.repository.VersamentoGpdRepository;
+import it.govpay.gpd.exceptions.IuvException;
 import it.govpay.gpd.repository.VersamentoFilters;
+import it.govpay.gpd.repository.VersamentoGpdRepository;
 import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.gpd.test.entity.ApplicazioneEntity;
 import it.govpay.gpd.test.entity.DominioEntity;
 import it.govpay.gpd.test.entity.SingoloVersamentoFullEntity;
-import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.entity.SingoloVersamentoFullEntity.StatoSingoloVersamento;
+import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.repository.ApplicazioneRepository;
 import it.govpay.gpd.test.repository.DominioRepository;
 import it.govpay.gpd.test.repository.IbanAccreditoRepository;
+import it.govpay.gpd.test.repository.SingoloVersamentoFullRepository;
 import it.govpay.gpd.test.repository.TributoRepository;
 import it.govpay.gpd.test.repository.VersamentoFullRepository;
+import it.govpay.gpd.utils.IuvUtils;
 
 public class VersamentoUtils {
 	
@@ -40,53 +47,163 @@ public class VersamentoUtils {
 		
 		return maxId + 1;
 	}
-
-	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceDefinito(VersamentoFullRepository versamentoFullRepository, ApplicazioneRepository applicazioneRepository,
-			DominioRepository dominioRepository, IbanAccreditoRepository ibanAccreditoRepository) {
+	
+	public static Long getNextSingoloVersamentoId(SingoloVersamentoFullRepository singoloVersamentoFullRepository) {
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = singoloVersamentoFullRepository.findFirstByOrderByIdDesc();
+		Long maxId = 0L;
+		if(singoloVersamentoFullEntity != null) maxId = singoloVersamentoFullEntity.getId();
+		
+		return maxId + 1;
+	}
+	
+	public static VersamentoFullEntity creaVersamentoNonEseguitoMultivoce(VersamentoFullRepository versamentoFullRepository, SingoloVersamentoFullRepository singoloVersamentoFullRepository, ApplicazioneRepository applicazioneRepository,
+			DominioRepository dominioRepository, IbanAccreditoRepository ibanAccreditoRepository, ObjectMapper objectMapper, boolean generaMetadataSingoloVersamento) {
 		String idPendenza = VersamentoUtils.generaIdPendenza();
 		
 		OffsetDateTime dataUltimaComunicazioneAca = null; 
 		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.NON_ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
 		
-		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoDefinito(Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
+		
+		// transfer 1
+		Long singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoDefinito(singoloVersamentoId, Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale() /2, StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
 				Costanti.TIPO_CONTABILITA_ALTRO, Costanti.COD_CONTABILITA_GEN, Costanti.CODIBAN_ACCREDITO_DOM_1, null, ibanAccreditoRepository);
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
 		
-		Set<SingoloVersamentoFullEntity> singoliVersamenti = new HashSet<>();
-		singoliVersamenti.add(singoloVersamentoFullEntity);
-		versamentoFullEntity.setSingoliVersamenti(singoliVersamenti);
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		
+		// transfer 2
+		singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		
+		singoloVersamentoFullEntity = creaSingoloVersamentoDefinito(singoloVersamentoId, Costanti.CODDOMINIO, 2, versamentoFullEntity.getImportoTotale()/2, StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
+				Costanti.TIPO_CONTABILITA_ALTRO, Costanti.COD_CONTABILITA_GEN, Costanti.CODIBAN_ACCREDITO_POSTALE_DOM_1, null, ibanAccreditoRepository);
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
+		
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
-	
-	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceRiferimento(VersamentoFullRepository versamentoFullRepository, ApplicazioneRepository applicazioneRepository,
-			DominioRepository dominioRepository, TributoRepository tributoRepository) {
+
+	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceDefinito(VersamentoFullRepository versamentoFullRepository, SingoloVersamentoFullRepository singoloVersamentoFullRepository, ApplicazioneRepository applicazioneRepository,
+			DominioRepository dominioRepository, IbanAccreditoRepository ibanAccreditoRepository, ObjectMapper objectMapper, boolean generaMetadataSingoloVersamento) {
 		String idPendenza = VersamentoUtils.generaIdPendenza();
 		
 		OffsetDateTime dataUltimaComunicazioneAca = null; 
 		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.NON_ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
 		
-		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoRiferimento(Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository, Costanti.CODTRIBUTO_SEGRETERIA, tributoRepository);
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
 		
-		Set<SingoloVersamentoFullEntity> singoliVersamenti = new HashSet<>();
-		singoliVersamenti.add(singoloVersamentoFullEntity);
-		versamentoFullEntity.setSingoliVersamenti(singoliVersamenti);
+		Long singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoDefinito(singoloVersamentoId, Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
+				Costanti.TIPO_CONTABILITA_ALTRO, Costanti.COD_CONTABILITA_GEN, Costanti.CODIBAN_ACCREDITO_DOM_1, null, ibanAccreditoRepository);
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
+		
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
 	
-	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceMBT(VersamentoFullRepository versamentoFullRepository, ApplicazioneRepository applicazioneRepository,
-			DominioRepository dominioRepository) {
+	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceDefinitoConIbanAppoggio(VersamentoFullRepository versamentoFullRepository, SingoloVersamentoFullRepository singoloVersamentoFullRepository, ApplicazioneRepository applicazioneRepository,
+			DominioRepository dominioRepository, IbanAccreditoRepository ibanAccreditoRepository, ObjectMapper objectMapper, boolean generaMetadataSingoloVersamento) {
 		String idPendenza = VersamentoUtils.generaIdPendenza();
 		
 		OffsetDateTime dataUltimaComunicazioneAca = null; 
 		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.NON_ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
 		
-		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoMBT(Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
+		
+		Long singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoDefinito(singoloVersamentoId, Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
+				Costanti.TIPO_CONTABILITA_ALTRO, Costanti.COD_CONTABILITA_GEN, null, Costanti.CODIBAN_ACCREDITO_POSTALE_DOM_1, ibanAccreditoRepository);
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
+		
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		
+		return versamentoFullEntity;
+	}
+	
+	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceRiferimento(VersamentoFullRepository versamentoFullRepository, SingoloVersamentoFullRepository singoloVersamentoFullRepository, ApplicazioneRepository applicazioneRepository,
+			DominioRepository dominioRepository, TributoRepository tributoRepository, ObjectMapper objectMapper, boolean generaMetadataSingoloVersamento) {
+		String idPendenza = VersamentoUtils.generaIdPendenza();
+		
+		OffsetDateTime dataUltimaComunicazioneAca = null; 
+		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.NON_ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
+		
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
+		
+		Long singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoRiferimento(singoloVersamentoId, Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository, Costanti.CODTRIBUTO_SEGRETERIA, tributoRepository);
+		
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
+		
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		
+		return versamentoFullEntity;
+	}
+	
+	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceRiferimentoConIbanAppoggio(VersamentoFullRepository versamentoFullRepository, SingoloVersamentoFullRepository singoloVersamentoFullRepository, ApplicazioneRepository applicazioneRepository,
+			DominioRepository dominioRepository, TributoRepository tributoRepository, ObjectMapper objectMapper, boolean generaMetadataSingoloVersamento) {
+		String idPendenza = VersamentoUtils.generaIdPendenza();
+		
+		OffsetDateTime dataUltimaComunicazioneAca = null; 
+		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.NON_ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
+		
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
+		
+		Long singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoRiferimento(singoloVersamentoId, Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository, Costanti.CODTRIBUTO_DOVUTO_APPOGGIO, tributoRepository);
+		
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
+		
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		
+		return versamentoFullEntity;
+	}
+	
+	public static VersamentoFullEntity creaVersamentoNonEseguitoMonovoceMBT(VersamentoFullRepository versamentoFullRepository, SingoloVersamentoFullRepository singoloVersamentoFullRepository, ApplicazioneRepository applicazioneRepository,
+			DominioRepository dominioRepository, ObjectMapper objectMapper, boolean generaMetadataSingoloVersamento) {
+		String idPendenza = VersamentoUtils.generaIdPendenza();
+		
+		OffsetDateTime dataUltimaComunicazioneAca = null; 
+		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.NON_ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
+		
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
+		
+		Long singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamentoMBT(singoloVersamentoId, Costanti.CODDOMINIO, 1, versamentoFullEntity.getImportoTotale(), StatoSingoloVersamento.NON_ESEGUITO, null, dominioRepository,
 				Costanti.MBT_HASH_DOCUMENTO, Costanti.MBT_PROVINCIA_RO, Costanti.MBT_TIPO_BOLLO_01);
+		singoloVersamentoFullEntity.setIdVersamento(versamentoFullEntity.getId());
 		
-		Set<SingoloVersamentoFullEntity> singoliVersamenti = new HashSet<>();
-		singoliVersamenti.add(singoloVersamentoFullEntity);
-		versamentoFullEntity.setSingoliVersamenti(singoliVersamenti);
+		if(generaMetadataSingoloVersamento) {
+			generaMetadata(objectMapper, singoloVersamentoFullEntity);
+		}
+		
+		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -96,10 +213,14 @@ public class VersamentoUtils {
 		String idPendenza = VersamentoUtils.generaIdPendenza();
 		
 		OffsetDateTime dataUltimaComunicazioneAca = OffsetDateTime.now().minusMinutes(1);
-		return creaVersamento(idPendenza, StatoVersamento.ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
+		VersamentoFullEntity versamentoFullEntity = creaVersamento(idPendenza, StatoVersamento.ESEGUITO,  dataUltimaComunicazioneAca, versamentoFullRepository, applicazioneRepository, dominioRepository);
+		
+		versamentoFullEntity = versamentoFullRepository.save(versamentoFullEntity);
+		
+		return versamentoFullEntity;
 	}
 	
-	public static VersamentoFullEntity creaVersamento(String idPendenza, StatoVersamento statoVersamento,
+	private static VersamentoFullEntity creaVersamento(String idPendenza, StatoVersamento statoVersamento,
 			OffsetDateTime dataUltimaComunicazioneAca,
 			VersamentoFullRepository versamentoFullRepository, ApplicazioneRepository applicazioneRepository,
 			DominioRepository dominioRepository) {
@@ -164,7 +285,7 @@ public class VersamentoUtils {
         return versamentoFullEntity;
     }
 	
-	public static SingoloVersamentoFullEntity creaSingoloVersamento(String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, String metadata, DominioRepository dominioRepository ) {
+	public static SingoloVersamentoFullEntity creaSingoloVersamento(Long id, String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, String metadata, DominioRepository dominioRepository ) {
 		SingoloVersamentoFullEntity singoloVersamentoFullEntity = new SingoloVersamentoFullEntity();
 		if(codDominio != null) {
 			singoloVersamentoFullEntity.setIdDominio(dominioRepository.findByCodDominio(codDominio).getId());
@@ -174,12 +295,13 @@ public class VersamentoUtils {
 		singoloVersamentoFullEntity.setCodSingoloVersamentoEnte("" + indiceDati);
 		singoloVersamentoFullEntity.setStatoSingoloVersamento(statoSingoloVersamento);
 		singoloVersamentoFullEntity.setMetadata(metadata);
+		singoloVersamentoFullEntity.setId(id);
 		return singoloVersamentoFullEntity;
 	}
 	
-	public static SingoloVersamentoFullEntity creaSingoloVersamentoMBT(String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, String metadata, DominioRepository dominioRepository,
+	public static SingoloVersamentoFullEntity creaSingoloVersamentoMBT(Long id, String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, String metadata, DominioRepository dominioRepository,
 			String hashDocumento, String provinciaResidenza, String tipoBollo) {
-		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamento(codDominio, indiceDati, importoTotale, statoSingoloVersamento, metadata, dominioRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamento(id, codDominio, indiceDati, importoTotale, statoSingoloVersamento, metadata, dominioRepository);
 
 		singoloVersamentoFullEntity.setHashDocumento(hashDocumento);
 		singoloVersamentoFullEntity.setProvinciaResidenza(provinciaResidenza);
@@ -188,20 +310,21 @@ public class VersamentoUtils {
 		return singoloVersamentoFullEntity;
 	}
 	
-	public static SingoloVersamentoFullEntity creaSingoloVersamentoRiferimento(String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, 
+	public static SingoloVersamentoFullEntity creaSingoloVersamentoRiferimento(Long id, String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, 
 			String metadata, DominioRepository dominioRepository, String codTributo, TributoRepository tributoRepository) {
-		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamento(codDominio, indiceDati, importoTotale, statoSingoloVersamento, metadata, dominioRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamento(id, codDominio, indiceDati, importoTotale, statoSingoloVersamento, metadata, dominioRepository);
 		singoloVersamentoFullEntity.setIdTributo(tributoRepository.findByCodTributoAndCodDominio(codTributo, codDominio).getId());
 		return singoloVersamentoFullEntity;
 	}
 	
-	public static SingoloVersamentoFullEntity creaSingoloVersamentoDefinito(String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, 
+	public static SingoloVersamentoFullEntity creaSingoloVersamentoDefinito(Long id, String codDominio, int indiceDati, Double importoTotale, StatoSingoloVersamento statoSingoloVersamento, 
 			String metadata, DominioRepository dominioRepository, String tipoContabilita, String codiceContabilita, String ibanAccredito, String ibanAppoggio, IbanAccreditoRepository ibanAccreditoRepository) {
-		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamento(codDominio, indiceDati, importoTotale, statoSingoloVersamento, metadata, dominioRepository);
+		SingoloVersamentoFullEntity singoloVersamentoFullEntity = creaSingoloVersamento(id, codDominio, indiceDati, importoTotale, statoSingoloVersamento, metadata, dominioRepository);
 		singoloVersamentoFullEntity.setTipoContabilita(tipoContabilita);
 		singoloVersamentoFullEntity.setCodContabilita(codiceContabilita);
 		singoloVersamentoFullEntity.setIdIbanAccredito(getIdIbanAccredito(codDominio, ibanAccredito, ibanAccreditoRepository));
 		singoloVersamentoFullEntity.setIdIbanAppoggio(getIdIbanAccredito(codDominio, ibanAppoggio, ibanAccreditoRepository));
+		singoloVersamentoFullEntity.setDescrizioneCausaleRPT("Pagamemto XXXXXX");
 		return singoloVersamentoFullEntity;
 	}
 
@@ -214,6 +337,21 @@ public class VersamentoUtils {
 			}
 		}
 		return null;
+	}
+	
+	public static void generaMetadata(ObjectMapper objectMapper, SingoloVersamentoFullEntity singoloVersamentoFullEntity) {
+		Metadata metadata = new Metadata();
+		List<MapEntry> mapEntries = new ArrayList<MapEntry>();
+		MapEntry mapEntry = new MapEntry();
+		mapEntry.setKey("chiave");
+		mapEntry.setValue("valore");
+		mapEntries.add(mapEntry );
+		metadata.setValue(mapEntries );
+		
+		try {
+			singoloVersamentoFullEntity.setMetadata(objectMapper.writeValueAsString(metadata));
+		} catch (JsonProcessingException e) {
+		}
 	}
 
 	public static String generaIdPendenza() {
@@ -264,5 +402,25 @@ public class VersamentoUtils {
 			System.out.println("Data ultima modifica aca: " + versamentoGpdEntity.getDataUltimaModificaAca());
 		}
 		
+	}
+	
+	public static String generaIUVISO11694(long prg, String prefix) throws IuvException {
+		String reference = prefix + String.format("%0" + (21 - prefix.length()) + "d", prg);
+		if(reference.length() > 21)
+			throw new IuvException("Superato il numero massimo di IUV generabili Prefisso:"+prefix+"]" );
+
+		String check = IuvUtils.getCheckDigit(reference);
+		String iuv = "RF" + check + reference;
+		return iuv;
+	}
+	
+	public static String generaIUVNumerico(long prg, String prefix) throws IuvException {
+		String reference = prefix + String.format("%0" + (13 - prefix.length()) + "d", prg);
+		if(reference.length() > 15) 
+			throw new IuvException("Superato il numero massimo di IUV generabili Prefisso:"+prefix+"]" );
+		String check = IuvUtils.getCheckDigit93(reference, 0, 1); 
+		String iuv = reference + check;
+		
+		return iuv;
 	}
 }

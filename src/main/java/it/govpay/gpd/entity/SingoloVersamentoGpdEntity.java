@@ -5,8 +5,6 @@ import org.hibernate.annotations.Immutable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -96,9 +94,6 @@ public class SingoloVersamentoGpdEntity {
 	@Column(name = "id_versamento")
 	private Long idVersamento;
 	
-//	@ManyToOne
-//	@JoinColumn(name="id_versamento")
-//	private VersamentoGpdEntity versamento;
 }
 
 /**

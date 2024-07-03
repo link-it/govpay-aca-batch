@@ -87,7 +87,7 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 	@BeforeEach
 	void setUp() throws URISyntaxException, JsonProcessingException {
 		MockitoAnnotations.openMocks(this);
-		this.versamentoFullRepository.deleteAll();
+		this.cleanDB();
 
 		Mockito.lenient()
 		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
@@ -105,8 +105,8 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 	void TC_01_SendTest_GdeUnknowhost() throws Exception {
 		try {
 
-			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
-			this.versamentoFullRepository.save(versamentoGpdEntity);
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguito();
 
 			Mockito.lenient()
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
@@ -131,7 +131,7 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
-			this.versamentoFullRepository.deleteAll();
+			this.cleanDB();
 		}
 	}
 }

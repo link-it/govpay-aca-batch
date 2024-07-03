@@ -29,7 +29,8 @@ INSERT INTO tipi_tributo (id, cod_tributo, tipo_contabilita, cod_contabilita) VA
 (1, 'BOLLOT', '9', 'MBT'),
 (2, 'SEGRETERIA', '9', 'SEGRETERIA'),
 (3, 'SPONTANEO', '9', 'SPONTANEO'),
-(4, 'DOVUTO', '9', 'DOVUTO');
+(4, 'DOVUTO', '9', 'DOVUTO'),
+(5, 'DOVUTO_APPOGGIO', '9', 'DOVUTO');
 
 -- Insert into tributi
 INSERT INTO tributi (id, abilitato, tipo_contabilita, codice_contabilita, id_dominio, id_iban_accredito, id_iban_appoggio, id_tipo_tributo) VALUES
@@ -39,5 +40,6 @@ INSERT INTO tributi (id, abilitato, tipo_contabilita, codice_contabilita, id_dom
 (4, true, null, null, 2, 3, 4, 2),
 (5, true, null, null, 1, 1, null, 3),
 (6, true, null, null, 2, 3, null, 3),
-(7, true, null, null, 1, 1, null, 4);
+(7, true, null, null, 1, 1, null, 4),
+(8, true, '9', 'DOVUTO', 1, null, 2, 5);
 
