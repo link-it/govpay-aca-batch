@@ -38,7 +38,6 @@ import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.gde.client.EventiApi;
-import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
 
