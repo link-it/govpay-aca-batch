@@ -3,11 +3,7 @@ package it.govpay.gpd.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.net.http.HttpResponse;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,15 +32,12 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.gde.client.EventiApi;
-import it.govpay.gpd.test.utils.GdeProblemUtils;
-import it.govpay.gpd.test.utils.ObjectMapperUtils;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
 
@@ -63,7 +56,6 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 	DebtPositionsApiApi gpdApi;
 
 	@Autowired
-	@MockBean
 	EventiApi gdeApi;
 
 	@Autowired
@@ -81,10 +73,6 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 	
 	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni:7}")
 	private Integer numeroGiorni;
-	
-	private ObjectMapper mapper = ObjectMapperUtils.createObjectMapper();
-	
-	HttpResponse<InputStream> gdeMockHttpResponse503;
 	
 	private void initailizeJobLauncherTestUtils() throws Exception {
 		jobLauncherTestUtils.setJob(job);
@@ -110,13 +98,6 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 				return apiClient;
 			}
 		});
-		
-		// Creazione del mock della HttpResponse
-		gdeMockHttpResponse503 = Mockito.mock(HttpResponse.class);
-		
-		// Configurazione del comportamento del mock
-		Mockito.lenient().when(gdeMockHttpResponse503.statusCode()).thenReturn(503);
-		Mockito.lenient().when(gdeMockHttpResponse503.body()).thenReturn(new ByteArrayInputStream(this.mapper.writeValueAsString(GdeProblemUtils.createProblem503()).getBytes()));
 	}
 
 	@Test
@@ -133,15 +114,6 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 							return mockResponseEntity;
-						}
-					});
-			
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(gdeMockHttpResponse503);
 						}
 					});
 
