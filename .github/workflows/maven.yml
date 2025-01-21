@@ -40,8 +40,8 @@ jobs:
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4
       with:
-        name: spring-artifact
-        path: target/*.jar
+        name: govpay-aca-batch
+        path: target/govpay-aca-batch.jar
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: Update dependency graph
