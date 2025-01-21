@@ -61,21 +61,11 @@ jobs:
 
     - name: Create GitHub release
       id: create_release
-      uses: gh-actions/create-release@v1.0.1
+      uses: softprops/action-gh-release@v2.2.1
       with:
-        tag_name: ${{ github.ref }}  # Usa il nome del tag
-        release_name: 'Release ${{ github.ref }}'
-        draft: false
-        prerelease: false
-        body: |
-          This is the release for version ${{ github.ref }}.
-
-    - name: Upload artifact to GitHub release
-      uses: softprops/action-gh-release@v1  # Usa l'azione per caricare artefatti
-      with:
-        files: target/govpay-aca-batch.jar  # Specifica il percorso dell'artefatto
+        files: target/govpay-aca-batch.jar  # Specifica l'artefatto da caricare
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Usa il token di GitHub per l'autenticazione
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} 
 
         
         
