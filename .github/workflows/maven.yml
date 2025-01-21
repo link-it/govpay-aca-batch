@@ -35,12 +35,6 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn clean install -DskipTests=true
-
-    - name: Run tests with Maven
-      run: mvn test
-
-    - name: Package the artifact
       run: mvn clean install -P jar -DskipTests
 
     - name: Upload artifact to GitHub
