@@ -62,9 +62,6 @@ it.govpay.gpd.batch.client.header.subscriptionKey.value=[VALORE SUBSCRIPTION-KEY
 it.govpay.gpd.batch.client.debugging=[DEBUG CHIAMATE VERSO IL SERVIZIO]
 it.govpay.gpd.batch.client.baseUrl=[BASE URL SERVIZIO ACA PAGOPA]
 
-# Indica se alimentare anche l'aca
-it.govpay.gpd.aca.enabled=[TRUE|FALSE]
-
 #Indica se la pendenza e' disponibile per la funzionalita' di standin
 it.govpay.gpd.standIn.enabled=[TRUE|FALSE]
  

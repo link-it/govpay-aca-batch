@@ -88,7 +88,6 @@ public class PaymentPositionModelUtils {
 	public static PaymentPositionModel createPaymentPositionModelResponse(PaymentPositionModel request, OffsetDateTime paymentDate, StatusEnum status) {
 		PaymentPositionModel response = new PaymentPositionModel(paymentDate, status);
 
-		response.setAca(request.isAca()); 
 		response.setCity(request.getCity());
 		response.setCivicNumber(request.getCivicNumber());
 		response.setCompanyName(request.getCompanyName());

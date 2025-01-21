@@ -41,14 +41,10 @@ public abstract class PaymentPositionModelRequestMapper {
 	@Autowired
 	SingoloVersamentoGpdRepository singoloVersamentoGpdRepository; 
 	
-	@Value("${it.govpay.gpd.aca.enabled:true}")
-	Boolean aca;
-
 	@Value("${it.govpay.gpd.standIn.enabled:true}")
 	Boolean standIn;
 
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_IUPD, source = "versamentoGpdEntity", qualifiedByName = "mapIupd")
-	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_ACA, source = "aca")
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAY_STAND_IN, source = "standIn") // feature flag to enable a debt position in stand-in mode
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_TYPE, source = "versamentoGpdEntity.debitoreTipo")
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_FISCAL_CODE, source = "versamentoGpdEntity.debitoreIdentificativo")
@@ -69,12 +65,12 @@ public abstract class PaymentPositionModelRequestMapper {
 	// @Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAYMENT_DATE, source = "versamentoGpdEntity") attributo read only viene restituito dal servizio e ignorato in request 
 	// @Mapping(target = PaymentPositionModel.JSON_PROPERTY_STATUS, source = "status")  attributo read only viene restituito dal servizio e ignorato in request 
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAYMENT_OPTION, source = "versamentoGpdEntity", qualifiedByName = "mapPaymentOption")
-	public abstract PaymentPositionModel versamentoGpdToPaymentPositionModelBase(VersamentoGpdEntity versamentoGpdEntity, boolean aca, boolean standIn);
+	public abstract PaymentPositionModel versamentoGpdToPaymentPositionModelBase(VersamentoGpdEntity versamentoGpdEntity, boolean standIn);
 
 	
 	public PaymentPositionModel versamentoGpdToPaymentPositionModel(VersamentoGpdEntity versamentoGpdEntity) {
 		boolean switchToExpired = false;
-		PaymentPositionModel paymentPositionModel = this.versamentoGpdToPaymentPositionModelBase(versamentoGpdEntity, this.aca, this.standIn);
+		PaymentPositionModel paymentPositionModel = this.versamentoGpdToPaymentPositionModelBase(versamentoGpdEntity, this.standIn);
 		
 		// switch to expired
 		// feature flag to enable the debt position to expire after the due date   
