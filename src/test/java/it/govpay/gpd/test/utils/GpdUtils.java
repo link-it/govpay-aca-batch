@@ -74,8 +74,7 @@ public class GpdUtils {
 			throw new IllegalArgumentException("Unexpected value: " + httpStatus);
 		}
 		
-		ResponseEntity<ProblemJson> mockResponseEntity = new ResponseEntity<>(response, getHeadersProblem(xRequestId), httpStatus);
-		return mockResponseEntity;
+		return new ResponseEntity<>(response, getHeadersProblem(xRequestId), httpStatus);
 	}
 	
 	private static ProblemJson createProblemFromOpenAPI(String title, String detail, int status, String type) throws URISyntaxException {
@@ -83,7 +82,6 @@ public class GpdUtils {
 	    problem.setStatus(status);
 	    problem.setTitle(title);
 	    problem.setDetail(detail);
-//	    problem.setType(new URI(type));
 	    return problem;
 	}
 

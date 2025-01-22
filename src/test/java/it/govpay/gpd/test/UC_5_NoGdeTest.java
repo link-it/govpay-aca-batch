@@ -3,8 +3,6 @@ package it.govpay.gpd.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
-import java.net.URISyntaxException;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,8 +28,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
@@ -76,7 +72,7 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
 	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni:7}")
 	private Integer numeroGiorni;
 	
-	private void initailizeJobLauncherTestUtils() throws Exception {
+	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
 	
@@ -86,7 +82,7 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
     }
 
 	@BeforeEach
-	void setUp() throws URISyntaxException, JsonProcessingException {
+	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		this.cleanDB();
 
@@ -114,8 +110,7 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 

@@ -107,10 +107,7 @@ public abstract class PaymentPositionModelRequestMapper {
 
 	@Named("mapValidityDate")
 	public OffsetDateTime mapValidityDate(VersamentoGpdEntity versamentoGpdEntity) {
-		// Otteniamo l'offset per il fuso orario di Roma
-		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
-		LocalDateTime dueDate = Utils.calcolaDueDate(versamentoGpdEntity);
-		return dueDate != null ? dueDate.atOffset(offset) : null;
+		return leggiDueDate(versamentoGpdEntity);
 	}
 
 	@Named("mapPaymentOption")
@@ -146,14 +143,16 @@ public abstract class PaymentPositionModelRequestMapper {
 
 	@Named("mapDueDate")
 	public OffsetDateTime mapDueDate(VersamentoGpdEntity versamentoGpdEntity) {
-		// Otteniamo l'offset per il fuso orario di Roma
-		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
-		LocalDateTime dueDate = Utils.calcolaDueDate(versamentoGpdEntity);
-		return dueDate != null ? dueDate.atOffset(offset) : null;
+		return leggiDueDate(versamentoGpdEntity);
 	}
 
 	@Named("mapRetentionDate")
 	public OffsetDateTime mapRetentionDate(VersamentoGpdEntity versamentoGpdEntity) {
+		return leggiDueDate(versamentoGpdEntity);
+	}
+
+
+	private OffsetDateTime leggiDueDate(VersamentoGpdEntity versamentoGpdEntity) {
 		// Otteniamo l'offset per il fuso orario di Roma
 		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
 		LocalDateTime dueDate = Utils.calcolaDueDate(versamentoGpdEntity);

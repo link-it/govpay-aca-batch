@@ -351,6 +351,7 @@ public class VersamentoUtils {
 		try {
 			singoloVersamentoFullEntity.setMetadata(objectMapper.writeValueAsString(metadata));
 		} catch (JsonProcessingException e) {
+			//donothing
 		}
 	}
 
@@ -414,8 +415,7 @@ public class VersamentoUtils {
 			throw new IuvException("Superato il numero massimo di IUV generabili Prefisso:"+prefix+"]" );
 
 		String check = IuvUtils.getCheckDigit(reference);
-		String iuv = "RF" + check + reference;
-		return iuv;
+		return "RF" + check + reference;
 	}
 	
 	public static String generaIUVNumerico(long prg, String prefix) throws IuvException {
@@ -423,8 +423,6 @@ public class VersamentoUtils {
 		if(reference.length() > 15) 
 			throw new IuvException("Superato il numero massimo di IUV generabili Prefisso:"+prefix+"]" );
 		String check = IuvUtils.getCheckDigit93(reference, 0, 1); 
-		String iuv = reference + check;
-		
-		return iuv;
+		return reference + check;
 	}
 }

@@ -94,7 +94,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 
 	HttpResponse<InputStream> mockHttpResponseOk;
 
-	private void initailizeJobLauncherTestUtils() throws Exception {
+	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
 	
@@ -103,8 +103,9 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
         jobRepositoryTestUtils.removeJobExecutions();
     }
 
+	@SuppressWarnings("unchecked")
 	@BeforeEach
-	void setUp() throws Exception {
+	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		this.cleanDB();
 
@@ -147,8 +148,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 				)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 					@Override
 					public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-						ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-						return mockResponseEntity;
+						return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 					}
 				});
 
@@ -179,8 +179,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -221,9 +220,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
-							
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
 						}
 					});
 
@@ -240,7 +237,6 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
 
-//			initailizeJobLauncherTestUtils();
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
@@ -270,8 +266,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -280,8 +275,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 
@@ -327,8 +321,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 							assertNotNull(paymentOption);
 							assertEquals(true, paymentOption.get(0).isIsPartialPayment());
 							
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -387,8 +380,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 								assertEquals("valore", transferMetadataModel.getValue());
 							}
 							
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -439,8 +431,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 							assertNotNull(transferList);
 							assertEquals(2, transferList.size());
 							
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 

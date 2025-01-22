@@ -35,18 +35,10 @@ public class TributoEntity {
 	
 	@Column(name = "id_iban_appoggio")
 	private Long idIbanAppoggio;
-	
-	
-//	@Column(name = "id_tipo_tributo", nullable = false)
-//	private long idTipoTributo;
     
     @ManyToOne
     @JoinColumn(name = "id_tipo_tributo", nullable = false)
     private TipoTributoEntity tipoTributo;
-    
-    
-//	@Column(name = "id_dominio", nullable = false)
-//	private long idDominio;
     
     @ManyToOne
     @JoinColumn(name = "id_dominio", nullable = false)

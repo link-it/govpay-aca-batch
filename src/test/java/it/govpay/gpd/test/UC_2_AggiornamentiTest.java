@@ -91,7 +91,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 	HttpResponse<InputStream> mockHttpResponseOk;
 	
 
-	private void initailizeJobLauncherTestUtils() throws Exception {
+	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
 	
@@ -100,6 +100,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
         jobRepositoryTestUtils.removeJobExecutions();
     }
 
+	@SuppressWarnings("unchecked")
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
@@ -147,8 +148,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -203,8 +203,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -213,8 +212,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 			
@@ -258,8 +256,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -268,8 +265,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 			
@@ -313,8 +309,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -323,8 +318,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 			
@@ -364,8 +358,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -374,8 +367,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 			
@@ -413,8 +405,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -454,8 +445,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -495,8 +485,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -505,8 +494,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 			
@@ -547,8 +535,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseInvalidatePositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseInvalidatePositionOk(invocation);
 						}
 					});
 			
@@ -588,8 +575,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -598,8 +584,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 			
@@ -640,8 +625,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.NOT_FOUND);
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.NOT_FOUND);
 						}
 					});
 			
@@ -681,8 +665,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -691,8 +674,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.CONFLICT);
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.CONFLICT);
 						}
 					});
 			
@@ -734,8 +716,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -775,8 +756,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.NOT_FOUND);
-							return mockResponseEntity;
+							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.NOT_FOUND);
 						}
 					});
 			
@@ -814,8 +794,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -855,8 +834,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.CONFLICT);
-							return mockResponseEntity;
+							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.CONFLICT);
 						}
 					});
 			
@@ -894,8 +872,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -935,8 +912,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
-							return mockResponseEntity;
+							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
 						}
 					});
 			
@@ -974,8 +950,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -1048,8 +1023,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -1123,8 +1097,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
