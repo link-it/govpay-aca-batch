@@ -1,16 +1,13 @@
 package it.govpay.gpd.test.entity;
 
 import java.time.OffsetDateTime;
-import java.util.Set;
 
 import it.govpay.gpd.entity.VersamentoGpdEntity.TIPO;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -115,7 +112,4 @@ public class VersamentoFullEntity {
 
 	@Column(name = "data_ultima_comunicazione_aca")
 	private OffsetDateTime dataUltimaComunicazioneAca;
-	
-//	@OneToMany(mappedBy = "versamento", cascade = CascadeType.PERSIST)
-//	private Set<SingoloVersamentoFullEntity> singoliVersamenti;
 }

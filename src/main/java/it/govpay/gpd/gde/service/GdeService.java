@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
@@ -34,18 +33,20 @@ public class GdeService {
 
 	private Logger logger = LoggerFactory.getLogger(GdeService.class);
 
-	@Autowired
-	@Qualifier("gdeApi")
 	EventiApi gdeApi;
 
 	@Value("${it.govpay.gde.enabled:true}")
 	Boolean gdeEnabled;
 
-	@Autowired
 	ObjectMapper objectMapper;
 
-	@Autowired
 	EventoGdpMapperImpl eventoGdpMapper;
+	
+	public GdeService(ObjectMapper objectMapper,@Qualifier("gdeApi") EventiApi gdeApi, EventoGdpMapperImpl eventoGdpMapper) {
+		this.objectMapper = objectMapper;
+		this.gdeApi = gdeApi;
+		this.eventoGdpMapper = eventoGdpMapper;
+	}
 
 	public void inviaEvento(NuovoEvento nuovoEvento) {
 		if(this.gdeEnabled.booleanValue()) {

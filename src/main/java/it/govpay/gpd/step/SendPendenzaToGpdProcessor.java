@@ -6,7 +6,6 @@ import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
@@ -38,19 +37,24 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 	private Logger logger = LoggerFactory.getLogger(SendPendenzaToGpdProcessor.class);
 
-	@Autowired
 	PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl;
 
-	@Autowired
 	@Qualifier("gpdApi")
 	DebtPositionsApiApi gpdApi;
 
-	@Autowired
 	@Qualifier("gpdActionsApi")
 	DebtPositionActionsApiApi gpdActionsApi;
 
-	@Autowired
 	GdeService gdeService;
+	
+	public SendPendenzaToGpdProcessor(PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl,
+			@Qualifier("gpdApi") DebtPositionsApiApi gpdApi, 
+			@Qualifier("gpdActionsApi") DebtPositionActionsApiApi gpdActionsApi, GdeService gdeService) {
+        this.paymentPositionModelRequestMapperImpl = paymentPositionModelRequestMapperImpl;
+        this.gpdApi = gpdApi;
+        this.gpdActionsApi = gpdActionsApi;
+        this.gdeService = gdeService;
+	}
 
 	@Value("${it.govpay.gpd.toPublish.enabled:true}")
 	Boolean toPublish;

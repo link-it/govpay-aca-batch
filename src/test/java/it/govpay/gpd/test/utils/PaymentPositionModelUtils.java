@@ -24,8 +24,7 @@ public class PaymentPositionModelUtils {
 		response.setIupd(iupd);
 		response.setStatus(statusEnum);
 		
-		ResponseEntity<PaymentPositionModelBaseResponse> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
-		return mockResponseEntity;
+		return new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
 	}
 	
 	public static ResponseEntity<PaymentPositionModel> creaResponsePublishPositionOk(InvocationOnMock invocation) {
@@ -37,8 +36,7 @@ public class PaymentPositionModelUtils {
 		response.setFiscalCode(codDominio);
 		response.setIupd(iupd);
 		
-		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
-		return mockResponseEntity;
+		return new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
 	}
 	
 	public static ResponseEntity<PaymentPositionModel> creaResponseInvalidatePositionOk(InvocationOnMock invocation) {
@@ -50,8 +48,7 @@ public class PaymentPositionModelUtils {
 		response.setFiscalCode(codDominio);
 		response.setIupd(iupd);
 		
-		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
-		return mockResponseEntity;
+		return new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
 	}
 	
 	public static ResponseEntity<PaymentPositionModel> creaResponseCreatePaymentPositionModelOk(InvocationOnMock invocation) {
@@ -62,8 +59,7 @@ public class PaymentPositionModelUtils {
 		
 		PaymentPositionModel response = PaymentPositionModelUtils.createPaymentPositionModelResponse(paymentPositionModel, null, status);
 		
-		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.CREATED);
-		return mockResponseEntity;
+		return new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.CREATED);
 	}
 	
 	public static ResponseEntity<PaymentPositionModel> creaResponseUpdatePaymentPositionModelOk(InvocationOnMock invocation) {
@@ -74,8 +70,7 @@ public class PaymentPositionModelUtils {
 		
 		PaymentPositionModel response = PaymentPositionModelUtils.createPaymentPositionModelResponse(paymentPositionModel, null, status);
 		
-		ResponseEntity<PaymentPositionModel> mockResponseEntity = new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
-		return mockResponseEntity;
+		return new ResponseEntity<>(response, GpdUtils.getHeadersCreatedOk(xRequestId), HttpStatus.OK);
 	}
 	
 	public static StatusEnum getStatus(Boolean toPublish, OffsetDateTime validityDate) {

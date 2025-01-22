@@ -100,7 +100,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	HttpResponse<InputStream> gdeMockHttpResponse503;
 	HttpResponse<InputStream> gdeMockHttpResponse400;
 
-	private void initailizeJobLauncherTestUtils() throws Exception {
+	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
 	
@@ -109,6 +109,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
         jobRepositoryTestUtils.removeJobExecutions();
     }
 
+	@SuppressWarnings("unchecked")
 	@BeforeEach
 	void setUp() throws URISyntaxException, JsonProcessingException {
 		MockitoAnnotations.openMocks(this);
@@ -170,8 +171,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -213,9 +213,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
-
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
 						}
 					});
 
@@ -257,8 +255,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -299,8 +296,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -337,8 +333,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -379,8 +374,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -417,8 +411,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -427,6 +420,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse401 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse401.statusCode()).thenReturn(401);
 							Mockito.lenient().when(mockHttpResponse401.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem401()).getBytes()));
@@ -463,8 +457,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -501,8 +494,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -511,6 +503,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse403 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse403.statusCode()).thenReturn(403);
 							Mockito.lenient().when(mockHttpResponse403.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem403()).getBytes()));
@@ -547,8 +540,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -585,8 +577,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -595,6 +586,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse404 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse404.statusCode()).thenReturn(409);
 							Mockito.lenient().when(mockHttpResponse404.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem404()).getBytes()));
@@ -631,8 +623,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -669,8 +660,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 			
@@ -679,6 +669,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse409 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse409.statusCode()).thenReturn(409);
 							Mockito.lenient().when(mockHttpResponse409.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem409()).getBytes()));
@@ -715,8 +706,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -753,8 +743,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
 
@@ -763,6 +752,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
 						@Override
 						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse403 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse403.statusCode()).thenReturn(429);
 							Mockito.lenient().when(mockHttpResponse403.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem429()).getBytes()));
@@ -799,8 +789,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 			.thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 				@Override
 				public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-					ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-					return mockResponseEntity;
+					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
 
@@ -838,9 +827,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.BAD_REQUEST);
-
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.BAD_REQUEST);
 						}
 					});
 
@@ -920,9 +907,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.NOT_FOUND);
-
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.NOT_FOUND);
 						}
 					});
 
@@ -1002,9 +987,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.CONFLICT);
-
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.CONFLICT);
 						}
 					});
 			
@@ -1013,9 +996,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModelBaseResponse> mockResponseEntity = PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.DRAFT);
-
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.DRAFT);
 						}
 					});
 			
@@ -1024,8 +1005,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 
@@ -1072,9 +1052,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModelBaseResponse> mockResponseEntity = PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.DRAFT);
-
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.DRAFT);
 						}
 					});
 			
@@ -1083,8 +1061,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<PaymentPositionModel> mockResponseEntity = PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-							return mockResponseEntity;
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
 						}
 					});
 
@@ -1126,9 +1103,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
-							ResponseEntity<ProblemJson> mockResponseEntity = GpdUtils.creaResponseKo(invocation, HttpStatus.INTERNAL_SERVER_ERROR);
-
-							return mockResponseEntity;
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.INTERNAL_SERVER_ERROR);
 						}
 					});
 
