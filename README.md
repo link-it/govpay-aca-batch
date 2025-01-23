@@ -3,7 +3,7 @@ Batch di alimentazione del GPD degli Avvisi pagoPA
 
 ## Istruzioni di compilazione
 
-Il progetto utilizza librerie spring-boot versione 2.7.147 e JDK 11.
+Il progetto utilizza librerie spring-boot versione 3.4.1 e JDK 21.
 
 Per la compilazione eseguire il seguente comando, verranno eseguiti anche i test.
 
