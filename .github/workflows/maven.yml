@@ -39,13 +39,10 @@ jobs:
     - name: Build with Maven
       run: mvn clean install -P jar -DskipTests -Ddependency-check.skip=true
 
-    - name: List files in target directory
-      run: ls -l target/
-
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
       with:
-        name: govpay-aca-batch-${{ github.ref_name }}
+        name: govpay-aca-batch
         path: target/govpay-aca-batch.jar
 
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
@@ -66,8 +63,11 @@ jobs:
     - name: Download artifact from build job
       uses: actions/download-artifact@v4
       with:
-        name: govpay-aca-batch-${{ github.ref_name }}
+        name: govpay-aca-batch
         path: target/  # Assicurati che il file venga scaricato nella cartella target
+
+    - name: Rename the artifact file to include the tag
+      run: cp target/govpay-aca-batch.jar target/govpay-aca-batch-${{ github.ref_name }}.jar  # Rinominare il file
 
     - name: List files in target directory
       run: ls -l target/
