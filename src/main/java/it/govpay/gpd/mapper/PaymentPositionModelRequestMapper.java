@@ -107,7 +107,7 @@ public abstract class PaymentPositionModelRequestMapper {
 
 	@Named("mapValidityDate")
 	public OffsetDateTime mapValidityDate(VersamentoGpdEntity versamentoGpdEntity) {
-		return leggiDueDate(versamentoGpdEntity);
+		return leggiDueDate(versamentoGpdEntity, true);
 	}
 
 	@Named("mapPaymentOption")
@@ -143,20 +143,24 @@ public abstract class PaymentPositionModelRequestMapper {
 
 	@Named("mapDueDate")
 	public OffsetDateTime mapDueDate(VersamentoGpdEntity versamentoGpdEntity) {
-		return leggiDueDate(versamentoGpdEntity);
+		return leggiDueDate(versamentoGpdEntity, false);
 	}
 
 	@Named("mapRetentionDate")
 	public OffsetDateTime mapRetentionDate(VersamentoGpdEntity versamentoGpdEntity) {
-		return leggiDueDate(versamentoGpdEntity);
+		return leggiDueDate(versamentoGpdEntity, true);
 	}
 
 
-	private OffsetDateTime leggiDueDate(VersamentoGpdEntity versamentoGpdEntity) {
+	private OffsetDateTime leggiDueDate(VersamentoGpdEntity versamentoGpdEntity, boolean allowNull) {
 		// Otteniamo l'offset per il fuso orario di Roma
 		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0); // CET (Central European Time)
-		LocalDateTime dueDate = Utils.calcolaDueDate(versamentoGpdEntity);
-		return dueDate != null ? dueDate.atOffset(offset) : null;
+		LocalDateTime dueDate = Utils.calcolaDueDate(versamentoGpdEntity, allowNull);
+		if (dueDate == null) {
+			return null;
+		}
+		
+		return OffsetDateTime.of(dueDate, offset);// dueDate.atOffset(offset);
 	}
 
 	@Named("mapFee")
@@ -255,12 +259,15 @@ public abstract class PaymentPositionModelRequestMapper {
 				// eccezione??
 			}
 		}
+		
+		// TransferModel.JSON_PROPERTY_IBAN
+		transferModel.setIban(ibanScelto);
 
 		// TransferModel.JSON_PROPERTY_POSTAL_IBAN
 		if(postale) {
 			transferModel.setPostalIban(ibanScelto);
-		} else { 			// TransferModel.JSON_PROPERTY_IBAN
-			transferModel.setIban(ibanScelto);
+//		} else { 			
+//			transferModel.setIban(ibanScelto);
 		}
 	}
 

@@ -19,7 +19,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class Utils {
 
-	private static final String PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+	public static final String PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+	public static final String PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSSSSSSSS = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS";
 	
 	private static final DecimalFormat nFormatter = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.ENGLISH));
 	
@@ -41,10 +42,6 @@ public class Utils {
 		return sdf;
 	}
 	
-	public static SimpleDateFormat newSimpleDateFormat() {
-		return newSimpleDateFormat(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS);
-	}
-	
 	public static String printImporto(BigDecimal value, boolean removeDecimalSeparator) {
 		DecimalFormatSymbols custom=new DecimalFormatSymbols();
 		custom.setDecimalSeparator('.');
@@ -64,13 +61,16 @@ public class Utils {
 		return formatValue;
 	}
 	
-	public static LocalDateTime calcolaDueDate(VersamentoGpdEntity versamento) {
+	public static LocalDateTime calcolaDueDate(VersamentoGpdEntity versamento, boolean allowNull) {
 		if(versamento.getDataValidita() != null) {
 			return versamento.getDataValidita(); // indicates the expiration payment date
 		} else if(versamento.getDataScadenza() != null) {
 			return versamento.getDataScadenza(); // indicates the expiration payment date
 		} else {
-			return null; //LocalDateTime.MAX; //31.12.2999
+			if (allowNull) {
+				return null;
+			}
+			return LocalDateTime.parse("2999-12-31T00:00:00.000"); //31.12.2999
 		}   
 	}
 

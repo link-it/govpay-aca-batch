@@ -39,10 +39,8 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 	PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl;
 
-	@Qualifier("gpdApi")
 	DebtPositionsApiApi gpdApi;
 
-	@Qualifier("gpdActionsApi")
 	DebtPositionActionsApiApi gpdActionsApi;
 
 	GdeService gdeService;
@@ -115,11 +113,21 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 	    }
 
 	    if (statusCode.value() == 409) {
+	    	logger.info("Caricamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore 409 Conflict, la pendenza e' gia' presente nel GPD, scarico dettaglio per verificare lo stato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 	        PaymentPositionModelBaseResponse positionModelBaseResponse = this.getPosition(item);
-	        if (positionModelBaseResponse != null && positionModelBaseResponse.getStatus() == StatusEnum.DRAFT) {
-	            this.gdeService.salvaCreatePositionKo(paymentPositionModel, basePath, xRequestId, toPublish, dataStart, OffsetDateTime.now(), item, responseEntity, null);
-	            return this.publishPosition(item);
-	        }
+	        
+	        if (positionModelBaseResponse != null) {
+            	// salva evento di creazione KO 
+                this.gdeService.salvaCreatePositionKo(paymentPositionModel, basePath, xRequestId, toPublish, dataStart, OffsetDateTime.now(), item, responseEntity, null);
+                
+                // pubblica la pendenza se e' in stato DRAFT
+                if (positionModelBaseResponse.getStatus() == StatusEnum.DRAFT) {
+                	return this.publishPosition(item);
+                }
+                
+                // in tutti gli altri casi non si puo' piu' intervenire con la create
+                return item;
+            }
 	    }
 
 	    this.gdeService.salvaCreatePositionKo(paymentPositionModel, basePath, xRequestId, toPublish, dataStart, OffsetDateTime.now(), item, responseEntity, null);
@@ -132,10 +140,20 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 	    if (e instanceof HttpClientErrorException httpClientError) {
 	    	this.logErrorResponse(httpClientError);
 	        if (httpClientError.getStatusCode().value() == 409) {
+	        	logger.info("Caricamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore 409 Conflict, la pendenza e' gia' presente nel GPD, scarico dettaglio per verificare lo stato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 	            PaymentPositionModelBaseResponse positionModelBaseResponse = this.getPosition(item);
-	            if (positionModelBaseResponse != null && positionModelBaseResponse.getStatus() == StatusEnum.DRAFT) {
+	            
+	            if (positionModelBaseResponse != null) {
+	            	// salva evento di creazione KO 
 	                this.gdeService.salvaCreatePositionKo(paymentPositionModel, basePath, xRequestId, toPublish, dataStart, OffsetDateTime.now(), item, responseEntity, e);
-	                return this.publishPosition(item);
+	                
+	                // pubblica la pendenza se e' in stato DRAFT
+	                if (positionModelBaseResponse.getStatus() == StatusEnum.DRAFT) {
+	                	return this.publishPosition(item);
+	                }
+	                
+	                // in tutti gli altri casi non si puo' piu' intervenire con la create
+                    return item;
 	            }
 	        }
 	    } else if (e instanceof HttpServerErrorException httpServerError) {
@@ -250,9 +268,12 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 			logger.info("Lettura Pendenza [IdA2A:{}, ID:{}] dal GPD completato con esito [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCode().value());
 
 			if(responseEntity.getStatusCode().is2xxSuccessful()) {
+				PaymentPositionModelBaseResponse paymentPositionModelBaseResponse = responseEntity.getBody();
+				StatusEnum status = paymentPositionModelBaseResponse != null ? paymentPositionModelBaseResponse.getStatus() : null;
+				logger.info("Pendenza [IdA2A:{}, ID:{}] stato [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), status);
 				// salvataggio evento invio ok
 				this.gdeService.salvaGetPositionOk(basePath, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity);
-				return responseEntity.getBody();
+				return paymentPositionModelBaseResponse;
 			}
 		} catch (HttpClientErrorException | HttpServerErrorException e) {
 			this.logErrorResponse(e);
@@ -339,7 +360,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 
 	protected void logErrorResponse(HttpStatusCodeException e) {
-		if(e instanceof HttpStatusCodeException) {
+		if(e instanceof HttpServerErrorException) {
 			logger.error("Ricevuto server error da GPD: {}", e.getMessage());
 		}
 		else {

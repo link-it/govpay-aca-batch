@@ -13,7 +13,7 @@
 		</encoder>
 	</appender>
 
-	<logger name="it.govpay" level="OFF" additivity="false">
+	<logger name="it.govpay" level="ERROR" additivity="false">
 		<appender-ref ref="STDOUT" />
 	</logger>
 
@@ -22,7 +22,7 @@
 		<appender-ref ref="STDOUT" />
 	</logger>
 	
-	<logger name="org.springframework" level="OFF" additivity="false">
+	<logger name="org.springframework" level="ERROR" additivity="false">
 		<appender-ref ref="STDOUT" />
 	</logger>
 
@@ -30,7 +30,7 @@
 		<appender-ref ref="STDOUT" />
 	</logger>
 	
-	<root level="OFF">
+	<root level="ERROR">
 		<appender-ref ref="STDOUT" />
 	</root>
 
