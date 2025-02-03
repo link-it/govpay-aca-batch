@@ -13,17 +13,14 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 
+import it.govpay.gpd.costanti.Costanti;
+
 public class OffsetDateTimeDeserializer extends StdScalarDeserializer<OffsetDateTime> {
 
 	private static final long serialVersionUID = 1L;
 	
-	private transient DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS);
-	
-	private transient DateTimeFormatter formatterMillis = DateTimeFormatter.ofPattern(
-            "yyyy-MM-dd'T'HH:mm:ss[.[SSSSSSSSS][SSSSSSSS][SSSSSSS][SSSSSS][SSSSS][SSSS][SSS][SS][S]]",
+	private transient DateTimeFormatter formatterMillis = DateTimeFormatter.ofPattern(Costanti.PATTERN_YYYY_MM_DD_T_HH_MM_SS_MILLIS_VARIABILI_XXX,
             Locale.getDefault());
-	
-//	private transient DateTimeFormatter formatterMillis = DateTimeFormatter.ofPattern(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSSSSSSSS);
 	
 	public OffsetDateTimeDeserializer() {
         super(OffsetDateTime.class);
@@ -34,7 +31,7 @@ public class OffsetDateTimeDeserializer extends StdScalarDeserializer<OffsetDate
         try {
             JsonToken currentToken = jsonParser.getCurrentToken();
             if (currentToken == JsonToken.VALUE_STRING) {
-            	return tryParseOffsetDateTime(jsonParser);
+            	return parseOffsetDateTime(jsonParser.getText(), this.formatterMillis);
             } else {
             	return null;
             }
@@ -43,14 +40,6 @@ public class OffsetDateTimeDeserializer extends StdScalarDeserializer<OffsetDate
         }
     }
 
-	private OffsetDateTime tryParseOffsetDateTime(JsonParser jsonParser) throws IOException {
-//		try {
-			return parseOffsetDateTime(jsonParser.getText(), this.formatterMillis);
-//		}catch (DateTimeParseException e) {
-//			return parseOffsetDateTime(jsonParser.getText(), this.formatterMillis);	
-//		}
-	}
-    
     public OffsetDateTime parseOffsetDateTime(String value, DateTimeFormatter formatter)  {
 		if (value != null && !value.trim().isEmpty()) {
 			String dateString = value.trim();

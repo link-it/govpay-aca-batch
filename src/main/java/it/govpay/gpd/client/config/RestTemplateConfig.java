@@ -21,6 +21,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import it.govpay.gpd.client.SubscriptionKeyInterceptor;
 import it.govpay.gpd.client.api.DebtPositionActionsApiApi;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
+import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.utils.OffsetDateTimeDeserializer;
 import it.govpay.gpd.utils.OffsetDateTimeSerializer;
 import it.govpay.gpd.utils.Utils;
@@ -41,7 +42,7 @@ public class RestTemplateConfig {
     private String subscriptionKeyHeaderValue;
     
 	@Bean
-	RestTemplate restTemplate() {
+	RestTemplate restTemplate(ObjectMapper objectMapper) {
 		RestTemplate restTemplate = new RestTemplate();
 		// This allows us to read the response more than once - Necessary for debugging.
 		restTemplate.setRequestFactory(new BufferingClientHttpRequestFactory(restTemplate.getRequestFactory()));
@@ -51,7 +52,7 @@ public class RestTemplateConfig {
 		uriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.VALUES_ONLY);
 		restTemplate.setUriTemplateHandler(uriBuilderFactory);
 
-		ObjectMapper objectMapper = createObjectMapper();
+//		ObjectMapper objectMapper = createObjectMapper();
 		
 		MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(objectMapper);
 
@@ -66,26 +67,26 @@ public class RestTemplateConfig {
 		return restTemplate;
 	}
 	
-	public static ObjectMapper createObjectMapper() {
-        // Crea un'istanza di ObjectMapper
-        ObjectMapper objectMapper = new ObjectMapper();
-        
-        objectMapper.setDateFormat(new SimpleDateFormat(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS));
-
-        // Registra il modulo per la gestione delle date Java 8 (LocalDateTime, OffsetDateTime, etc.)
-        JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addSerializer(OffsetDateTime.class, new OffsetDateTimeSerializer());
-        javaTimeModule.addDeserializer(OffsetDateTime.class, new OffsetDateTimeDeserializer());
-        
-		objectMapper.registerModule(javaTimeModule);
-
-        // Abilita la serializzazione delle date come stringhe, non come timestamp
-        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        
-        objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
-
-        return objectMapper;
-    }
+//	public static ObjectMapper createObjectMapper() {
+//        // Crea un'istanza di ObjectMapper
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        
+//        objectMapper.setDateFormat(new SimpleDateFormat(Costanti.PATTERN_TIMESTAMP_3_YYYY_MM_DD_T_HH_MM_SS_SSSXXX));
+//
+//        // Registra il modulo per la gestione delle date Java 8 (LocalDateTime, OffsetDateTime, etc.)
+//        JavaTimeModule javaTimeModule = new JavaTimeModule();
+//        javaTimeModule.addSerializer(OffsetDateTime.class, new OffsetDateTimeSerializer());
+//        javaTimeModule.addDeserializer(OffsetDateTime.class, new OffsetDateTimeDeserializer());
+//        
+//		objectMapper.registerModule(javaTimeModule);
+//
+//		objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
+//		objectMapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+//		objectMapper.enable(SerializationFeature.WRITE_DATES_WITH_ZONE_ID); 
+//		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+//
+//        return objectMapper;
+//    }
 	
 	@Bean("gpdApi")
 	DebtPositionsApiApi gpdApi(RestTemplate restTemplate) {

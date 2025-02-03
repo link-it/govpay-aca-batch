@@ -8,17 +8,17 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdScalarSerializer;
 
+import it.govpay.gpd.costanti.Costanti;
+
 
 public class OffsetDateTimeSerializer extends StdScalarSerializer<OffsetDateTime> {
 
 	private static final long serialVersionUID = 1L;
 
-	private transient DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Utils.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS);
+	private transient DateTimeFormatter formatter = DateTimeFormatter.ofPattern(Costanti.PATTERN_TIMESTAMP_3_YYYY_MM_DD_T_HH_MM_SS_SSSXXX);
 
 	public OffsetDateTimeSerializer() {
 		super(OffsetDateTime.class);
-
-
 	}
 
 	@Override
@@ -26,5 +26,4 @@ public class OffsetDateTimeSerializer extends StdScalarSerializer<OffsetDateTime
 		String dateTimeAsString = dateTime != null ? this.formatter.format(dateTime) : null;
 		jsonGenerator.writeString(dateTimeAsString);
 	}
-
 }
