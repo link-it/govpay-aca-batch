@@ -18,29 +18,33 @@ import it.govpay.gpd.costanti.Costanti;
 public class OffsetDateTimeDeserializer extends StdScalarDeserializer<OffsetDateTime> {
 
 	private static final long serialVersionUID = 1L;
-	
-	private transient DateTimeFormatter formatterMillis = DateTimeFormatter.ofPattern(Costanti.PATTERN_YYYY_MM_DD_T_HH_MM_SS_MILLIS_VARIABILI_XXX,
-            Locale.getDefault());
-	
+
+	private transient DateTimeFormatter formatter;
+
 	public OffsetDateTimeDeserializer() {
-        super(OffsetDateTime.class);
-    }
+		this(Costanti.PATTERN_TIMESTAMP_3_YYYY_MM_DD_T_HH_MM_SS_SSSXXX);
+	}
 
-    @Override
-    public OffsetDateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
-        try {
-            JsonToken currentToken = jsonParser.getCurrentToken();
-            if (currentToken == JsonToken.VALUE_STRING) {
-            	return parseOffsetDateTime(jsonParser.getText(), this.formatterMillis);
-            } else {
-            	return null;
-            }
-        } catch (IOException | DateTimeParseException e) {
-        	throw new IOException(e);
-        }
-    }
+	public OffsetDateTimeDeserializer(String format) {
+		super(OffsetDateTime.class);
+		this.formatter = DateTimeFormatter.ofPattern(format,Locale.getDefault());
+	}
 
-    public OffsetDateTime parseOffsetDateTime(String value, DateTimeFormatter formatter)  {
+	@Override
+	public OffsetDateTime deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
+		try {
+			JsonToken currentToken = jsonParser.getCurrentToken();
+			if (currentToken == JsonToken.VALUE_STRING) {
+				return parseOffsetDateTime(jsonParser.getText(), this.formatter);
+			} else {
+				return null;
+			}
+		} catch (IOException | DateTimeParseException e) {
+			throw new IOException(e);
+		}
+	}
+
+	public OffsetDateTime parseOffsetDateTime(String value, DateTimeFormatter formatter)  {
 		if (value != null && !value.trim().isEmpty()) {
 			String dateString = value.trim();
 			try {
@@ -53,7 +57,7 @@ public class OffsetDateTimeDeserializer extends StdScalarDeserializer<OffsetDate
 				}
 			}
 		}
-    	
-    	return null;
-    }
+
+		return null;
+	}
 }

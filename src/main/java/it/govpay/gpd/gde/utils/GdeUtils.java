@@ -1,6 +1,7 @@
 package it.govpay.gpd.gde.utils;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +33,14 @@ public class GdeUtils {
 		DettaglioRisposta parametriRisposta = nuovoEvento.getParametriRisposta();
 
 		if(request != null && parametriRichiesta != null) {
-			parametriRichiesta.setPayload(writeValueAsString(objectMapper, request));
+			parametriRichiesta.setPayload(Base64.getEncoder().encodeToString(writeValueAsString(objectMapper, request).getBytes()));
 		}
 
 		if(parametriRisposta != null) {
 			if(e != null) {
-				parametriRisposta.setPayload(writeValueAsString(objectMapper, e.getMessage()));
+				parametriRisposta.setPayload(Base64.getEncoder().encodeToString(writeValueAsString(objectMapper, e.getMessage()).getBytes()));
 			} else if(response != null) {
-				parametriRisposta.setPayload(writeValueAsString(objectMapper, response.getBody()));
+				parametriRisposta.setPayload(Base64.getEncoder().encodeToString(writeValueAsString(objectMapper, response.getBody()).getBytes()));
 			} 
 		}
 	}
