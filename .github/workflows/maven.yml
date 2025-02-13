@@ -38,12 +38,6 @@ jobs:
         cache: maven
     - name: Build with Maven
       run: mvn clean install -P jar -DskipTests -Ddependency-check.skip=true
-    - name: Zip SQL files
-      # Crea un file zip (target/sql.zip) contenente i file presenti in src/main/resources/sql
-      run: |
-        cd src/main/resources
-        zip -r ../../../target/sql.zip sql
-        cd ../../../
 
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
@@ -74,6 +68,13 @@ jobs:
 
     - name: Rename the artifact file to include the tag
       run: cp target/govpay-aca-batch.jar target/govpay-aca-batch-${{ github.ref_name }}.jar  # Rinominare il file
+    
+    - name: Zip SQL files
+      # Crea un file zip (target/sql.zip) contenente i file presenti in src/main/resources/sql
+      run: |
+        cd src/main/resources
+        zip -r ../../../target/sql.zip sql
+        cd ../../../
 
     - name: List files in target directory
       run: ls -l target/
@@ -82,7 +83,9 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v2.2.1
       with:
-        files: target/govpay-aca-batch-${{ github.ref_name }}.jar  # Specifica l'artefatto da caricare
+        files: |
+          target/govpay-aca-batch-${{ github.ref_name }}.jar  # Specifica l'artefatto da caricare
+          target/sql.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} 
 
