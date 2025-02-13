@@ -84,7 +84,7 @@ jobs:
       uses: softprops/action-gh-release@v2.2.1
       with:
         files: |
-          target/govpay-aca-batch-${{ github.ref_name }}.jar  # Specifica l'artefatto da caricare
+          target/govpay-aca-batch-${{ github.ref_name }}.jar
           target/sql.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} 
