@@ -1,4 +1,4 @@
-# govpay-batch-aca
+# govpay-aca-batch
 Batch di alimentazione del GPD degli Avvisi pagoPA
 
 ## Istruzioni di compilazione
@@ -25,6 +25,31 @@ Per sovrascrivere le proprieta' definite nel file `application.properties` utili
 ``` bash
 mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dspring.datasource.url=[NUOVO_VALORE] ..."
 
+```
+
+Avvio dell'applicazione per essere utilizzata all'interno di un cron, utilizzare il profilo `cron`:
+
+```bash
+java -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
+  --spring.batch.job.enabled=false \
+  --spring.main.web-application-type="none" \
+  --spring.datasource.url="[URL CONNESSIONE DB]" \
+  --spring.datasource.driverClassName="[CLASSE DRIVER JDBC]" \
+  --spring.datasource.username="[USERNAME DB]" \
+  --spring.datasource.password="[PASSWORD DB]" \
+  --spring.jpa.database-platform="[DIALECT JPA]" \
+  --spring.jpa.properties.hibernate.dialect="[DIALECT JPA]" \
+  --it.govpay.gpd.time-zone="Europe/Rome" \
+  --it.govpay.gpd.batch.client.header.subscriptionKey.name="Ocp-Apim-Subscription-Key" \
+  --it.govpay.gpd.batch.client.header.subscriptionKey.value="[VALORE SUBSCRIPTION-KEY]" \
+  --it.govpay.gpd.batch.client.debugging=[true|false] \
+  --it.govpay.gpd.batch.client.baseUrl="[BASE URL SERVIZIO ACA PAGOPA]" \
+  --it.govpay.gpd.standIn.enabled=true \
+  --it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=10 \
+  --it.govpay.gpd.batch.dbreader.numeroPendenze.limit=100 \
+  --it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=7 \
+  --it.govpay.gde.enabled=[true|false] \
+  --it.govpay.gde.client.baseUrl=[BASE URL SERVIZIO GDE]
 ```
 
 # Configurazione
@@ -65,9 +90,6 @@ it.govpay.gpd.batch.client.baseUrl=[BASE URL SERVIZIO ACA PAGOPA]
 #Indica se la pendenza e' disponibile per la funzionalita' di standin
 it.govpay.gpd.standIn.enabled=[TRUE|FALSE]
  
-#Indica se tentare la pubblicazione direttamente senza passare dallo stato draft (valido solo se la pendenza non ha data scadenza)
-it.govpay.gpd.toPublish.enabled=[TRUE|FALSE]
-
 # Dimensione del chunk di lavoro
 it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=[DIMENSIONE CHUNK]
 

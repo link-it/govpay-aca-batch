@@ -174,6 +174,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
@@ -258,6 +267,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
@@ -299,6 +317,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))
@@ -334,6 +361,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 
@@ -377,6 +413,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))
@@ -412,6 +457,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 
@@ -460,6 +514,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))
@@ -495,6 +558,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 
@@ -543,6 +615,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))
@@ -578,6 +659,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 
@@ -626,6 +716,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))
@@ -661,6 +760,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 			
@@ -709,6 +817,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))
@@ -744,6 +861,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 
@@ -792,6 +918,15 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 					return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 				}
 			});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()))

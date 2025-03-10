@@ -110,22 +110,6 @@ public class GdeService {
 				HttpMethod.PUT.name(), xRequestId, request, response, e);
 	}
 	
-	public void salvaInvalidatePositionOk(String baseUrl, String xRequestId,  
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_INVALIDATE, null);
-		
-		this.salvaInvio(true, versamentoGpdEntity, Costanti.INVALIDATE_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.POST.name(), xRequestId, null, response, null);
-	}
-
-	public void salvaInvalidatePositionKo(String baseUrl, String xRequestId,  
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response, RestClientException e) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_INVALIDATE, null);
-		
-		this.salvaInvio(false, versamentoGpdEntity, Costanti.INVALIDATE_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.POST.name(), xRequestId, null, response, e);
-	}
-	
 	public void salvaPublishPositionOk(String baseUrl, String xRequestId,  
 			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
 		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_PUBLISH, null);
@@ -168,7 +152,8 @@ public class GdeService {
 				this.eventoGdpMapper.mapEventoOk(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd) :
 				this.eventoGdpMapper.mapEventoKo(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd, responseEntity, e);
 
-		this.eventoGdpMapper.creaParametriRichiestaERisposta(nuovoEvento, url, httpMethod, headerRichiesta, dataStart, dataEnd, responseEntity);
+		this.eventoGdpMapper.creaParametriRichiesta(nuovoEvento, url, httpMethod, headerRichiesta, dataStart);
+		this.eventoGdpMapper.creaParametriRisposta(nuovoEvento, dataEnd, responseEntity, e);
 
 		GdeUtils.serializzaPayload(this.objectMapper, nuovoEvento, request, responseEntity, e);
 

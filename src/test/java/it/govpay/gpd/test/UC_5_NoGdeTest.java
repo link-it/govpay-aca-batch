@@ -33,6 +33,8 @@ import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
+import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
+import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
@@ -111,6 +113,15 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 

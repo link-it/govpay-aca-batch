@@ -44,9 +44,11 @@ import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentOptionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
+import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.client.beans.TransferMetadataModel;
 import it.govpay.gpd.client.beans.TransferModel;
+import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
@@ -182,6 +184,15 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
@@ -271,6 +282,15 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 					});
 			
 			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
+			
+			Mockito.lenient()
 			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
 					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
 						@Override
@@ -322,6 +342,15 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 							assertEquals(true, paymentOption.get(0).isIsPartialPayment());
 							
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 
@@ -383,6 +412,15 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
 						}
 					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
 
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
@@ -432,6 +470,15 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 							assertEquals(2, transferList.size());
 							
 							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
 						}
 					});
 

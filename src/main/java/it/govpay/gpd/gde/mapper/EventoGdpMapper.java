@@ -49,11 +49,15 @@ public interface EventoGdpMapper {
 		return nuovoEvento;
 	}
 	
-	default void creaParametriRichiestaERisposta(NuovoEvento nuovoEvento, String urlOperazione, String httpMethod, List<Header> headers,
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, ResponseEntity<?> responseEntity){
+	default void creaParametriRichiesta(NuovoEvento nuovoEvento, String urlOperazione, String httpMethod, List<Header> headers,
+			OffsetDateTime dataStart){
 
 		nuovoEvento.setParametriRichiesta(mapDettagliRichiesta(dataStart, urlOperazione, httpMethod, headers));
-		nuovoEvento.setParametriRisposta(mapDettagliRisposta(responseEntity, dataEnd));
+	}
+	
+	default void creaParametriRisposta(NuovoEvento nuovoEvento, OffsetDateTime dataEnd, ResponseEntity<?> responseEntity, RestClientException restClientException){
+
+		nuovoEvento.setParametriRisposta(mapDettagliRisposta(responseEntity, dataEnd, restClientException));
 	}
 	
 	default NuovoEvento mapEventoOk(VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd){
@@ -109,24 +113,45 @@ public interface EventoGdpMapper {
 		return dettaglioRichiesta;
 	}
 
-	default DettaglioRisposta mapDettagliRisposta(ResponseEntity<?> responseEntity, OffsetDateTime dataEnd) {
+	default DettaglioRisposta mapDettagliRisposta(ResponseEntity<?> responseEntity, OffsetDateTime dataEnd, RestClientException restClientException) {
 		DettaglioRisposta dettaglioRisposta = new DettaglioRisposta();
 
 		dettaglioRisposta.setDataOraRisposta(dataEnd);
-		dettaglioRisposta.setStatus(responseEntity != null ? BigDecimal.valueOf(responseEntity.getStatusCode().value()) : BigDecimal.valueOf(500));
-
+		
 		// mappa gli headers
 		List<Header> headers = new ArrayList<>();
-		HttpHeaders httpHeaders = responseEntity != null ? responseEntity.getHeaders() : new HttpHeaders();
-		httpHeaders.forEach((key, value) -> {
-			Header header = new Header();
-			header.setNome(key);
-			header.setValore(value.get(0));
-			headers.add(header);
-		});
+		
+		if(responseEntity != null) {
+			dettaglioRisposta.setStatus(BigDecimal.valueOf(responseEntity.getStatusCode().value()));
+			
+			HttpHeaders httpHeaders = responseEntity.getHeaders();
+			httpHeaders.forEach((key, value) -> {
+				Header header = new Header();
+				header.setNome(key);
+				header.setValore(value.get(0));
+				headers.add(header);
+			});
+		} else if(restClientException != null) {
+			if (restClientException instanceof HttpStatusCodeException httpStatusCodeException) {
+				dettaglioRisposta.setStatus(BigDecimal.valueOf(httpStatusCodeException.getStatusCode().value()));
+				
+				HttpHeaders httpHeaders = httpStatusCodeException.getResponseHeaders();
+				if(httpHeaders != null) {
+					httpHeaders.forEach((key, value) -> {
+						Header header = new Header();
+						header.setNome(key);
+						header.setValore(value.get(0));
+						headers.add(header);
+					});
+				}
+			} else {
+				dettaglioRisposta.setStatus(BigDecimal.valueOf(500));
+			}
+		} else {
+			dettaglioRisposta.setStatus(BigDecimal.valueOf(500));
+		}
 
 		dettaglioRisposta.setHeaders(headers);
-
 
 		return dettaglioRisposta;
 	}

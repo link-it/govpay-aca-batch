@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,7 +39,11 @@ public class GdeUtils {
 
 		if(parametriRisposta != null) {
 			if(e != null) {
-				parametriRisposta.setPayload(Base64.getEncoder().encodeToString(writeValueAsString(objectMapper, e.getMessage()).getBytes()));
+				if (e instanceof HttpStatusCodeException httpStatusCodeException) {
+					parametriRisposta.setPayload(Base64.getEncoder().encodeToString(httpStatusCodeException.getResponseBodyAsByteArray()));
+				} else {
+					parametriRisposta.setPayload(Base64.getEncoder().encodeToString(e.getMessage().getBytes()));
+				}
 			} else if(response != null) {
 				parametriRisposta.setPayload(Base64.getEncoder().encodeToString(writeValueAsString(objectMapper, response.getBody()).getBytes()));
 			} 
@@ -52,7 +57,7 @@ public class GdeUtils {
 		}
 
 		Map<String, String> urlParams = new HashMap<>();
-		queryParams.put(("{" + Costanti.ORGANIZATION_FISCAL_CODE + "}"), codDominio);
+		urlParams.put(("{" + Costanti.ORGANIZATION_FISCAL_CODE + "}"), codDominio);
 
 		return GdeUtils.valorizzaUrl(baseUrl, operationPath, urlParams, queryParams);
 	}
@@ -64,8 +69,8 @@ public class GdeUtils {
 		}
 
 		Map<String, String> urlParams = new HashMap<>();
-		queryParams.put(("{" + Costanti.ORGANIZATION_FISCAL_CODE + "}"), codDominio);
-		queryParams.put(("{" + Costanti.IUPD + "}"), iupd);
+		urlParams.put(("{" + Costanti.ORGANIZATION_FISCAL_CODE + "}"), codDominio);
+		urlParams.put(("{" + Costanti.IUPD + "}"), iupd);
 
 		return GdeUtils.valorizzaUrl(baseUrl, operationPath, urlParams, queryParams);
 	}

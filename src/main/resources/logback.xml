@@ -9,7 +9,7 @@
 			<Pattern>%white(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable</Pattern>
 		</encoder>
 	</appender>
-		
+	
 	<logger name="it.govpay" level="INFO" additivity="false">
 		<appender-ref ref="STDOUT" />
 	</logger>

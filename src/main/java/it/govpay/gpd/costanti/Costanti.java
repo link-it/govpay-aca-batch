@@ -44,7 +44,6 @@ public class Costanti {
 	public static final String UPDATE_POSITION = "updatePosition";
 	public static final String DELETE_POSITION = "deletePosition";
 	public static final String PUBLISH_POSITION = "publishPosition";
-	public static final String INVALIDATE_POSITION = "invalidatePosition";
 	public static final String HEALTH_CHECK = "healthCheck";
 
 	public static final String HEADER_X_REQUEST_ID = "X-Request-Id";
