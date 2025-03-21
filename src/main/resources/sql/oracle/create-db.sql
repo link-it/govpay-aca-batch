@@ -5,11 +5,15 @@ SELECT versamenti.id,
     versamenti.stato_versamento,
     versamenti.data_validita,
     versamenti.data_scadenza,
-    UTL_RAW.CAST_TO_VARCHAR2(
+    CASE 
+         WHEN versamenti.causale_versamento IS NOT NULL 
+         THEN UTL_RAW.CAST_TO_VARCHAR2(
          UTL_ENCODE.BASE64_DECODE(
-           UTL_RAW.CAST_TO_RAW(SUBSTR(versamenti.causale_versamento, 3))
+           UTL_RAW.CAST_TO_RAW(SUBSTR(versamenti.causale_versamento, 4))
          )
-       ) as causale_versamento,
+       )
+         ELSE NULL
+       END AS causale_versamento,
     versamenti.debitore_identificativo,
     versamenti.debitore_tipo,
     versamenti.debitore_anagrafica,
