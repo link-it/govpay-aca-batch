@@ -1,5 +1,6 @@
 package it.govpay.gpd.step;
 
+import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 
@@ -85,6 +86,14 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		String xRequestId = Utils.creaXRequestId();
 		String basePath = this.gpdApi.getApiClient().getBasePath();
 
+		if(item.getIuvVersamento() == null) {
+			logger.warn("IUV non presente per la Pendenza [IdA2A:{}, ID:{}], caricamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
+			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "IUV non presente", new byte[0], Charset.defaultCharset());
+			
+			this.gdeService.salvaCreatePositionKo(null, basePath, xRequestId, true, dataStart, OffsetDateTime.now(), item, null, e);
+			return item;
+		}
+		
 		PaymentPositionModel paymentPositionModel = this.paymentPositionModelRequestMapperImpl.versamentoGpdToPaymentPositionModel(item);
 
 		try {
