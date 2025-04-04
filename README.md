@@ -48,6 +48,7 @@ java -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
   --it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=10 \
   --it.govpay.gpd.batch.dbreader.numeroPendenze.limit=100 \
   --it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=7 \
+  --it.govpay.gpd.batch.clusterId=[CLUSTERID] \
   --it.govpay.gde.enabled=[true|false] \
   --it.govpay.gde.client.baseUrl=[BASE URL SERVIZIO GDE]
 ```
@@ -98,6 +99,9 @@ it.govpay.gpd.batch.dbreader.numeroPendenze.limit=[LIMIT PER LA RICERCA SUL DB]
 
 # Numero di giorni su cui limitare la ricerca delle pendenze da spedire all'ACA
 it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=[LIMITE TEMPORALE RICERCA PENDENZE DA SPEDIRE]
+
+# Cluster ID
+it.govpay.gpd.batch.clusterId=[CLUSTER_ID]
 
 # Configurazione GDE
 

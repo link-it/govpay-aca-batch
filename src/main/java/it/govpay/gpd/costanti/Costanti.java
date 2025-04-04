@@ -21,6 +21,7 @@ public class Costanti {
 
 	public static final String GOVPAY_GPD_JOB_ID = "GovPay_GPD_JobID";
 	public static final String GOVPAY_GPD_JOB_PARAMETER_WHEN = "When";
+	public static final String GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID = "ClusterID";
 
 	public static final String DEFAULT_TIME_ZONE = "Europe/Rome";
 
