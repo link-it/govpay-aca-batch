@@ -60,15 +60,29 @@ public class Utils {
 	
 	public static LocalDateTime calcolaDueDate(VersamentoGpdEntity versamento, boolean allowNull) {
 		if(versamento.getDataValidita() != null) {
-			return versamento.getDataValidita(); // indicates the expiration payment date
+			return estendiDueDate(versamento.getDataValidita()); // indicates the expiration payment date
 		} else if(versamento.getDataScadenza() != null) {
-			return versamento.getDataScadenza(); // indicates the expiration payment date
+			return estendiDueDate(versamento.getDataScadenza()); // indicates the expiration payment date
 		} else {
 			if (allowNull) {
-				return null;
+				return estendiDueDate(null);
 			}
-			return LocalDateTime.parse("2999-12-31T00:00:00.000"); //31.12.2999
+			return LocalDateTime.parse("2999-12-31T23:59:59.999"); //31.12.2999
 		}   
+	}
+	
+	/**
+	 * Estende la data di scadenza a fine giornata perche' pagoPA accetta un date time mentre su GovPay e' un date 
+	 * 
+	 * @param localDateTime
+	 * @return
+	 */
+	public static LocalDateTime estendiDueDate(LocalDateTime localDateTime) {
+		if(localDateTime == null) {
+            return null;
+        }
+		
+		return localDateTime.withHour(23).withMinute(59).withSecond(59).withNano(999999999);
 	}
 
 	public static OffsetDateTime toOffsetDateTime(LocalDateTime date, String timeZone) {

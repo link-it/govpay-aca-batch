@@ -17,7 +17,6 @@ import it.govpay.gpd.entity.Metadata;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity.StatoVersamento;
 import it.govpay.gpd.entity.VersamentoGpdEntity.TIPO;
-import it.govpay.gpd.exceptions.IuvException;
 import it.govpay.gpd.repository.VersamentoFilters;
 import it.govpay.gpd.repository.VersamentoGpdRepository;
 import it.govpay.gpd.test.costanti.Costanti;
@@ -32,7 +31,6 @@ import it.govpay.gpd.test.repository.IbanAccreditoRepository;
 import it.govpay.gpd.test.repository.SingoloVersamentoFullRepository;
 import it.govpay.gpd.test.repository.TributoRepository;
 import it.govpay.gpd.test.repository.VersamentoFullRepository;
-import it.govpay.gpd.utils.IuvUtils;
 
 public class VersamentoUtils {
 	
@@ -75,7 +73,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		// transfer 2
 		singoloVersamentoId = VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository);
@@ -88,7 +86,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -111,7 +109,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -134,7 +132,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -157,7 +155,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -180,7 +178,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -203,7 +201,7 @@ public class VersamentoUtils {
 			generaMetadata(objectMapper, singoloVersamentoFullEntity);
 		}
 		
-		singoloVersamentoFullEntity = singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
+		singoloVersamentoFullRepository.save(singoloVersamentoFullEntity);
 		
 		return versamentoFullEntity;
 	}
@@ -409,20 +407,4 @@ public class VersamentoUtils {
 		
 	}
 	
-	public static String generaIUVISO11694(long prg, String prefix) throws IuvException {
-		String reference = prefix + String.format("%0" + (21 - prefix.length()) + "d", prg);
-		if(reference.length() > 21)
-			throw new IuvException("Superato il numero massimo di IUV generabili Prefisso:"+prefix+"]" );
-
-		String check = IuvUtils.getCheckDigit(reference);
-		return "RF" + check + reference;
-	}
-	
-	public static String generaIUVNumerico(long prg, String prefix) throws IuvException {
-		String reference = prefix + String.format("%0" + (13 - prefix.length()) + "d", prg);
-		if(reference.length() > 15) 
-			throw new IuvException("Superato il numero massimo di IUV generabili Prefisso:"+prefix+"]" );
-		String check = IuvUtils.getCheckDigit93(reference, 0, 1); 
-		return reference + check;
-	}
 }

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.http.HttpResponse;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.concurrent.CompletableFuture;
@@ -30,12 +31,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpClientErrorException;
 
 import it.govpay.gpd.Application;
@@ -44,8 +46,8 @@ import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
-import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
+import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.entity.VersamentoGpdEntity.StatoVersamento;
 import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
@@ -64,15 +66,15 @@ import it.govpay.gpd.test.utils.VersamentoUtils;
 class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 
 	@Autowired
-	@MockBean(name = "gpdApi")
+	@MockitoBean(name = "gpdApi")
 	DebtPositionsApiApi gpdApi;
 	
 	@Autowired
-	@MockBean(name = "gpdActionsApi")
+	@MockitoBean(name = "gpdActionsApi")
 	DebtPositionActionsApiApi gpdActionsApi;
 	
 	@Autowired
-	@MockBean
+	@MockitoBean
 	EventiApi gdeApi;
 
 	@Autowired
@@ -384,7 +386,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -480,7 +482,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -579,7 +581,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
 			versamentoGpdEntity.setStatoVersamento(StatoVersamento.ANNULLATO);
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -679,7 +681,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
 			versamentoGpdEntity.setStatoVersamento(StatoVersamento.ANNULLATO);
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -828,7 +830,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -915,7 +917,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -1002,7 +1004,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -1089,7 +1091,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -1099,7 +1101,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			Mockito.lenient()
 			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
-					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found"));
+					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), new byte[0], Charset.defaultCharset()));
 			
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
@@ -1171,7 +1173,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -1254,7 +1256,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			// update pendenza e nuovo giro batch
 			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
-			versamentoGpdEntity.setDataUltimaModificaAca(versamentoGpdEntity.getDataUltimaComunicazioneAca().plusNanos(1));
+			versamentoGpdEntity.setDataUltimaComunicazioneAca(versamentoGpdEntity.getDataUltimaModificaAca().minusMinutes(1));
 			this.versamentoFullRepository.save(versamentoGpdEntity);
 			this.checkVersamentoFullEntity(versamentoGpdEntity);
 			
@@ -1282,6 +1284,131 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
+			
+		} finally {
+			this.cleanDB();
+		}
+	}
+	
+	@Test
+	void TC_16_SendTest_Create_Forbidden() throws Exception {
+		try {
+
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoDefinitoConIbanAppoggio();
+
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
+						@Override
+						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.FORBIDDEN);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
+		}
+	}
+	
+	@Test
+	void TC_15_SendTest_Create_Forbidden_WithException() throws Exception {
+		try {
+
+			// creazione versamento da spedire
+			this.creaVersamentoNonEseguitoDefinitoConIbanAppoggio();
+
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenThrow(HttpClientErrorException.create(HttpStatus.FORBIDDEN, "Forbidden", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), 
+							objectMapper.writeValueAsBytes(GpdUtils.createProblem403()), StandardCharsets.UTF_8));
+
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
+		}
+	}
+	
+	@Test
+	void TC_17_SendTest_Get_NotFound_WithException() throws Exception {
+		try {
+
+			// caricamento presso GPD versamento in stato non eseguito
+			VersamentoFullEntity versamentoGpdEntity = this.creaVersamentoNonEseguito();
+			versamentoGpdEntity = this.versamentoFullRepository.findById(versamentoGpdEntity.getId()).get();
+			versamentoGpdEntity.setDataScadenza(versamentoGpdEntity.getDataCreazione().plusMonths(1));
+			this.versamentoFullRepository.save(versamentoGpdEntity);
+			this.checkVersamentoFullEntity(versamentoGpdEntity);
+
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), 
+							objectMapper.writeValueAsBytes(GpdUtils.createProblem404()), Charset.defaultCharset()));
+			
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+			
+			initailizeJobLauncherTestUtils();
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 			
 		} finally {
 			this.cleanDB();

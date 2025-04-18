@@ -29,12 +29,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
@@ -67,15 +67,15 @@ import it.govpay.gpd.test.utils.VersamentoUtils;
 class UC_3_GdeTest extends UC_00_BaseTest {
 
 	@Autowired
-	@MockBean(name = "gpdApi")
+	@MockitoBean(name = "gpdApi")
 	DebtPositionsApiApi gpdApi;
 	
 	@Autowired
-	@MockBean(name = "gpdActionsApi")
+	@MockitoBean(name = "gpdActionsApi")
 	DebtPositionActionsApiApi gpdActionsApi;
 	
 	@Autowired
-	@MockBean
+	@MockitoBean
 	EventiApi gdeApi;
 
 	@Autowired

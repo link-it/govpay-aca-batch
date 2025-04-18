@@ -44,11 +44,10 @@ java -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
   --it.govpay.gpd.batch.client.header.subscriptionKey.value="[VALORE SUBSCRIPTION-KEY]" \
   --it.govpay.gpd.batch.client.debugging=[true|false] \
   --it.govpay.gpd.batch.client.baseUrl="[BASE URL SERVIZIO ACA PAGOPA]" \
-  --it.govpay.gpd.standIn.enabled=true \
   --it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=10 \
-  --it.govpay.gpd.batch.dbreader.numeroPendenze.limit=100 \
   --it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=7 \
   --it.govpay.gpd.batch.clusterId=[CLUSTERID] \
+  --it.govpay.gpd.batch.policy.reinvio.403.enabled=[true|false] \
   --it.govpay.gde.enabled=[true|false] \
   --it.govpay.gde.client.baseUrl=[BASE URL SERVIZIO GDE]
 ```
@@ -88,20 +87,17 @@ it.govpay.gpd.batch.client.header.subscriptionKey.value=[VALORE SUBSCRIPTION-KEY
 it.govpay.gpd.batch.client.debugging=[DEBUG CHIAMATE VERSO IL SERVIZIO]
 it.govpay.gpd.batch.client.baseUrl=[BASE URL SERVIZIO ACA PAGOPA]
 
-#Indica se la pendenza e' disponibile per la funzionalita' di standin
-it.govpay.gpd.standIn.enabled=[TRUE|FALSE]
- 
 # Dimensione del chunk di lavoro
 it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=[DIMENSIONE CHUNK]
-
-# Limit da impostare nella query di ricerca sul DB
-it.govpay.gpd.batch.dbreader.numeroPendenze.limit=[LIMIT PER LA RICERCA SUL DB]
 
 # Numero di giorni su cui limitare la ricerca delle pendenze da spedire all'ACA
 it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=[LIMITE TEMPORALE RICERCA PENDENZE DA SPEDIRE]
 
 # Cluster ID
 it.govpay.gpd.batch.clusterId=[CLUSTER_ID]
+
+# Policy reinvio per il codice di errore 403
+it.govpay.gpd.batch.policy.reinvio.403.enabled=[TRUE|FALSE]
 
 # Configurazione GDE
 

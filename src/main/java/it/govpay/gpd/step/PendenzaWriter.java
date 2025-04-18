@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
-import it.govpay.gpd.entity.VersamentoEntity;
 import it.govpay.gpd.repository.VersamentoRepository;
 import it.govpay.gpd.utils.Utils;
 
@@ -46,19 +45,13 @@ public class PendenzaWriter implements ItemWriter<VersamentoGpdEntity>{
 			dataEsecuzioneJob = Utils.toOffsetDateTime(jobExecution.getStartTime(), this.timeZone != null ? this.timeZone : Costanti.DEFAULT_TIME_ZONE);
 		}
 
-		logger.debug("Salvataggio pendenze: verra' impostata come DataUltimaComunicazioneACA la data di inizio esecuzione del JOB.");
+		logger.info("Verra' effettuato il salvataggio di [{}] pendenze presenti nel chunk", chunk.size());
 
 		for (VersamentoGpdEntity item : chunk) {
-			logger.debug("Ricerca pendenza con id {}", item.getId());
-			// Esegui l'aggiornamento puntuale delle due date aggiornate del versamento
-			VersamentoEntity existingEntity = versamentoRepository.findById(item.getId()).orElse(null);
-			logger.debug("trovata pendenza {}", existingEntity);
-			if (existingEntity != null) {
-				logger.debug("Aggiorno pendenza {}, modifica DataUltimaComunicazioneACA [corrente: {}, nuova: {}]", existingEntity.getId(), existingEntity.getDataUltimaComunicazioneAca(), dataEsecuzioneJob);
-				// Data ultima comunicazione ACA corrisponde al JobParameter di nome 'WHEN'
-				existingEntity.setDataUltimaComunicazioneAca(dataEsecuzioneJob);
-				versamentoRepository.save(existingEntity);
-			}
+			// Data ultima comunicazione ACA corrisponde al JobParameter di nome 'WHEN'
+			logger.info("Aggiorno pendenza [{},{}], imposto DataUltimaComunicazioneACA [{}]", item.getCodApplicazione(), item.getCodVersamentoEnte(), dataEsecuzioneJob);
+			this.versamentoRepository.updateDataUltimaComunicazioneAcaById(item.getId(), dataEsecuzioneJob);
+			logger.info("Pendenza [{},{}] aggiornata", item.getCodApplicazione(), item.getCodVersamentoEnte());
 		}
 	}
 }

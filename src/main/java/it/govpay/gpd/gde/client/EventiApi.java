@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.govpay.gde.client.api.impl.ApiClient;
 import it.govpay.gde.client.api.impl.ApiException;
 import it.govpay.gde.client.beans.NuovoEvento;
+import it.govpay.gpd.costanti.Costanti;
 
 public class EventiApi {
 
@@ -56,7 +57,7 @@ public class EventiApi {
 	private HttpRequest.Builder addEventoRequestBuilder(NuovoEvento nuovoEvento) throws ApiException {
 		HttpRequest.Builder localVarRequestBuilder = HttpRequest.newBuilder();
 
-		String localVarPath = "/eventi";
+		String localVarPath = Costanti.EVENTI;
 
 		localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
 

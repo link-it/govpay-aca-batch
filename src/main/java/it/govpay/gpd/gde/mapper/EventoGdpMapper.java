@@ -49,10 +49,9 @@ public interface EventoGdpMapper {
 		return nuovoEvento;
 	}
 	
-	default void creaParametriRichiesta(NuovoEvento nuovoEvento, String urlOperazione, String httpMethod, List<Header> headers,
-			OffsetDateTime dataStart){
+	default void creaParametriRichiesta(NuovoEvento nuovoEvento, String urlOperazione, String httpMethod, List<Header> headers){
 
-		nuovoEvento.setParametriRichiesta(mapDettagliRichiesta(dataStart, urlOperazione, httpMethod, headers));
+		nuovoEvento.setParametriRichiesta(mapDettagliRichiesta(nuovoEvento.getDataEvento(), urlOperazione, httpMethod, headers));
 	}
 	
 	default void creaParametriRisposta(NuovoEvento nuovoEvento, OffsetDateTime dataEnd, ResponseEntity<?> responseEntity, RestClientException restClientException){
