@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,9 +14,11 @@ public class PreventConcurrentJobLauncher {
 	
 	private static final Logger log = LoggerFactory.getLogger(PreventConcurrentJobLauncher.class);
 
-    @Autowired
     private JobExplorer jobExplorer;
-
+    
+    public PreventConcurrentJobLauncher(JobExplorer jobExplorer) {
+    	this.jobExplorer = jobExplorer;
+	}
     
     /**
      * Controlla e restituisce l'esecuzione corrente del job, se esiste.
@@ -26,7 +27,7 @@ public class PreventConcurrentJobLauncher {
      */
     public JobExecution getCurrentRunningJobExecution(String jobName) {
         Set<JobExecution> runningJobs = jobExplorer.findRunningJobExecutions(jobName);
-        if (runningJobs != null && !runningJobs.isEmpty()) {
+        if (!runningJobs.isEmpty()) {
             // Restituisce la prima esecuzione in corso.
             List<JobExecution> list = runningJobs.stream().toList();
             

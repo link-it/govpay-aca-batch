@@ -19,6 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.govpay.gde.client.api.impl.ApiException;
 import it.govpay.gde.client.beans.Header;
 import it.govpay.gde.client.beans.NuovoEvento;
+import it.govpay.gpd.client.api.DebtPositionActionsApiApi;
+import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.costanti.Costanti;
@@ -33,19 +35,30 @@ public class GdeService {
 
 	private Logger logger = LoggerFactory.getLogger(GdeService.class);
 
-	EventiApi gdeApi;
+	private EventiApi gdeApi;
+	
+	private String gpdApiBasePath;
+
+	private String gpdActionsApiBasePath;
 
 	@Value("${it.govpay.gde.enabled:true}")
-	Boolean gdeEnabled;
+	private Boolean gdeEnabled;
 
-	ObjectMapper objectMapper;
+	@Value("${it.govpay.gpd.batch.clusterId:GovPay-ACA-Batch}")
+	private String clusterId;
 
-	EventoGdpMapperImpl eventoGdpMapper;
-	
-	public GdeService(ObjectMapper objectMapper,@Qualifier("gdeApi") EventiApi gdeApi, EventoGdpMapperImpl eventoGdpMapper) {
+	private ObjectMapper objectMapper;
+
+	private EventoGdpMapperImpl eventoGdpMapper;
+
+	public GdeService(ObjectMapper objectMapper,@Qualifier("gdeApi") EventiApi gdeApi, EventoGdpMapperImpl eventoGdpMapper, 
+			@Qualifier("gpdApi") DebtPositionsApiApi gpdApi, 
+			@Qualifier("gpdActionsApi") DebtPositionActionsApiApi gpdActionsApi) {
 		this.objectMapper = objectMapper;
 		this.gdeApi = gdeApi;
 		this.eventoGdpMapper = eventoGdpMapper;
+		this.gpdApiBasePath = (gpdApi != null && gpdApi.getApiClient() != null) ? gpdApi.getApiClient().getBasePath() : "";
+		this.gpdActionsApiBasePath = (gpdActionsApi != null && gpdActionsApi.getApiClient() != null) ? gpdActionsApi.getApiClient().getBasePath() : "";
 	}
 
 	public void inviaEvento(NuovoEvento nuovoEvento) {
@@ -78,81 +91,94 @@ public class GdeService {
 		}
 	}
 
-	public void salvaCreatePositionOk(PaymentPositionModel request, String baseUrl, String xRequestId, Boolean toPublish, 
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
-		String url = GdeUtils.creaUrlCreatePosition(versamentoGpdEntity.getCodDominio(), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS, toPublish);
-		
-		this.salvaInvio(true, versamentoGpdEntity, Costanti.CREATE_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.POST.name(), xRequestId, request, response, null);
+	public static String getHttpMethod(String tipoEvento) {
+		switch (tipoEvento) {
+		case Costanti.CREATE_POSITION:
+			return HttpMethod.POST.name();
+		case Costanti.UPDATE_POSITION:
+			return HttpMethod.PUT.name();
+		case Costanti.PUBLISH_POSITION:
+			return HttpMethod.POST.name();
+		case Costanti.GET_ORGANIZATION_DEBT_POSITION_BY_IUPD:
+			return HttpMethod.GET.name();
+		default:
+			return null;
+		}
 	}
 
-	public void salvaCreatePositionKo(PaymentPositionModel request, String baseUrl, String xRequestId, Boolean toPublish, 
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response, RestClientException e) {
-		String url = GdeUtils.creaUrlCreatePosition(versamentoGpdEntity.getCodDominio(), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS, toPublish);
-		
-		this.salvaInvio(false, versamentoGpdEntity, Costanti.CREATE_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.POST.name(), xRequestId, request, response, e);
-	}
-	
-	public void salvaUpdatePositionOk(PaymentPositionModel request, String baseUrl, String xRequestId, Boolean toPublish, 
+
+
+	public void salvaCreatePositionOk(PaymentPositionModel request, String xRequestId, 
 			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, toPublish);
-		
-		this.salvaInvio(true, versamentoGpdEntity, Costanti.UPDATE_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.PUT.name(), xRequestId, request, response, null);
+		String url = GdeUtils.creaUrlCreatePosition(versamentoGpdEntity.getCodDominio(), this.gpdApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS, true);
+		NuovoEvento nuovoEvento = this.creaEventoOK(versamentoGpdEntity, Costanti.CREATE_POSITION, xRequestId, dataStart, dataEnd);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, request, response, null);
 	}
 
-	public void salvaUpdatePositionKo(PaymentPositionModel request, String baseUrl, String xRequestId, Boolean toPublish, 
+	public void salvaCreatePositionKo(PaymentPositionModel request, String xRequestId, 
 			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response, RestClientException e) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, toPublish);
-		
-		this.salvaInvio(false, versamentoGpdEntity, Costanti.UPDATE_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.PUT.name(), xRequestId, request, response, e);
-	}
-	
-	public void salvaPublishPositionOk(String baseUrl, String xRequestId,  
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_PUBLISH, null);
-		
-		this.salvaInvio(true, versamentoGpdEntity, Costanti.PUBLISH_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.POST.name(), xRequestId, null, response, null);
+		String url = GdeUtils.creaUrlCreatePosition(versamentoGpdEntity.getCodDominio(), this.gpdApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS, true);
+		NuovoEvento nuovoEvento = this.creaEventoKO(versamentoGpdEntity, Costanti.CREATE_POSITION, xRequestId, dataStart, dataEnd, response, e);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, request, response, e);
 	}
 
-	public void salvaPublishPositionKo(String baseUrl, String xRequestId,  
-			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response, RestClientException e) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_PUBLISH, null);
-		
-		this.salvaInvio(false, versamentoGpdEntity, Costanti.PUBLISH_POSITION, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.POST.name(), xRequestId, null, response, e);
+	public void salvaUpdatePositionOk(PaymentPositionModel request, String xRequestId, 
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
+		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), this.gpdApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, true);
+		NuovoEvento nuovoEvento = this.creaEventoOK(versamentoGpdEntity, Costanti.UPDATE_POSITION, xRequestId, dataStart, dataEnd);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, request, response, null);
 	}
-	
-	public void salvaGetPositionOk(String baseUrl, String xRequestId,  
+
+	public void salvaUpdatePositionKo(PaymentPositionModel request, String xRequestId, 
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response, RestClientException e) {
+		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), this.gpdApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, true);
+		NuovoEvento nuovoEvento = this.creaEventoKO(versamentoGpdEntity, Costanti.UPDATE_POSITION, xRequestId, dataStart, dataEnd, response, e);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, request, response, e);
+	}
+
+	public void salvaPublishPositionOk(String xRequestId,  
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response) {
+		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), this.gpdActionsApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_PUBLISH, null);
+		NuovoEvento nuovoEvento = this.creaEventoOK(versamentoGpdEntity, Costanti.PUBLISH_POSITION, xRequestId, dataStart, dataEnd);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, null, response, null);
+	}
+
+	public void salvaPublishPositionKo(String xRequestId,  
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModel> response, RestClientException e) {
+		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), this.gpdActionsApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD_PUBLISH, null);
+		NuovoEvento nuovoEvento = this.creaEventoKO(versamentoGpdEntity, Costanti.PUBLISH_POSITION, xRequestId, dataStart, dataEnd, response, e);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, null, response, e);
+	}
+
+	public void salvaGetPositionOk(String xRequestId,  
 			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModelBaseResponse> response) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, null);
-		
-		this.salvaInvio(true, versamentoGpdEntity, Costanti.GET_ORGANIZATION_DEBT_POSITION_BY_IUPD, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.GET.name(), xRequestId, null, response, null);
+		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), this.gpdApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, null);
+		NuovoEvento nuovoEvento = this.creaEventoOK(versamentoGpdEntity, Costanti.GET_ORGANIZATION_DEBT_POSITION_BY_IUPD, xRequestId, dataStart, dataEnd);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, null, response, null);
 	}
 
-	public void salvaGetPositionKo(String baseUrl, String xRequestId,  
+	public void salvaGetPositionKo(String xRequestId,  
 			OffsetDateTime dataStart, OffsetDateTime dataEnd, VersamentoGpdEntity versamentoGpdEntity, ResponseEntity<PaymentPositionModelBaseResponse> response, RestClientException e) {
-		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), baseUrl, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, null);
-		
-		this.salvaInvio(false, versamentoGpdEntity, Costanti.GET_ORGANIZATION_DEBT_POSITION_BY_IUPD, xRequestId, dataStart, dataEnd, url,
-				HttpMethod.GET.name(), xRequestId, null, response, e);
+		String url = GdeUtils.creaUrlUpdatePosition(versamentoGpdEntity.getCodDominio(), Utils.generaIupd(versamentoGpdEntity), this.gpdApiBasePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, null);
+		NuovoEvento nuovoEvento = this.creaEventoKO(versamentoGpdEntity, Costanti.GET_ORGANIZATION_DEBT_POSITION_BY_IUPD, xRequestId, dataStart, dataEnd, response, e);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, null, response, e);
 	}
 
-	private void salvaInvio(boolean isOK, VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd,
-			String url, String httpMethod, String xRequestId, Object request, 
+	private void salvaInvio(NuovoEvento nuovoEvento, OffsetDateTime dataEnd, String url, String xRequestId, Object request, 
 			ResponseEntity<?> responseEntity, RestClientException e) {
+
 		List<Header> headerRichiesta = GdeUtils.creaHeaderRichiesta(false);
 		GdeUtils.aggiungiHeaderXRequestId(headerRichiesta, xRequestId);
 
-		NuovoEvento nuovoEvento = isOK ?				
-				this.eventoGdpMapper.mapEventoOk(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd) :
-				this.eventoGdpMapper.mapEventoKo(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd, responseEntity, e);
-
-		this.eventoGdpMapper.creaParametriRichiesta(nuovoEvento, url, httpMethod, headerRichiesta, dataStart);
+		this.eventoGdpMapper.creaParametriRichiesta(nuovoEvento, url, getHttpMethod(nuovoEvento.getTipoEvento()), headerRichiesta);
 		this.eventoGdpMapper.creaParametriRisposta(nuovoEvento, dataEnd, responseEntity, e);
 
 		GdeUtils.serializzaPayload(this.objectMapper, nuovoEvento, request, responseEntity, e);
@@ -160,4 +186,16 @@ public class GdeService {
 		this.inviaEvento(nuovoEvento);
 	}
 
+	public NuovoEvento creaEventoOK(VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd) {
+		NuovoEvento nuovoEvento = this.eventoGdpMapper.mapEventoOk(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd);
+		nuovoEvento.setClusterId(this.clusterId);
+		return nuovoEvento;
+	}
+
+	public NuovoEvento creaEventoKO(VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, 
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, ResponseEntity<?> responseEntity, RestClientException e) {
+		NuovoEvento nuovoEvento = this.eventoGdpMapper.mapEventoKo(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd,	responseEntity, e);
+		nuovoEvento.setClusterId(this.clusterId);
+		return nuovoEvento;
+	}
 }

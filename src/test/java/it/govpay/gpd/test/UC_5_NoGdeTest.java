@@ -23,11 +23,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
@@ -52,7 +52,7 @@ import it.govpay.gpd.test.utils.VersamentoUtils;
 class UC_5_NoGdeTest extends UC_00_BaseTest {
 
 	@Autowired
-	@MockBean(name = "gpdApi")
+	@MockitoBean(name = "gpdApi")
 	DebtPositionsApiApi gpdApi;
 
 	@Autowired

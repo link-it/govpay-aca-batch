@@ -11,7 +11,6 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,15 +33,21 @@ import it.govpay.gpd.utils.Utils;
 
 @Mapper(componentModel = "spring")
 public abstract class PaymentPositionModelRequestMapper {
-	
-	@Autowired
+
 	ObjectMapper objectMapper;
-	
-	@Autowired
+
 	SingoloVersamentoGpdRepository singoloVersamentoGpdRepository; 
-	
+
 	@Value("${it.govpay.gpd.standIn.enabled:true}")
 	Boolean standIn;
+
+	public void setObjectMapper(ObjectMapper objectMapper) {
+		this.objectMapper = objectMapper;
+	}
+
+	public void setSingoloVersamentoGpdRepository(SingoloVersamentoGpdRepository singoloVersamentoGpdRepository) {
+		this.singoloVersamentoGpdRepository = singoloVersamentoGpdRepository;
+	}
 
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_IUPD, source = "versamentoGpdEntity", qualifiedByName = "mapIupd")
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAY_STAND_IN, source = "standIn") // feature flag to enable a debt position in stand-in mode
@@ -65,27 +70,27 @@ public abstract class PaymentPositionModelRequestMapper {
 	// @Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAYMENT_DATE, source = "versamentoGpdEntity") attributo read only viene restituito dal servizio e ignorato in request 
 	// @Mapping(target = PaymentPositionModel.JSON_PROPERTY_STATUS, source = "status")  attributo read only viene restituito dal servizio e ignorato in request 
 	@Mapping(target = PaymentPositionModel.JSON_PROPERTY_PAYMENT_OPTION, source = "versamentoGpdEntity", qualifiedByName = "mapPaymentOption")
-	public abstract PaymentPositionModel versamentoGpdToPaymentPositionModelBase(VersamentoGpdEntity versamentoGpdEntity, boolean standIn);
+	public abstract PaymentPositionModel versamentoGpdToPaymentPositionModelBase(VersamentoGpdEntity versamentoGpdEntity, boolean standIn) throws IOException;
 
-	
-	public PaymentPositionModel versamentoGpdToPaymentPositionModel(VersamentoGpdEntity versamentoGpdEntity) {
+
+	public PaymentPositionModel versamentoGpdToPaymentPositionModel(VersamentoGpdEntity versamentoGpdEntity) throws IOException {
 		boolean switchToExpired = false;
 		PaymentPositionModel paymentPositionModel = this.versamentoGpdToPaymentPositionModelBase(versamentoGpdEntity, this.standIn);
-		
+
 		// switch to expired
 		// feature flag to enable the debt position to expire after the due date   
 		if(paymentPositionModel != null) {
 			if(paymentPositionModel.getValidityDate() != null) {
 				switchToExpired = true;
 			}
-			
+
 			paymentPositionModel.setSwitchToExpired(switchToExpired);
 		}
-		
-		
+
+
 		return paymentPositionModel;
 	}
-	
+
 
 	@Named("mapIupd")
 	public String mapIupd(VersamentoGpdEntity versamentoGpdEntity) {
@@ -95,14 +100,14 @@ public abstract class PaymentPositionModelRequestMapper {
 	@Named("mapUoAnagrafica")
 	public String mapUoAnagrafica(VersamentoGpdEntity versamentoGpdEntity) {
 		if (versamentoGpdEntity == null || versamentoGpdEntity.getCodUo() == null) {
-	        return null;
-	    }
+			return null;
+		}
 
-	    if (!Costanti.EC.equals(versamentoGpdEntity.getCodUo())) {
-	        return versamentoGpdEntity.getUoDenominazione();
-	    }
+		if (!Costanti.EC.equals(versamentoGpdEntity.getCodUo())) {
+			return versamentoGpdEntity.getUoDenominazione();
+		}
 
-	    return null;
+		return null;
 	}
 
 	@Named("mapValidityDate")
@@ -111,7 +116,7 @@ public abstract class PaymentPositionModelRequestMapper {
 	}
 
 	@Named("mapPaymentOption")
-	public List<PaymentOptionModel> mapPaymentOption(VersamentoGpdEntity versamentoGpdEntity) {
+	public List<PaymentOptionModel> mapPaymentOption(VersamentoGpdEntity versamentoGpdEntity) throws IOException {
 		List<PaymentOptionModel> list = new ArrayList<>();
 		list.add(versamentoGpdToPaymentOptionModel(versamentoGpdEntity));
 		return list;
@@ -128,7 +133,7 @@ public abstract class PaymentPositionModelRequestMapper {
 	// @Mapping(target = PaymentOptionModel.JSON_PROPERTY_NOTIFICATION_FEE, source = "versamentoGpdEntity", qualifiedByName = "mapNotificationFee") attributo readonly
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_TRANSFER, source = "versamentoGpdEntity", qualifiedByName = "mapTransfer")
 	@Mapping(target = PaymentOptionModel.JSON_PROPERTY_PAYMENT_OPTION_METADATA, source = "versamentoGpdEntity", qualifiedByName = "mapMetadataVersamento")
-	public abstract PaymentOptionModel versamentoGpdToPaymentOptionModel(VersamentoGpdEntity versamentoGpdEntity);
+	public abstract PaymentOptionModel versamentoGpdToPaymentOptionModel(VersamentoGpdEntity versamentoGpdEntity) throws IOException;
 
 	@Named("amountMapper")
 	public Long amountMapper(Double importo) {
@@ -159,8 +164,8 @@ public abstract class PaymentPositionModelRequestMapper {
 		if (dueDate == null) {
 			return null;
 		}
-		
-		return OffsetDateTime.of(dueDate, offset);// dueDate.atOffset(offset);
+
+		return OffsetDateTime.of(dueDate, offset);
 	}
 
 	@Named("mapFee")
@@ -169,11 +174,11 @@ public abstract class PaymentPositionModelRequestMapper {
 	}
 
 	@Named("mapTransfer")
-	public List<TransferModel> mapTransfer(VersamentoGpdEntity versamentoGpdEntity) {
+	public List<TransferModel> mapTransfer(VersamentoGpdEntity versamentoGpdEntity) throws IOException {
 		List<TransferModel> list = new ArrayList<>();
 
 		List<SingoloVersamentoGpdEntity> singoliVersamenti = this.singoloVersamentoGpdRepository.findAll(SingoloVersamentoFilters.byVersamentoId(versamentoGpdEntity.getId()));
-		
+
 		for (SingoloVersamentoGpdEntity singoloVersamento : singoliVersamenti) {
 			list.add(singoloVersamentoGpdToTransferModel(singoloVersamento, versamentoGpdEntity));
 		}
@@ -186,7 +191,7 @@ public abstract class PaymentPositionModelRequestMapper {
 		return new ArrayList<>();
 	}
 
-	public TransferModel singoloVersamentoGpdToTransferModel(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, VersamentoGpdEntity versamentoGpdEntity) {
+	public TransferModel singoloVersamentoGpdToTransferModel(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, VersamentoGpdEntity versamentoGpdEntity) throws IOException {
 		if ( singoloVersamentoGdpEntity == null || versamentoGpdEntity == null ) {
 			return null;
 		}
@@ -204,7 +209,7 @@ public abstract class PaymentPositionModelRequestMapper {
 
 		// TransferModel.JSON_PROPERTY_REMITTANCE_INFORMATION
 		transferModel.setRemittanceInformation(getRemittanceInformation(singoloVersamentoGdpEntity, versamentoGpdEntity.getIuvVersamento()));
-		
+
 
 		// Bollo Telematico / IBAN
 		if(singoloVersamentoGdpEntity.getTipoBollo() != null) {
@@ -217,10 +222,12 @@ public abstract class PaymentPositionModelRequestMapper {
 		} else {
 			mapInformazioniEntrata(singoloVersamentoGdpEntity, transferModel);
 		}
-		
+
 		// TransferModel.JSON_PROPERTY_TRANSFER_METADATA
-		transferModel.setTransferMetadata(this.getTransferMetadata(singoloVersamentoGdpEntity));
-		
+		if(singoloVersamentoGdpEntity.getMetadata()!= null) {
+			transferModel.setTransferMetadata(this.getTransferMetadata(singoloVersamentoGdpEntity.getMetadata()));
+		}
+
 		return transferModel;
 	}
 
@@ -259,15 +266,13 @@ public abstract class PaymentPositionModelRequestMapper {
 				// eccezione??
 			}
 		}
-		
+
 		// TransferModel.JSON_PROPERTY_IBAN
 		transferModel.setIban(ibanScelto);
 
 		// TransferModel.JSON_PROPERTY_POSTAL_IBAN
 		if(postale) {
 			transferModel.setPostalIban(ibanScelto);
-//		} else { 			
-//			transferModel.setIban(ibanScelto);
 		}
 	}
 
@@ -328,36 +333,28 @@ public abstract class PaymentPositionModelRequestMapper {
 
 		return tipoContabilita + "/" + codContabilita;
 	}
-	
-	public List<TransferMetadataModel> getTransferMetadata(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity) {
-		String metadataString = singoloVersamentoGdpEntity.getMetadata();
-		
-		if(metadataString != null) {
-			try {
-				Metadata metadata = this.objectMapper.readValue(metadataString.getBytes(), Metadata.class);
-				
-				if(metadata != null) {
-					List<MapEntry> value = metadata.getValue();
-					if(value != null ) {
-						List<TransferMetadataModel> toReturn = new ArrayList<>();
-						
-						for (MapEntry mapEntry : value) {
-							TransferMetadataModel transferMetadataModel = new TransferMetadataModel();
-							transferMetadataModel.setKey(mapEntry.getKey());
-							transferMetadataModel.setValue(mapEntry.getValue());
-							
-							toReturn.add(transferMetadataModel);
-						}
-						
-						return toReturn;
-					}
+
+	public List<TransferMetadataModel> getTransferMetadata(String metadataString) throws IOException {
+		Metadata metadata = this.objectMapper.readValue(metadataString.getBytes(), Metadata.class);
+
+		if(metadata != null) {
+			List<MapEntry> value = metadata.getValue();
+			if(value != null ) {
+				List<TransferMetadataModel> toReturn = new ArrayList<>();
+
+				for (MapEntry mapEntry : value) {
+					TransferMetadataModel transferMetadataModel = new TransferMetadataModel();
+					transferMetadataModel.setKey(mapEntry.getKey());
+					transferMetadataModel.setValue(mapEntry.getValue());
+
+					toReturn.add(transferMetadataModel);
 				}
-			} catch (IOException e) {
-				return null;
+
+				return toReturn;
 			}
 		}
-		
-		return null;
+
+		return new ArrayList<>();
 
 	}
 }

@@ -28,8 +28,13 @@ public class JobCompletionNotificationListener implements JobExecutionListener {
 	@Override
 	public void afterJob(JobExecution jobExecution) {
 		String jobName = jobExecution.getJobInstance().getJobName();
+		LocalDateTime startTime = jobExecution.getStartTime();
 		LocalDateTime endTime = jobExecution.getEndTime();
-		String format = endTime != null ? endTime.format(formatter) : "-";
-		logger.info("Completata esecuzione del Job {}, {} Status: {}", jobName, format, jobExecution.getStatus());
+		String formatEndTime = endTime != null ? endTime.format(formatter) : "--";
+		String durata = "--";
+		if (startTime != null && endTime != null) {
+			durata = String.valueOf(java.time.Duration.between(startTime, endTime).toSeconds());
+		}
+		logger.info("Completata esecuzione del Job [{}] alle ore [{}] Status: [{}], durata esecuzione [{}s]", jobName, formatEndTime, jobExecution.getStatus(), durata);
 	}
 }

@@ -23,6 +23,7 @@ import it.govpay.gpd.test.repository.TributoRepository;
 import it.govpay.gpd.test.repository.UoRepository;
 import it.govpay.gpd.test.repository.VersamentoFullRepository;
 import it.govpay.gpd.test.utils.VersamentoUtils;
+import jakarta.persistence.EntityManagerFactory;
 
 public abstract class UC_00_BaseTest {
 
@@ -63,8 +64,11 @@ public abstract class UC_00_BaseTest {
 	@Autowired
 	SingoloVersamentoGpdRepository singoloVersamentoGpdRepository;
 	
-	// object mapper
+	// entity manager factory necessario per il reader
+	@Autowired
+	EntityManagerFactory entityManagerFactory;
 	
+	// object mapper
 	@Autowired
 	ObjectMapper objectMapper;
 	

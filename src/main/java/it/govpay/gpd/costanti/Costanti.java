@@ -1,6 +1,5 @@
 package it.govpay.gpd.costanti;
 
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
 public class Costanti {
@@ -25,14 +24,8 @@ public class Costanti {
 
 	public static final String DEFAULT_TIME_ZONE = "Europe/Rome";
 
-
-	/* Costanti relative all'evento di invio all'gpd da impostare per il salvataggio dell'evento */
-	public static final String GOVPAY_GDE_NOME_EVENTO_PA_CREATE_POSITION = "paCreatePosition";
-	public static final String GOVPAY_GDE_PATH_SERVIZIO_PA_CREATE_POSITION = "/paCreatePosition";
-	public static final String GOVPAY_GDE_METHOD_PA_CREATE_POSITION = HttpMethod.POST.name();
-
-
 	// Paths
+	public static final String EVENTI = "/eventi";
 	public static final String ORGANIZATIONS_DEBT_POSITIONS = "/organizations/{organizationfiscalcode}/debtpositions";
 	public static final String ORGANIZATIONS_DEBT_POSITIONS_IUPD = "/organizations/{organizationfiscalcode}/debtpositions/{iupd}";
 	public static final String ORGANIZATIONS_DEBT_POSITIONS_IUPD_PUBLISH = "/organizations/{organizationfiscalcode}/debtpositions/{iupd}/publish";
@@ -72,4 +65,10 @@ public class Costanti {
 
 
 	public static final String EC= "EC";
+	
+	public static final String QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA = "SELECT * FROM v_versamenti_gpd " +
+            "WHERE stato_versamento IN ('NON_ESEGUITO','ANNULLATO') " + 
+            "AND data_ultima_modifica_aca >= ? " +
+            "AND (data_ultima_modifica_aca > data_ultima_comunicazione_aca OR data_ultima_comunicazione_aca IS NULL) " +
+            "ORDER BY data_ultima_comunicazione_aca DESC";
 }

@@ -16,7 +16,6 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -36,24 +35,27 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
     
     private ApplicationContext context;
     
-    @Autowired
     private PreventConcurrentJobLauncher preventConcurrentJobLauncher;
     
-    @Autowired
     private JobLauncher jobLauncher;
     
-    @Autowired
-    @Qualifier(Costanti.SEND_PENDENZE_GPD_JOBNAME)
     private Job pendenzaSenderJob;
     
     @Value("${it.govpay.gpd.batch.clusterId:GovPay-ACA-Batch}")
 	private String clusterId;
     
+    public CronJobRunner(JobLauncher jobLauncher, PreventConcurrentJobLauncher preventConcurrentJobLauncher, @Qualifier(Costanti.SEND_PENDENZE_GPD_JOBNAME) Job pendenzaSenderJob) {
+		this.jobLauncher = jobLauncher;
+		this.preventConcurrentJobLauncher = preventConcurrentJobLauncher;
+		this.pendenzaSenderJob = pendenzaSenderJob;
+    	
+    }
+    
     private void runSendPendenzeGpdJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
         JobParameters params = new JobParametersBuilder()
                 .addString(Costanti.GOVPAY_GPD_JOB_ID, Costanti.SEND_PENDENZE_GPD_JOBNAME)
                 .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_WHEN, OffsetDateTime.now().toString())
-                .addString(Costanti.GOVPAY_GDE_CLUSTER_ID, this.clusterId)
+                .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, this.clusterId)
                 .toJobParameters();
         jobLauncher.run(pendenzaSenderJob, params);
     }
@@ -67,7 +69,7 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
 		if (currentRunningJobExecution != null) {
 			// Estrai il clusterid dell'esecuzione corrente
             Map<String, JobParameter<?>> runningParams = currentRunningJobExecution.getJobParameters().getParameters();
-            String runningClusterId = runningParams.containsKey(Costanti.GOVPAY_GDE_CLUSTER_ID) ? runningParams.get(Costanti.GOVPAY_GDE_CLUSTER_ID).getValue().toString() : null;
+            String runningClusterId = runningParams.containsKey(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID) ? runningParams.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue().toString() : null;
 
             if (runningClusterId != null && !runningClusterId.equals(this.clusterId)) {
                 log.info("Il job {} è in esecuzione su un altro nodo ({}). Uscita.", Costanti.SEND_PENDENZE_GPD_JOBNAME, runningClusterId);
