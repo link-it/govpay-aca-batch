@@ -1266,7 +1266,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			
 			Mockito.lenient()
 			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
-					)).thenThrow(HttpClientErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, objectMapper.writeValueAsBytes(GpdUtils.createProblem503()), StandardCharsets.UTF_8));
+					)).thenThrow(HttpClientErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), objectMapper.writeValueAsBytes(GpdUtils.createProblem503()), StandardCharsets.UTF_8));
 			
 			Mockito.lenient()
 			.when(gdeApi.addEventoWithHttpInfoAsync(any()
