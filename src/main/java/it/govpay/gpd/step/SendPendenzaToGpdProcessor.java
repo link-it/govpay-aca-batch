@@ -243,13 +243,21 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		OffsetDateTime dataStart = OffsetDateTime.now();
 		String xRequestId = Utils.creaXRequestId();
 
+		if(item.getIuvVersamento() == null) {
+			logger.warn("IUV non presente per la Pendenza [IdA2A:{}, ID:{}], aggiornamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
+			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "IUV non presente", new byte[0], Charset.defaultCharset());
+			
+			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
+			return item;
+		}
+		
 		PaymentPositionModel paymentPositionModel = null;
 		try {
 			paymentPositionModel = this.paymentPositionModelRequestMapperImpl.versamentoGpdToPaymentPositionModel(item);
 		} catch (IOException e) {
 			logger.warn("Errore nella deserializzazione dei metadata della Pendenza [IdA2A:{}, ID:{}], aggiornamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpServerErrorException e1 = new HttpServerErrorException(HttpStatusCode.valueOf(502), "Errore nella deserializzazione dei metadata", new byte[0], Charset.defaultCharset());
-			this.gdeService.salvaCreatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e1);
+			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e1);
 			return item;
 		}
 
