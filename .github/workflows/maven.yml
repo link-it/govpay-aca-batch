@@ -37,7 +37,7 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn clean install -P jar -Dspring.profiles.active=test -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=${{ secrets.NVD_API_KEY }}
 
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@v2
