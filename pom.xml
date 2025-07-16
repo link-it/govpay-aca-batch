@@ -371,6 +371,13 @@
 							<goal>report</goal>
 						</goals>
 					</execution>
+					<configuration>
+				        <excludes>
+				          <exclude>**/*Test*.class</exclude>
+				          <exclude>**/*Tests.class</exclude>
+				          <exclude>**/test/**</exclude>
+				        </excludes>
+				      </configuration>
 				</executions>
 			</plugin>
 			
