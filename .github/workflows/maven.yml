@@ -36,8 +36,19 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
+    - name: Check NVD_API_KEY
+      run: |
+        if [ -z "$NVD_API_KEY" ]; then
+          echo "NVD_API_KEY is NOT set!"
+        else
+          echo "NVD_API_KEY is set. Length: ${#NVD_API_KEY}"
+        fi
+      env:
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
     - name: Build with Maven
-      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY
+      env:
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@v2
