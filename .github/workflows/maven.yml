@@ -68,6 +68,7 @@ jobs:
           -Dsonar.tests=src/test/java
           -Dsonar.java.binaries=target/classes
           -Dsonar.coverage.exclusions=**/test/**,**/*Test*.java
+          -Dsonar.java.source=21
           
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
