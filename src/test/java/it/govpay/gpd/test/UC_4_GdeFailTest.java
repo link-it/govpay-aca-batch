@@ -98,45 +98,96 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 		});
 	}
 
+//	@Test
+//	void TC_01_SendTest_GdeUnknowhost() throws Exception {
+//		try {
+//
+//			// creazione versamento da spedire
+//			this.creaVersamentoNonEseguito();
+//
+//			Mockito.lenient()
+//			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+//					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+//						@Override
+//						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+//							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+//						}
+//					});
+//			
+//			Mockito.lenient()
+//			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+//					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+//						@Override
+//						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+//							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+//						}
+//					});
+//
+//			assertEquals(1, this.versamentoFullRepository.count());
+//			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+//			assertEquals(1, this.versamentoRepository.count());
+//
+//			initailizeJobLauncherTestUtils();
+//			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+//			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+//
+//			assertEquals(1, this.versamentoFullRepository.count());
+//			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+//			assertEquals(1, this.versamentoRepository.count());
+//
+//		} finally {
+//			this.cleanDB();
+//		}
+//	}
+	
 	@Test
 	void TC_01_SendTest_GdeUnknowhost() throws Exception {
 		try {
+			System.out.println(" Inizio test TC_01_SendTest_GdeUnknowhost");
 
 			// creazione versamento da spedire
 			this.creaVersamentoNonEseguito();
+			System.out.println(" creato versamento da spedire");
+
+			// MOCK GPD API
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()))
+			.thenAnswer(invocation -> {
+				System.out.println(" MOCK createPositionWithHttpInfo INVOCATO");
+				return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+			});
 
 			Mockito.lenient()
-			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
-					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
-						@Override
-						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
-							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
-						}
-					});
-			
-			Mockito.lenient()
-			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
-					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
-						@Override
-						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
-							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
-						}
-					});
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+			.thenAnswer(invocation -> {
+				System.out.println(" MOCK getOrganizationDebtPositionByIUPDWithHttpInfo INVOCATO");
+				return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+			});
 
-			assertEquals(1, this.versamentoFullRepository.count());
-			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
-			assertEquals(1, this.versamentoRepository.count());
+			System.out.println(" Prima del job:");
+			System.out.println("  versamentoFullRepository.count(): " + this.versamentoFullRepository.count());
+			System.out.println("  versamentiDaSpedire: " + VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			System.out.println("  versamentoRepository.count(): " + this.versamentoRepository.count());
 
 			initailizeJobLauncherTestUtils();
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			System.out.println(" Job eseguito con stato: " + jobExecution.getExitStatus().getExitCode());
+
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			System.out.println(" Dopo il job:");
+			System.out.println("  versamentoFullRepository.count(): " + this.versamentoFullRepository.count());
+			System.out.println("  versamentiDaSpedire: " + VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			System.out.println("  versamentoRepository.count(): " + this.versamentoRepository.count());
 
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
+			System.out.println(" Pulizia DB");
 			this.cleanDB();
 		}
 	}
+
 }
