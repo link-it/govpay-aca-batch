@@ -369,15 +369,15 @@
 						<phase>verify</phase>
 						<goals>
 							<goal>report</goal>
-						</goals>
+						</goals>				
+						<configuration>
+				        		<excludes>
+				          			<exclude>**/*Test*.class</exclude>
+				          			<exclude>**/*Tests.class</exclude>
+				          			<exclude>**/test/**</exclude>
+				        		</excludes>
+				      		</configuration>
 					</execution>
-					<configuration>
-				        <excludes>
-				          <exclude>**/*Test*.class</exclude>
-				          <exclude>**/*Tests.class</exclude>
-				          <exclude>**/test/**</exclude>
-				        </excludes>
-				      </configuration>
 				</executions>
 			</plugin>
 			
