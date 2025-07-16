@@ -389,8 +389,8 @@ public class VersamentoUtils {
 	public static long countVersamentiDaSpedire(VersamentoGpdRepository versamentoGpdRepository, Integer numeroGiorni) {
 		Specification<VersamentoGpdEntity> spec = VersamentoFilters.creaFiltriRicercaVersamentiDaSpedire(numeroGiorni);
 		
-		// debug
-		listaVersamentiDaSpedire(versamentoGpdRepository, numeroGiorni);
+		// per debug attivare
+		//listaVersamentiDaSpedire(versamentoGpdRepository, numeroGiorni)
 		
 		return versamentoGpdRepository.count(spec); 
 	}

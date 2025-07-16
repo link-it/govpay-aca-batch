@@ -32,6 +32,9 @@
 
 		<!-- Apache Commons IO -->
 		<commons-io.version>2.18.0</commons-io.version>
+		
+		<!-- Apache Commons Lang3 -->
+		<commons-lang3.version>3.18.0</commons-lang3.version>
 
 		<!-- Swagger-codegen -->
 		<openapi.tool.codegen.version>6.6.0</openapi.tool.codegen.version>
