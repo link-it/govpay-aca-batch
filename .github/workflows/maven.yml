@@ -64,6 +64,8 @@ jobs:
           -Dsonar.projectKey=link-it_govpay-aca-batch
           -Dsonar.organization=link-it
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+          -Dsonar.sources=src/main/java
+          -Dsonar.tests=src/test/java
           -Dsonar.java.binaries=target/classes
           -Dsonar.coverage.exclusions=**/test/**,**/*Test*.java
           
