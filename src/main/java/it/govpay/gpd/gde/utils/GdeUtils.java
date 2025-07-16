@@ -100,7 +100,7 @@ public class GdeUtils {
 		if(queryParams != null && queryParams.size() > 0) {
 			StringBuilder sb = new StringBuilder();
 			for (Entry<String, String> queryParam : queryParams.entrySet()) {
-				if(sb.length() > 0) {
+				if(!sb.isEmpty()) {
 					sb.append("&");
 				}
 

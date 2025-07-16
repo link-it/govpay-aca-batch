@@ -446,7 +446,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	
 	@Test
 	void TC_07_SendTest_Gde401Unauthorized_WithProblem() throws Exception {
-		try {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem401()).getBytes())) {
 
 			// creazione versamento da spedire
 			this.creaVersamentoNonEseguito();
@@ -477,7 +477,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse401 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse401.statusCode()).thenReturn(401);
-							Mockito.lenient().when(mockHttpResponse401.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem401()).getBytes()));
+							Mockito.lenient().when(mockHttpResponse401.body()).thenReturn(bais);
 
 							return CompletableFuture.completedFuture(mockHttpResponse401);
 						}
@@ -547,7 +547,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	
 	@Test
 	void TC_09_SendTest_Gde403Forbidden_WithProblem() throws Exception {
-		try {
+		try(ByteArrayInputStream bais = new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem403()).getBytes())) {
 
 			// creazione versamento da spedire
 			this.creaVersamentoNonEseguito();
@@ -578,7 +578,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse403 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse403.statusCode()).thenReturn(403);
-							Mockito.lenient().when(mockHttpResponse403.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem403()).getBytes()));
+							Mockito.lenient().when(mockHttpResponse403.body()).thenReturn(bais);
 
 							return CompletableFuture.completedFuture(mockHttpResponse403);
 						}
@@ -648,7 +648,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	
 	@Test
 	void TC_11_SendTest_Gde404NotFound_WithProblem() throws Exception {
-		try {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem404()).getBytes())) {
 
 			// creazione versamento da spedire
 			this.creaVersamentoNonEseguito();
@@ -679,7 +679,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse404 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse404.statusCode()).thenReturn(409);
-							Mockito.lenient().when(mockHttpResponse404.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem404()).getBytes()));
+							Mockito.lenient().when(mockHttpResponse404.body()).thenReturn(bais);
 
 							return CompletableFuture.completedFuture(mockHttpResponse404);
 						}
@@ -749,7 +749,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	
 	@Test
 	void TC_13_SendTest_Gde409Conflict_WithProblem() throws Exception {
-		try {
+		try(ByteArrayInputStream bais = new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem409()).getBytes())) {
 
 			// creazione versamento da spedire
 			this.creaVersamentoNonEseguito();
@@ -780,7 +780,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse409 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse409.statusCode()).thenReturn(409);
-							Mockito.lenient().when(mockHttpResponse409.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem409()).getBytes()));
+							Mockito.lenient().when(mockHttpResponse409.body()).thenReturn(bais);
 
 							return CompletableFuture.completedFuture(mockHttpResponse409);
 						}
@@ -850,7 +850,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	
 	@Test
 	void TC_15_SendTest_Gde429TooManyRequests_WithProblem() throws Exception {
-		try {
+		try(ByteArrayInputStream bais = new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem429()).getBytes())) {
 
 			// creazione versamento da spedire
 			this.creaVersamentoNonEseguito();
@@ -881,7 +881,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 							@SuppressWarnings("unchecked")
 							HttpResponse<InputStream> mockHttpResponse403 = Mockito.mock(HttpResponse.class);
 							Mockito.lenient().when(mockHttpResponse403.statusCode()).thenReturn(429);
-							Mockito.lenient().when(mockHttpResponse403.body()).thenReturn(new ByteArrayInputStream(mapper.writeValueAsString(GdeProblemUtils.createProblem429()).getBytes()));
+							Mockito.lenient().when(mockHttpResponse403.body()).thenReturn(bais);
 
 							return CompletableFuture.completedFuture(mockHttpResponse403);
 						}
