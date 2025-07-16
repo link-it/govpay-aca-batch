@@ -64,6 +64,7 @@ jobs:
           -Dsonar.projectKey=link-it_govpay-aca-batch
           -Dsonar.organization=link-it
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+          -Dsonar.java.binaries=target/classes
           
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
