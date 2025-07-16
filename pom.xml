@@ -70,6 +70,8 @@
 		<logback.version>1.5.16</logback.version>
 		
 		<h2.version>2.3.232</h2.version>
+
+		<sonar.coverage.exclusions>**/*Test*.java,**/*Tests.java,**/test/**</sonar.coverage.exclusions>
 	</properties>
 
 	<profiles>
