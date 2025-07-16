@@ -65,7 +65,6 @@ jobs:
           -Dsonar.organization=link-it
           -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
           -Dsonar.java.binaries=target/classes
-          -Dsonar.coverage.exclusions=**/*Test*.java,**/*Tests.java,**/test/**
           
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
