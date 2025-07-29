@@ -90,8 +90,12 @@ jobs:
       uses: actions/upload-artifact@v4.6.0
       with:
         name: govpay-aca-batch
-        path: target/govpay-aca-batch.jar
-
+        path: |
+          target/govpay-aca-batch.jar
+          target/site/jacoco/jacoco.xml
+          target/site/jacoco/index.html
+          target/dependency-check-report.html
+          target/dependency-check-report.xml
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
     - name: Update dependency graph
       uses: advanced-security/maven-dependency-submission-action@v4.1.0
