@@ -65,12 +65,9 @@ jobs:
         ls -lh target/site/jacoco/
         file target/site/jacoco/jacoco.xml || echo "Report non trovato"
         cd target/site
-        zip -r ../../jacoco-html-report.zip jacoco
+        zip -r ../jacoco-html-report.zip jacoco
         cd ../../
-        ls -lh target/
-        ls -lh target/site
-        ls -lh .
-        
+        ls -lh target/  
     
     - name: Copy dependencies
       run: |
