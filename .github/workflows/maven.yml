@@ -28,6 +28,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Clona tutta la history Git 
     - name: Set timezone to Europe/Rome
       run: sudo timedatectl set-timezone Europe/Rome
     - name: Set up JDK 21
