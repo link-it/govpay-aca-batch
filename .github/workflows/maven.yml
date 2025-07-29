@@ -60,12 +60,13 @@ jobs:
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
-    - name: Show JaCoCo report location and Zip  JaCoCo HTML report
+    - name: Show JaCoCo report location and Zip JaCoCo HTML report
       run: |
         ls -lh target/site/jacoco/
         file target/site/jacoco/jacoco.xml || echo "Report non trovato"
         cd target/site
         zip -r ../../jacoco-html-report.zip jacoco
+        ls -lh target/
     
     - name: Copy dependencies
       run: |
