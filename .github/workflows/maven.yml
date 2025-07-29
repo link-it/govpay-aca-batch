@@ -68,6 +68,9 @@ jobs:
         zip -r ../../jacoco-html-report.zip jacoco
         cd ../../
         ls -lh target/
+        ls -lh target/site
+        ls -lh .
+        
     
     - name: Copy dependencies
       run: |
