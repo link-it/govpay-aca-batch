@@ -60,10 +60,12 @@ jobs:
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
-    - name: Show JaCoCo report location
+    - name: Show JaCoCo report location and Zip  JaCoCo HTML report
       run: |
         ls -lh target/site/jacoco/
         file target/site/jacoco/jacoco.xml || echo "Report non trovato"
+        cd target/site
+        zip -r ../../jacoco-html-report.zip jacoco
     
     - name: Copy dependencies
       run: |
@@ -93,7 +95,7 @@ jobs:
         path: |
           target/govpay-aca-batch.jar
           target/site/jacoco/jacoco.xml
-          target/site/jacoco/index.html
+          target/jacoco-html-report.zip
           target/dependency-check-report.html
           target/dependency-check-report.xml
     # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
@@ -120,7 +122,6 @@ jobs:
     - name: Rename the artifact file to include the tag
       run: |
         cp target/govpay-aca-batch.jar target/govpay-aca-batch-${{ github.ref_name }}.jar  # Rinominare il file
-        cp target/site/jacoco/index.html target/coverage.html
         cp target/site/jacoco/jacoco.xml target/jacoco.xml
     
     - name: Zip SQL files
@@ -141,7 +142,7 @@ jobs:
           target/govpay-aca-batch-${{ github.ref_name }}.jar
           target/sql.zip
           target/jacoco.xml
-          target/coverage.html
+          target/jacoco-html-report.zip
           target/dependency-check-report.html
           target/dependency-check-report.xml
       env:
