@@ -137,6 +137,10 @@ jobs:
         files: |
           target/govpay-aca-batch-${{ github.ref_name }}.jar
           target/sql.zip
+          target/site/jacoco/jacoco.xml
+          target/site/jacoco/index.html
+          target/dependency-check-report.html
+          target/dependency-check-report.xml
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} 
         
