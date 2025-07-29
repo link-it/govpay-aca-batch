@@ -45,8 +45,18 @@ jobs:
         fi
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+    #  Cache .dependency-check/data
+    - name: Cache OWASP Dependency-Check DB
+      uses: actions/cache@v4
+      with:
+        path: .dependency-check/data
+        key: ${{ runner.os }}-owasp-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-owasp-
+          
     - name: Build with Maven
-      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY
+      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
