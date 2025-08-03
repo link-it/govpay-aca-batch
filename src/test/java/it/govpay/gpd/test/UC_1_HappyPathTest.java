@@ -570,4 +570,132 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 			this.cleanDB();
 		}
 	}
+	
+	@Test
+	void TC_09_SendTestPendenzaValiditaDecorsa() throws Exception {
+		try {
+
+			// creazione versamento da spedire
+			VersamentoFullEntity creaVersamentoNonEseguitoMultivoceDefinito = this.creaVersamentoNonEseguitoMultivoceDefinito();
+			
+			creaVersamentoNonEseguitoMultivoceDefinito.setDataScadenza(OffsetDateTime.now().minusDays(1));
+			
+			this.versamentoFullRepository.save(creaVersamentoNonEseguitoMultivoceDefinito);
+			
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							PaymentPositionModel paymentPositionModel = invocation.getArgument(1);
+							List<PaymentOptionModel> paymentOption = paymentPositionModel.getPaymentOption();
+							assertNotNull(paymentOption);
+							
+							PaymentOptionModel paymentOptionModel = paymentOption.get(0);
+							
+							List<TransferModel> transferList = paymentOptionModel.getTransfer();
+							assertNotNull(transferList);
+							assertEquals(2, transferList.size());
+							
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
+
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
+		}
+	}
+	
+	@Test
+	void TC_10_SendTestPendenzaConIUVISO11640() throws Exception {
+		try {
+
+			// creazione versamento da spedire
+			VersamentoFullEntity creaVersamentoNonEseguitoMultivoceDefinito = this.creaVersamentoNonEseguitoMultivoceDefinito();
+			
+			creaVersamentoNonEseguitoMultivoceDefinito.setIuvVersamento("RF24000000000000000000610");
+			
+			this.versamentoFullRepository.save(creaVersamentoNonEseguitoMultivoceDefinito);
+			
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							PaymentPositionModel paymentPositionModel = invocation.getArgument(1);
+							List<PaymentOptionModel> paymentOption = paymentPositionModel.getPaymentOption();
+							assertNotNull(paymentOption);
+							
+							PaymentOptionModel paymentOptionModel = paymentOption.get(0);
+							
+							List<TransferModel> transferList = paymentOptionModel.getTransfer();
+							assertNotNull(transferList);
+							assertEquals(2, transferList.size());
+							
+							return PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation);
+						}
+					});
+			
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
+						}
+					});
+
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
+		}
+	}
 }

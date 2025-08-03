@@ -96,9 +96,18 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		OffsetDateTime dataStart = OffsetDateTime.now();
 		String xRequestId = Utils.creaXRequestId();
 
-		if(item.getIuvVersamento() == null) {
+		if(!Utils.isValidIuv(item)) {
 			logger.warn("IUV non presente per la Pendenza [IdA2A:{}, ID:{}], caricamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "IUV non presente", new byte[0], Charset.defaultCharset());
+			
+			this.gdeService.salvaCreatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
+			return item;
+		}
+		
+		// pendenza con data scadenza precedente ad ora non vengono spedite
+		if(!Utils.isValidDueDate(item)) {
+			logger.warn("Due date decorsa per la Pendenza [IdA2A:{}, ID:{}], caricamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
+			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "Due date decorsa", new byte[0], Charset.defaultCharset());
 			
 			this.gdeService.salvaCreatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
 			return item;
@@ -243,9 +252,18 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		OffsetDateTime dataStart = OffsetDateTime.now();
 		String xRequestId = Utils.creaXRequestId();
 
-		if(item.getIuvVersamento() == null) {
+		if(!Utils.isValidIuv(item)) {
 			logger.warn("IUV non presente per la Pendenza [IdA2A:{}, ID:{}], aggiornamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "IUV non presente", new byte[0], Charset.defaultCharset());
+			
+			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
+			return item;
+		}
+		
+		// pendenza con data scadenza precedente ad ora non vengono spedite
+		if(!Utils.isValidDueDate(item)) {
+			logger.warn("Due date decorsa per la Pendenza [IdA2A:{}, ID:{}], aggiornamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
+			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "Due date decorsa", new byte[0], Charset.defaultCharset());
 			
 			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
 			return item;
