@@ -58,18 +58,40 @@ public class Utils {
 		return formatValue;
 	}
 	
+	public static boolean isValidIuv(VersamentoGpdEntity versamento) {
+		return versamento.getIuvVersamento() != null;
+	}
+	
+	public static boolean isValidDueDate(VersamentoGpdEntity versamento) {
+		LocalDateTime validityDate = calcolaDueDate(versamento, false, false);
+		
+		return !validityDate.isBefore(LocalDateTime.now());
+	}
+	
 	public static LocalDateTime calcolaDueDate(VersamentoGpdEntity versamento, boolean allowNull) {
-		if(versamento.getDataValidita() != null) {
-			return estendiDueDate(versamento.getDataValidita()); // indicates the expiration payment date
-		} else if(versamento.getDataScadenza() != null) {
-			return estendiDueDate(versamento.getDataScadenza()); // indicates the expiration payment date
+		return calcolaDueDate(versamento, allowNull, true);
+	}
+	
+	public static LocalDateTime calcolaDueDate(VersamentoGpdEntity versamento, boolean allowNull, boolean extendDate) {
+		LocalDateTime toReturn = null;
+		
+		if(versamento.getDataScadenza() != null) {
+			toReturn = versamento.getDataScadenza();
+		} else if(versamento.getDataValidita() != null) {
+			toReturn = versamento.getDataValidita();
 		} else {
 			if (allowNull) {
 				return estendiDueDate(null);
 			}
 			return LocalDateTime.parse("2999-12-31T23:59:59.999"); //31.12.2999
 		}   
-	}
+		
+		if (extendDate) {
+			toReturn = estendiDueDate(toReturn);
+		}
+		
+		return toReturn;
+	}	
 	
 	/**
 	 * Estende la data di scadenza a fine giornata perche' pagoPA accetta un date time mentre su GovPay e' un date 
