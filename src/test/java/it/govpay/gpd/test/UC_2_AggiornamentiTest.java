@@ -1512,4 +1512,51 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			this.cleanDB();
 		}
 	}
+	
+	@Test
+	void TC_20_SendTest_Create_Conflict_GetServiceUnavaible() throws Exception {
+		try {
+
+			this.creaVersamentoNonEseguito();
+
+			// caricamento presso GPD versamento gia' caricato
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
+						@Override
+						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.CONFLICT);
+						}
+					});
+
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenThrow(HttpClientErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")),
+							objectMapper.writeValueAsBytes(GpdUtils.createProblem503()), StandardCharsets.UTF_8));
+
+			Mockito.lenient()
+			.when(gdeApi.addEventoWithHttpInfoAsync(any()
+					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
+						@Override
+						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
+							return CompletableFuture.completedFuture(mockHttpResponseOk);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			initailizeJobLauncherTestUtils();
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
+		}
+	}
 }
