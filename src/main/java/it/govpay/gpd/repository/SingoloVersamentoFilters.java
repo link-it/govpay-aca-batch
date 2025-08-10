@@ -13,10 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class SingoloVersamentoFilters {
 
-	public static Specification<SingoloVersamentoGpdEntity> empty() {
-		return (Root<SingoloVersamentoGpdEntity> root, CriteriaQuery<?> query, CriteriaBuilder cb) -> null; 
-	}
-	
 	public static Specification<SingoloVersamentoGpdEntity> byVersamentoId(Long idVersamento) {
 		return (Root<SingoloVersamentoGpdEntity> root, CriteriaQuery<?> query, CriteriaBuilder cb) ->
 		cb.equal(root.get(SingoloVersamentoGpdEntity_.ID_VERSAMENTO),idVersamento);
