@@ -1,3 +1,5 @@
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=link-it_govpay-aca-batch&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=link-it_govpay-aca-batch)
+
 # govpay-aca-batch
 Batch di alimentazione del GPD degli Avvisi pagoPA
 
