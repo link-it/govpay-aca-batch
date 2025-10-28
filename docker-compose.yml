@@ -1,0 +1,177 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  # Comment/uncomment database sections based on your choice
+  postgres:
+    image: postgres:15-alpine
+    container_name: govpay-aca-postgres
+    environment:
+      POSTGRES_DB: ${GOVPAY_DB_NAME:-govpay}
+      POSTGRES_USER: ${GOVPAY_DB_USER:-govpay}
+      POSTGRES_PASSWORD: ${GOVPAY_DB_PASSWORD:?Database password required}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=it_IT.UTF-8 --lc-ctype=it_IT.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - govpay-aca-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${GOVPAY_DB_USER:-govpay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MySQL/MariaDB Database (alternative to PostgreSQL)
+  # Uncomment to use MySQL instead of PostgreSQL
+  # mysql:
+  #   image: mariadb:11
+  #   container_name: govpay-aca-mysql
+  #   environment:
+  #     MYSQL_DATABASE: ${GOVPAY_DB_NAME:-govpay}
+  #     MYSQL_USER: ${GOVPAY_DB_USER:-govpay}
+  #     MYSQL_PASSWORD: ${GOVPAY_DB_PASSWORD:?Database password required}
+  #     MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Root password required}
+  #     MYSQL_CHARSET: utf8mb4
+  #     MYSQL_COLLATION: utf8mb4_unicode_ci
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   networks:
+  #     - govpay-aca-network
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${GOVPAY_DB_USER:-govpay}", "-p${GOVPAY_DB_PASSWORD}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+
+  # Oracle Database (alternative to PostgreSQL)
+  # Uncomment to use Oracle instead of PostgreSQL
+  # Note: Requires Oracle Database image (not included in Docker Hub)
+  # oracle:
+  #   image: container-registry.oracle.com/database/express:21.3.0-xe
+  #   container_name: govpay-aca-oracle
+  #   environment:
+  #     ORACLE_PWD: ${GOVPAY_DB_PASSWORD:?Database password required}
+  #     ORACLE_CHARACTERSET: AL32UTF8
+  #   volumes:
+  #     - oracle_data:/opt/oracle/oradata
+  #   networks:
+  #     - govpay-aca-network
+  #   healthcheck:
+  #     test: ["CMD", "sqlplus", "-L", "system/${GOVPAY_DB_PASSWORD}@localhost:1521/XE", "@/dev/null"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #   restart: unless-stopped
+
+  # GovPay A.C.A. Batch Processor
+  govpay-aca:
+    image: ${GOVPAY_ACA_IMAGE:-linkitaly/govpay-aca:1.1.3}
+    container_name: govpay-aca-batch
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Change dependency based on database choice:
+      # mysql:
+      #   condition: service_healthy
+      # oracle:
+      #   condition: service_healthy
+    environment:
+      # Database configuration (govpay-docker compatible)
+      GOVPAY_DB_TYPE: ${GOVPAY_DB_TYPE:-postgresql}
+      GOVPAY_DB_SERVER: ${GOVPAY_DB_SERVER:-postgres:5432}
+      GOVPAY_DB_NAME: ${GOVPAY_DB_NAME:-govpay}
+      GOVPAY_DB_USER: ${GOVPAY_DB_USER:-govpay}
+      GOVPAY_DB_PASSWORD: ${GOVPAY_DB_PASSWORD:?Database password required}
+      GOVPAY_DS_CONN_PARAM: ${GOVPAY_DS_CONN_PARAM:-}
+      GOVPAY_ORACLE_JDBC_URL_TYPE: ${GOVPAY_ORACLE_JDBC_URL_TYPE:-servicename}
+
+      # Connection pool configuration (ACA-specific namespace)
+      GOVPAY_ACA_MIN_POOL: ${GOVPAY_ACA_MIN_POOL:-2}
+      GOVPAY_ACA_MAX_POOL: ${GOVPAY_ACA_MAX_POOL:-10}
+      GOVPAY_ACA_DS_BLOCKING_TIMEOUT: ${GOVPAY_ACA_DS_BLOCKING_TIMEOUT:-30000}
+      GOVPAY_ACA_DS_PSCACHESIZE: ${GOVPAY_ACA_DS_PSCACHESIZE:-100}
+
+      # Database initialization
+      GOVPAY_ACA_POP_DB_SKIP: ${GOVPAY_ACA_POP_DB_SKIP:-TRUE}
+      GOVPAY_ACA_DB_CHECK_TABLE: ${GOVPAY_ACA_DB_CHECK_TABLE:-aca_posizioni_pendenti}
+      GOVPAY_ACA_LIVE_DB_CHECK_SKIP: ${GOVPAY_ACA_LIVE_DB_CHECK_SKIP:-FALSE}
+      GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY: ${GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY:-30}
+      GOVPAY_ACA_READY_DB_CHECK_SKIP: ${GOVPAY_ACA_READY_DB_CHECK_SKIP:-FALSE}
+      GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY: ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY:-5}
+
+      # GPD (pagoPA Gestione Posizioni Debitorie) configuration
+      IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL: ${GPD_BASE_URL:?GPD service URL required}
+      IT_GOVPAY_GPD_BATCH_CLIENT_HEADER_SUBSCRIPTIONKEY_VALUE: ${GPD_SUBSCRIPTION_KEY:?GPD subscription key required}
+
+      # GDE (Giornale degli Eventi) configuration (optional)
+      IT_GOVPAY_GDE_ENABLED: ${GDE_ENABLED:-false}
+      IT_GOVPAY_GDE_CLIENT_BASEURL: ${GDE_BASE_URL:-}
+
+      # Cluster configuration
+      IT_GOVPAY_GPD_BATCH_CLUSTERID: ${CLUSTER_ID:-govpay-aca-01}
+
+      # Deployment mode configuration
+      # For systemd mode (daemon):
+      SERVER_PORT: ${ACTUATOR_PORT:-8080}
+      SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING: ${SCHEDULER_INTERVAL_MS:-300000}
+
+      # For cron mode (one-shot), uncomment:
+      # SPRING_MAIN_WEB_APPLICATION_TYPE: none
+
+      # Optional: Retry policy for 403 errors
+      IT_GOVPAY_GPD_BATCH_POLICY_REINVIO_403_ENABLED: ${RETRY_403_ENABLED:-false}
+
+      # Optional: Oracle TNS configuration
+      # ORACLE_TNS_ADMIN: /etc/govpay
+
+      # Java memory settings
+      JAVA_MIN_HEAP: ${JAVA_MIN_HEAP:-256m}
+      JAVA_MAX_HEAP: ${JAVA_MAX_HEAP:-1024m}
+
+      # Debug mode
+      DEBUG: ${DEBUG:-false}
+
+    volumes:
+      - govpay-aca-logs:/var/log/govpay
+      # JDBC drivers (REQUIRED - mount external driver directory)
+      - ./jdbc-drivers:/opt/jdbc-drivers:ro
+      # Optional: Oracle TNS configuration
+      # - ./tnsnames.ora:/etc/govpay/tnsnames.ora:ro
+
+    networks:
+      - govpay-aca-network
+
+    # Expose actuator port (systemd mode only)
+    ports:
+      - "${ACTUATOR_PORT:-8080}:8080"
+
+    # Health check via actuator endpoint (systemd mode)
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    restart: unless-stopped
+
+    # Command: systemd (daemon) or cron (one-shot)
+    command: ["systemd"]
+    # For one-shot execution, use:
+    # command: ["cron"]
+
+networks:
+  govpay-aca-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  # mysql_data:
+  #   driver: local
+  # oracle_data:
+  #   driver: local
+  govpay-aca-logs:
+    driver: local
