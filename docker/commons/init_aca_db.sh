@@ -1,21 +1,21 @@
-#!/bin/bash
+#!/bin/bash -x
 
 ##############################################################################
-# GovPay ACA Database Initialization Script
+# Script di Inizializzazione Database GovPay ACA
 #
-# This script initializes the ACA database by:
-# 1. Performing liveness check (TCP connection to database)
-# 2. Performing readiness check (checking if tables exist)
-# 3. Executing SQL scripts if database is not initialized
+# Questo script inizializza il database ACA eseguendo:
+# 1. Liveness check (connessione TCP al database)
+# 2. Readiness check (verifica esistenza tabelle)
+# 3. Esecuzione script SQL se il database non è inizializzato
 #
-# Inspired by govpay-docker/initgovpay.sh
+# Ispirato a govpay-docker/initgovpay.sh
 ##############################################################################
-
+set -x
 set -e
 
-# Configuration with defaults
+# Configurazione con valori di default
 GOVPAY_ACA_POP_DB_SKIP=${GOVPAY_ACA_POP_DB_SKIP:-TRUE}
-GOVPAY_ACA_DB_CHECK_TABLE=${GOVPAY_ACA_DB_CHECK_TABLE:-aca_posizioni_pendenti}
+GOVPAY_ACA_DB_CHECK_TABLE=${GOVPAY_ACA_DB_CHECK_TABLE:-batch_job_execution_context}
 GOVPAY_ACA_LIVE_DB_CHECK_SKIP=${GOVPAY_ACA_LIVE_DB_CHECK_SKIP:-FALSE}
 GOVPAY_ACA_READY_DB_CHECK_SKIP=${GOVPAY_ACA_READY_DB_CHECK_SKIP:-FALSE}
 GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY=${GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY:-30}
@@ -24,7 +24,7 @@ GOVPAY_ACA_LIVE_DB_CHECK_CONNECT_TIMEOUT=${GOVPAY_ACA_LIVE_DB_CHECK_CONNECT_TIME
 GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY=${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY:-5}
 GOVPAY_ACA_READY_DB_CHECK_SLEEP_TIME=${GOVPAY_ACA_READY_DB_CHECK_SLEEP_TIME:-2}
 
-# Logging functions
+# Funzioni di logging
 log_info() {
     echo "[INFO] $(date '+%Y-%m-%d %H:%M:%S') - $1"
 }
@@ -37,20 +37,20 @@ log_error() {
     echo "[ERROR] $(date '+%Y-%m-%d %H:%M:%S') - $1" >&2
 }
 
-# Skip if population is disabled
+# Salta se l'inizializzazione è disabilitata
 if [ "${GOVPAY_ACA_POP_DB_SKIP^^}" == "TRUE" ]; then
-    log_info "Database initialization skipped (GOVPAY_ACA_POP_DB_SKIP=TRUE)"
+    log_info "Inizializzazione database saltata (GOVPAY_ACA_POP_DB_SKIP=TRUE)"
     exit 0
 fi
 
 log_info "========================================"
-log_info "GovPay ACA Database Initialization"
+log_info "Inizializzazione Database GovPay ACA"
 log_info "========================================"
 
-# Extract server and port from GOVPAY_DB_SERVER
+# Estrazione server e porta da GOVPAY_DB_SERVER
 IFS=':' read -r DB_HOST DB_PORT <<< "${GOVPAY_DB_SERVER}"
 
-# Set default ports if not specified
+# Imposta porte di default se non specificate
 if [ -z "${DB_PORT}" ] || [ "${DB_PORT}" == "${DB_HOST}" ]; then
     case "${GOVPAY_DB_TYPE}" in
         postgresql) DB_PORT=5432 ;;
@@ -60,16 +60,16 @@ if [ -z "${DB_PORT}" ] || [ "${DB_PORT}" == "${DB_HOST}" ]; then
     esac
 fi
 
-log_info "Database type: ${GOVPAY_DB_TYPE}"
-log_info "Database server: ${DB_HOST}:${DB_PORT}"
-log_info "Database name: ${GOVPAY_DB_NAME}"
+log_info "Tipo database: ${GOVPAY_DB_TYPE}"
+log_info "Server database: ${DB_HOST}:${DB_PORT}"
+log_info "Nome database: ${GOVPAY_DB_NAME}"
 
 ##############################################################################
-# LIVENESS CHECK (TCP Connection)
+# LIVENESS CHECK (Connessione TCP)
 ##############################################################################
 
 if [ "${GOVPAY_ACA_LIVE_DB_CHECK_SKIP^^}" == "FALSE" ]; then
-    log_info "Performing liveness check (TCP connection)..."
+    log_info "Esecuzione liveness check (connessione TCP)..."
     RETRY=0
     DB_ALIVE=1
 
@@ -79,21 +79,21 @@ if [ "${GOVPAY_ACA_LIVE_DB_CHECK_SKIP^^}" == "FALSE" ]; then
         RETRY=$((RETRY + 1))
 
         if [ ${DB_ALIVE} -ne 0 ]; then
-            log_info "Database not ready, retry ${RETRY}/${GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY}..."
+            log_info "Database non pronto, tentativo ${RETRY}/${GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY}..."
             sleep ${GOVPAY_ACA_LIVE_DB_CHECK_SLEEP_TIME}
         fi
     done
 
     if [ ${DB_ALIVE} -ne 0 ]; then
-        log_error "FATAL: Database not reachable after ${GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY} attempts"
+        log_error "FATALE: Database non raggiungibile dopo ${GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY} tentativi"
         exit 1
     fi
 
-    log_info "Liveness check passed"
+    log_info "Liveness check superato"
 fi
 
 ##############################################################################
-# BUILD JDBC URL
+# COSTRUZIONE URL JDBC
 ##############################################################################
 
 case "${GOVPAY_DB_TYPE}" in
@@ -114,12 +114,12 @@ case "${GOVPAY_DB_TYPE}" in
         START_TRANSACTION=""
         ;;
     *)
-        log_error "Unsupported database type: ${GOVPAY_DB_TYPE}"
+        log_error "Tipo database non supportato: ${GOVPAY_DB_TYPE}"
         exit 1
         ;;
 esac
 
-# Add connection params if present
+# Aggiunta parametri di connessione se presenti
 if [ -n "${GOVPAY_DS_CONN_PARAM}" ]; then
     if [[ "${JDBC_URL}" == *"?"* ]]; then
         JDBC_URL="${JDBC_URL}&${GOVPAY_DS_CONN_PARAM}"
@@ -128,14 +128,14 @@ if [ -n "${GOVPAY_DS_CONN_PARAM}" ]; then
     fi
 fi
 
-log_info "JDBC URL: ${JDBC_URL}"
+log_info "URL JDBC: ${JDBC_URL}"
 
 ##############################################################################
-# CREATE SQLTOOL RC FILE
+# CREAZIONE FILE RC SQLTOOL
 ##############################################################################
 
-SQLTOOL_RC="/tmp/sqltool_aca.rc"
-cat > ${SQLTOOL_RC} <<EOSQLTOOL
+SQLTOOL_RC_FILE="/tmp/sqltool_aca.rc"
+cat > ${SQLTOOL_RC_FILE} <<EOSQLTOOL
 urlid aca_db
 url ${JDBC_URL}
 username ${GOVPAY_DB_USER}
@@ -146,13 +146,13 @@ charset UTF-8
 EOSQLTOOL
 
 ##############################################################################
-# READINESS CHECK (Table Existence)
+# READINESS CHECK (Esistenza Tabella)
 ##############################################################################
 
 if [ "${GOVPAY_ACA_READY_DB_CHECK_SKIP^^}" == "FALSE" ]; then
-    log_info "Performing readiness check (table: ${GOVPAY_ACA_DB_CHECK_TABLE})..."
+    log_info "Esecuzione readiness check (tabella: ${GOVPAY_ACA_DB_CHECK_TABLE})..."
 
-    # Build check query based on database type
+    # Costruzione query di verifica in base al tipo di database
     case "${GOVPAY_DB_TYPE}" in
         postgresql)
             CHECK_QUERY="SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${GOVPAY_ACA_DB_CHECK_TABLE,,}' AND LOWER(table_catalog)='${GOVPAY_DB_NAME,,}';"
@@ -168,11 +168,10 @@ if [ "${GOVPAY_ACA_READY_DB_CHECK_SKIP^^}" == "FALSE" ]; then
     RETRY=0
     TABLE_EXISTS=-1
 
+    INVOCAZIONE_CLIENT="-Dfile.encoding=UTF-8 -cp ${GOVPAY_DS_JDBC_LIBS}/*:/opt/hsqldb-${HSQLDB_FULLVERSION}/hsqldb/lib/sqltool.jar org.hsqldb.cmdline.SqlTool --rcFile=${SQLTOOL_RC_FILE} "
+
     while [ ${TABLE_EXISTS} -lt 0 ] && [ ${RETRY} -lt ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} ]; do
-        TABLE_COUNT=$(java -Dfile.encoding=UTF-8 \
-            -cp "${GOVPAY_DS_JDBC_LIBS}/*:/opt/sqltool.jar" \
-            org.hsqldb.cmdline.SqlTool \
-            --rcFile=${SQLTOOL_RC} \
+        TABLE_COUNT=$(java ${INVOCAZIONE_CLIENT} \
             --sql="${CHECK_QUERY}" \
             aca_db 2>/dev/null | tail -1 | tr -d ' \n\r')
 
@@ -181,97 +180,95 @@ if [ "${GOVPAY_ACA_READY_DB_CHECK_SKIP^^}" == "FALSE" ]; then
         else
             RETRY=$((RETRY + 1))
             if [ ${RETRY} -lt ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} ]; then
-                log_info "Readiness check failed, retry ${RETRY}/${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY}..."
+                log_info "Readiness check fallito, tentativo ${RETRY}/${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY}..."
                 sleep ${GOVPAY_ACA_READY_DB_CHECK_SLEEP_TIME}
             fi
         fi
     done
 
     if [ ${TABLE_EXISTS} -lt 0 ]; then
-        log_error "FATAL: Readiness check failed after ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} attempts"
+        log_error "FATALE: Readiness check fallito dopo ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} tentativi"
         exit 1
     fi
 
-    log_info "Readiness check result: ${TABLE_EXISTS} table(s) found"
+    log_info "Risultato readiness check: ${TABLE_EXISTS} tabella/e trovata/e"
 
     if [ ${TABLE_EXISTS} -gt 0 ]; then
-        log_info "Database already initialized, skipping SQL execution"
+        log_info "Database già inizializzato, esecuzione SQL saltata"
         exit 0
     fi
 fi
 
 ##############################################################################
-# SQL SCRIPT EXECUTION
+# ESECUZIONE SCRIPT SQL
 ##############################################################################
 
-log_info "Initializing database..."
+log_info "Inizializzazione database in corso..."
 
-# Determine SQL directory (mariadb uses mysql scripts)
+# Determina directory SQL (mariadb usa gli script mysql)
 SQL_DIR="${GOVPAY_DB_TYPE}"
 [ "${GOVPAY_DB_TYPE}" == "mariadb" ] && SQL_DIR="mysql"
 
-# Check if SQL scripts exist
-SQL_FILE="/opt/sql/sql/${SQL_DIR}/tabelle_batch-create.sql"
+# Verifica esistenza script SQL
+SQL_FILE="/opt/sql/${SQL_DIR}/tabelle_batch-create.sql"
 if [ ! -f "${SQL_FILE}" ]; then
-    log_error "SQL script not found: ${SQL_FILE}"
-    log_error "Available files in /opt/sql:"
-    ls -la /opt/sql/ 2>/dev/null || echo "  /opt/sql directory not found"
+    log_error "Script SQL non trovato: ${SQL_FILE}"
+    log_error "File disponibili in /opt/sql:"
+    ls -la /opt/sql/ 2>/dev/null || echo "  directory /opt/sql non trovata"
     if [ -d "/opt/sql/${SQL_DIR}" ]; then
-        log_error "Files in /opt/sql/${SQL_DIR}:"
+        log_error "File in /opt/sql/${SQL_DIR}:"
         ls -la "/opt/sql/${SQL_DIR}/" 2>/dev/null
     fi
     exit 1
 fi
 
-# Copy scripts to temporary location
-mkdir -p /var/tmp/aca_sql
-cp "${SQL_FILE}" /var/tmp/aca_sql/
-log_info "SQL script copied to /var/tmp/aca_sql/"
+# Copia script in posizione temporanea
+mkdir -p /tmp/aca_sql
+cp "/opt/sql/${SQL_DIR}"/*.sql /tmp/aca_sql/
+log_info "Script SQL copiati in /tmp/aca_sql/"
 
-# Apply vendor-specific transformations
+# Applica trasformazioni specifiche per vendor
 case "${GOVPAY_DB_TYPE}" in
     mysql|mariadb)
-        log_info "Applying MySQL/MariaDB transformations..."
-        # Remove escaped quotes in COMMENT statements
-        sed -i -e "/COMMENT/s%\\\\'% %g" /var/tmp/aca_sql/tabelle_batch-create.sql
+        log_info "Applicazione trasformazioni MySQL/MariaDB..."
+        # Rimuove quote escaped negli statement COMMENT
+        sed -i -e "/COMMENT/s%\\\\'% %g" /tmp/aca_sql/*.sql
         ;;
     oracle)
-        log_info "Applying Oracle transformations..."
-        # Enable raw mode for triggers and functions
+        log_info "Applicazione trasformazioni Oracle..."
+        # Abilita modalità raw per trigger e funzioni
         sed -i -r -e '/^CREATE( OR REPLACE)? (TRIGGER|FUNCTION|PROCEDURE)/i .' \
-                  -e 's/^\/$/.\n:;/' /var/tmp/aca_sql/tabelle_batch-create.sql
+                  -e 's/^\/$/.\n:;/' /tmp/aca_sql/*.sql
         ;;
 esac
 
-# Execute SQL scripts
-log_info "Executing SQL script: tabelle_batch-create.sql"
+# Esecuzione script SQL
+log_info "Esecuzione script SQL in corso..."
 
-java -Dfile.encoding=UTF-8 \
-    -cp "${GOVPAY_DS_JDBC_LIBS}/*:/opt/sqltool.jar" \
-    org.hsqldb.cmdline.SqlTool \
-    --rcFile=${SQLTOOL_RC} \
+java ${INVOCAZIONE_CLIENT} \
     --continueOnErr=false \
     aca_db <<EOSQL
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 ${START_TRANSACTION}
-\i /var/tmp/aca_sql/tabelle_batch-create.sql
+\i /tmp/aca_sql/tabelle_batch-create.sql
+\i /tmp/aca_sql/create-db.sql
 COMMIT;
 EOSQL
 
 SQL_EXIT_CODE=$?
 
-# Clean up
-rm -rf /var/tmp/aca_sql
-rm -f ${SQLTOOL_RC}
+# Pulizia
+#rm -rf /tmp/aca_sql
+#rm -f ${SQLTOOL_RC_FILE}
 
 if [ ${SQL_EXIT_CODE} -eq 0 ]; then
     log_info "========================================"
-    log_info "Database initialization completed successfully"
+    log_info "Inizializzazione database completata con successo"
     log_info "========================================"
     exit 0
 else
     log_error "========================================"
-    log_error "Database initialization failed with exit code: ${SQL_EXIT_CODE}"
+    log_error "Inizializzazione database fallita con codice d'uscita: ${SQL_EXIT_CODE}"
     log_error "========================================"
     exit ${SQL_EXIT_CODE}
 fi

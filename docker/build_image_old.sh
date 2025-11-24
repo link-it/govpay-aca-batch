@@ -1,40 +1,40 @@
 #!/bin/bash
 
 ##############################################################################
-# GovPay A.C.A. Docker Image Build Script
+# Script di Build Immagine Docker GovPay A.C.A.
 #
-# Build a Docker image for GovPay A.C.A. (Avvisi Cortesia Automatici)
-# batch processor. JDBC drivers are mounted externally at runtime.
+# Costruisce un'immagine Docker per il batch processor GovPay A.C.A.
+# (Avvisi Cortesia Automatici). I driver JDBC vengono montati esternamente
+# a runtime.
 #
-# Usage: ./build_image.sh [options]
+# Uso: ./build_image.sh [opzioni]
 #
-# Options:
-#   -v VERSION    GovPay installer version (default: 3.8.0)
-#   -a VERSION    ACA release version (default: 1.1.3)
-#   -t TAG        Additional tag for the image (optional)
-#   -h            Show this help message
+# Opzioni:
+#   -v VERSION    Versione installer GovPay (default: 3.8.0)
+#   -a VERSION    Versione release ACA (default: 1.1.3)
+#   -t TAG        Tag aggiuntivo per l'immagine (opzionale)
+#   -h            Mostra questo messaggio di aiuto
 #
-# Examples:
-#   ./build_image.sh                          # Build with defaults
-#   ./build_image.sh -v 3.8.0 -a 1.1.3       # Specify versions
-#   ./build_image.sh -t latest               # Add latest tag
+# Esempi:
+#   ./build_image.sh                          # Build con valori di default
+#   ./build_image.sh -v 3.8.0 -a 1.1.3       # Specifica versioni
+#   ./build_image.sh -t latest               # Aggiungi tag latest
 ##############################################################################
 
 set -e
 
-# Default values
-GOVPAY_VERSION="3.8.0"
+# Valori di default
 GOVPAY_ACA_VERSION="1.1.3"
 IMAGE_NAME="linkitaly/govpay-aca"
 ADDITIONAL_TAG=""
 
-# Color output
+# Output colorato
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m' # Nessun colore
 
-# Function to print colored messages
+# Funzione per stampare messaggi colorati
 print_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -47,13 +47,13 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Function to show usage
+# Funzione per mostrare l'uso
 show_usage() {
     grep '^#' "$0" | grep -v '#!/bin/bash' | sed 's/^# \?//'
     exit 0
 }
 
-# Parse command line arguments
+# Parsing argomenti da linea di comando
 while getopts "v:a:t:h" opt; do
     case ${opt} in
         v)
@@ -69,29 +69,29 @@ while getopts "v:a:t:h" opt; do
             show_usage
             ;;
         \?)
-            print_error "Invalid option: -$OPTARG"
+            print_error "Opzione non valida: -$OPTARG"
             show_usage
             ;;
     esac
 done
 
-# Check if required files exist
+# Verifica esistenza file richiesti
 if [ ! -f "Dockerfile.github" ]; then
-    print_error "Dockerfile.github not found in current directory"
+    print_error "Dockerfile.github non trovato nella directory corrente"
     exit 1
 fi
 
 if [ ! -f "entrypoint.sh" ]; then
-    print_error "entrypoint.sh not found in current directory"
+    print_error "entrypoint.sh non trovato nella directory corrente"
     exit 1
 fi
 
 if [ ! -f "init_aca_db.sh" ]; then
-    print_error "init_aca_db.sh not found in current directory"
+    print_error "init_aca_db.sh non trovato nella directory corrente"
     exit 1
 fi
 
-# Build image tags (no database suffix - drivers are external)
+# Costruzione tag immagine (senza suffisso database - driver esterni)
 MAIN_TAG="${IMAGE_NAME}:${GOVPAY_ACA_VERSION}"
 TAGS="-t ${MAIN_TAG}"
 
@@ -99,20 +99,19 @@ if [ -n "${ADDITIONAL_TAG}" ]; then
     TAGS="${TAGS} -t ${IMAGE_NAME}:${ADDITIONAL_TAG}"
 fi
 
-# Print build information
+# Stampa informazioni di build
 print_info "====================================="
-print_info "GovPay A.C.A. Docker Build"
+print_info "Build Docker GovPay A.C.A."
 print_info "====================================="
-print_info "GovPay Version:  ${GOVPAY_VERSION}"
-print_info "ACA Version:     ${GOVPAY_ACA_VERSION}"
-print_info "Image tags:      ${MAIN_TAG}"
+print_info "Versione ACA:     ${GOVPAY_ACA_VERSION}"
+print_info "Tag immagine:     ${MAIN_TAG}"
 if [ -n "${ADDITIONAL_TAG}" ]; then
-    print_info "                 ${IMAGE_NAME}:${ADDITIONAL_TAG}"
+    print_info "                  ${IMAGE_NAME}:${ADDITIONAL_TAG}"
 fi
 print_info "====================================="
 
-# Build the image
-print_info "Building Docker image..."
+# Build dell'immagine
+print_info "Costruzione immagine Docker..."
 docker build \
     -f Dockerfile.github \
     --build-arg GOVPAY_VERSION="${GOVPAY_VERSION}" \
@@ -120,25 +119,25 @@ docker build \
     ${TAGS} \
     .
 
-# Check build result
+# Verifica risultato build
 if [ $? -eq 0 ]; then
     print_info "====================================="
-    print_info "${GREEN}Build completed successfully!${NC}"
+    print_info "${GREEN}Build completata con successo!${NC}"
     print_info "====================================="
-    print_info "Image: ${MAIN_TAG}"
+    print_info "Immagine: ${MAIN_TAG}"
     if [ -n "${ADDITIONAL_TAG}" ]; then
-        print_info "       ${IMAGE_NAME}:${ADDITIONAL_TAG}"
+        print_info "          ${IMAGE_NAME}:${ADDITIONAL_TAG}"
     fi
     print_info ""
-    print_info "IMPORTANT: JDBC drivers must be provided at runtime!"
-    print_info "Place JDBC driver JAR files in ./jdbc-drivers/ directory"
+    print_info "IMPORTANTE: I driver JDBC devono essere forniti a runtime!"
+    print_info "Posizionare i file JAR dei driver JDBC nella directory ./jdbc-drivers/"
     print_info ""
-    print_info "To run the container:"
-    print_info "  1. Copy .env.template to .env and configure"
-    print_info "  2. Place JDBC drivers in ./jdbc-drivers/"
+    print_info "Per eseguire il container:"
+    print_info "  1. Copiare .env.template in .env e configurare"
+    print_info "  2. Posizionare i driver JDBC in ./jdbc-drivers/"
     print_info "  3. docker-compose up -d"
     print_info ""
-    print_info "Or manually:"
+    print_info "Oppure manualmente:"
     print_info "  docker run -d \\"
     print_info "    -e GOVPAY_DB_TYPE=postgresql \\"
     print_info "    -e GOVPAY_DB_SERVER=postgres:5432 \\"
@@ -152,6 +151,6 @@ if [ $? -eq 0 ]; then
     print_info "    ${MAIN_TAG}"
     print_info "====================================="
 else
-    print_error "Build failed!"
+    print_error "Build fallita!"
     exit 1
 fi

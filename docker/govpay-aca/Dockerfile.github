@@ -1,0 +1,69 @@
+FROM eclipse-temurin:21-jre-alpine
+
+ARG govpay_aca_fullversion
+ARG govpay_aca_home=/opt/govpay-aca
+ARG govpay_aca_log=/var/log/govpay-aca
+
+LABEL maintainer="Link.it s.r.l."
+LABEL description="GovPay A.C.A. (Avvisi Cortesia Automatici) Batch Processor"
+LABEL govpay.aca.version="${govpay_aca_fullversion}"
+USER root
+
+ENV GOVPAY_ACA_FULLVERSION=${govpay_aca_fullversion} \
+GOVPAY_ACA_LOGDIR=${govpay_aca_log} \
+GOVPAY_ACA_HOME=${govpay_aca_home} \
+HSQLDB_FULLVERSION=2.7.4 \
+TZ=Europe/Rome
+
+
+RUN set -eux; \
+apk update; \
+apk upgrade; \
+apk add --no-cache bash curl tar unzip netcat-openbsd tzdata; \
+rm -rf /var/cache/apk/*; \
+echo "${TZ}" > /etc/timezone; \
+addgroup -S govpay ; \
+adduser -S -G govpay govpay; \
+mkdir -p ${GOVPAY_ACA_HOME} ${GOVPAY_ACA_LOGDIR} /opt/sql /opt/jdbc-drivers; \
+chown -R govpay:govpay ${GOVPAY_ACA_HOME} ${GOVPAY_ACA_LOGDIR} /opt/sql
+
+WORKDIR ${GOVPAY_ACA_HOME}
+
+# Download ACA JAR from GitHub release
+RUN set -eux; \
+curl -kL -sS -q -o ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/govpay-aca-batch-${GOVPAY_ACA_FULLVERSION}.jar";  \
+curl -kL -sS -q -o /tmp/sql.zip "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/sql.zip"; \
+unzip -q /tmp/sql.zip -d /opt && rm /tmp/sql.zip; \
+chown -R govpay:govpay /opt/sql; \
+curl -kL -sS -q -o /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip https://sourceforge.net/projects/hsqldb/files/hsqldb/hsqldb_2_7/hsqldb-${HSQLDB_FULLVERSION}.zip/download; \
+unzip -q -d /opt /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip hsqldb-${HSQLDB_FULLVERSION}/hsqldb/lib/*; \
+rm -f  /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip
+
+# Copy entrypoint and initialization scripts
+COPY commons/entrypoint.sh commons/init_aca_db.sh /usr/local/bin/
+RUN chown -R govpay:0 /usr/local/bin/entrypoint.sh /usr/local/bin/init_aca_db.sh ${GOVPAY_ACA_HOME} ${GOVPAY_ACA_LOGDIR} /opt/hsqldb-${HSQLDB_FULLVERSION}/hsqldb /opt/sql \
+&& chmod -Rf g+rwX ${GOVPAY_ACA_HOME} ${GOVPAY_ACA_LOGDIR} /opt/hsqldb-${HSQLDB_FULLVERSION}/hsqldb/ /opt/sql/ \
+&& chmod ug=rx /usr/local/bin/entrypoint.sh /usr/local/bin/init_aca_db.sh 
+
+
+USER govpay
+
+ENV SPRING_BATCH_JOB_ENABLED=false \
+    IT_GOVPAY_GPD_TIME_ZONE=Europe/Rome \
+    IT_GOVPAY_GPD_BATCH_CLIENT_HEADER_SUBSCRIPTIONKEY_NAME=Ocp-Apim-Subscription-Key \
+    IT_GOVPAY_GPD_BATCH_CLIENT_DEBUGGING=false \
+    IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPENDENZA_STEP_CHUNK_SIZE=10 \
+    IT_GOVPAY_GPD_BATCH_DBREADER_SOGLIA_TEMPORALE_RICERCA_PENDENZE_NUMERO_GIORNI=7 \
+    MANAGEMENT_ENDPOINTS_WEB_BASE_PATH=/actuator \
+    SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=20000 \
+    SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT=10000 \
+    SPRING_DATASOURCE_HIKARI_MAX_LIFETIME=600000 \
+    SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=2 \
+    SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=10 \
+    LOGGING_FILE_NAME=${GOVPAY_ACA_LOGDIR}/govpay-aca.log \
+    LOGGING_DIRECTORYPATH=${GOVPAY_ACA_LOGDIR} \
+    LOGGING_FILEPREFIX=govpay-aca
+
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD []
