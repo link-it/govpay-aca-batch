@@ -1,14 +1,12 @@
-#!/bin/bash -x
+#!/bin/bash
 
 ##############################################################################
 # Script di Inizializzazione Database GovPay ACA
-#
 # Questo script inizializza il database ACA eseguendo:
 # 1. Liveness check (connessione TCP al database)
 # 2. Readiness check (verifica esistenza tabelle)
 # 3. Esecuzione script SQL se il database non è inizializzato
 #
-# Ispirato a govpay-docker/initgovpay.sh
 ##############################################################################
 set -x
 set -e
@@ -153,6 +151,7 @@ if [ "${GOVPAY_ACA_READY_DB_CHECK_SKIP^^}" == "FALSE" ]; then
     log_info "Esecuzione readiness check (tabella: ${GOVPAY_ACA_DB_CHECK_TABLE})..."
 
     # Costruzione query di verifica in base al tipo di database
+    # Costruzione query di verifica in base al tipo di database
     case "${GOVPAY_DB_TYPE}" in
         postgresql)
             CHECK_QUERY="SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${GOVPAY_ACA_DB_CHECK_TABLE,,}' AND LOWER(table_catalog)='${GOVPAY_DB_NAME,,}';"
@@ -242,6 +241,7 @@ case "${GOVPAY_DB_TYPE}" in
         ;;
 esac
 
+
 # Esecuzione script SQL
 log_info "Esecuzione script SQL in corso..."
 
@@ -265,10 +265,10 @@ if [ ${SQL_EXIT_CODE} -eq 0 ]; then
     log_info "========================================"
     log_info "Inizializzazione database completata con successo"
     log_info "========================================"
-    exit 0
 else
     log_error "========================================"
     log_error "Inizializzazione database fallita con codice d'uscita: ${SQL_EXIT_CODE}"
     log_error "========================================"
-    exit ${SQL_EXIT_CODE}
 fi
+
+exit ${SQL_EXIT_CODE}
