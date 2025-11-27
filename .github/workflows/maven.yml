@@ -112,6 +112,20 @@ jobs:
           -Dsonar.java.source=21
           -Dsonar.java.libraries=target/dependency
 
+    - name: License Analysis
+      run: |
+        set -euo pipefail
+        echo "Downloading license information..."
+        mvn org.codehaus.mojo:license-maven-plugin:2.4.0:aggregate-download-licenses -DexcludeScopes=test,provided,system -DincludeTransitiveDependencies=true
+        echo "Analyzing licenses..."
+        python3 .github/workflows/scripts/analyze_licenses.py --exceptions .github/workflows/scripts/license-exceptions.json
+
+    - name: Archive licenses analysis results
+      uses: actions/upload-artifact@v4
+      with:
+        name: third-party-licenses
+        path: third-party-licenses
+
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
       with:
@@ -138,6 +152,12 @@ jobs:
         name: govpay-aca-batch
         path: target/  # Assicurati che il file venga scaricato nella cartella target
 
+    - name: Download third-party-licenses artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: third-party-licenses
+        path: third-party-licenses
+
     - name: Rename the artifact file to include the tag
       run: |
         cp target/govpay-aca-batch.jar target/govpay-aca-batch-${{ github.ref_name }}.jar  # Rinominare il file
@@ -149,6 +169,15 @@ jobs:
         cd src/main/resources
         zip -r ../../../target/sql.zip sql
         cd ../../../
+
+    - name: Zip third-party licenses
+      # Crea un file zip (target/third-party-licenses.zip) contenente le licenze delle dipendenze
+      run: |
+        if [ -d "third-party-licenses" ]; then
+          zip -r target/third-party-licenses.zip third-party-licenses
+        else
+          echo "third-party-licenses directory not found, skipping..."
+        fi
 
     - name: List files in target directory
       run: ls -l target/
@@ -164,5 +193,6 @@ jobs:
           target/jacoco-html-report.zip
           target/dependency-check-report.html
           target/dependency-check-report.xml
+          target/third-party-licenses.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
