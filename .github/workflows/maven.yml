@@ -55,7 +55,7 @@ jobs:
           echo "OSS_INDEX_USER is set. Length: ${#OSS_INDEX_USER}"
         fi
       env:
-        OSS_INDEX_USER: ${{ secrets.OSS_INDEX_USER }}
+        OSS_INDEX_USER: ${{ variables.OSS_INDEX_USER }}
     - name: Check OSS_INDEX_PASSWORD
       run: |
         if [ -z "$OSS_INDEX_PASSWORD" ]; then
