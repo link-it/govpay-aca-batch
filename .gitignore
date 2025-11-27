@@ -45,7 +45,7 @@ pom.xml.versionsBackup
 /target
 /bin
 _build
-
+buildcontext
 # swagger
 .swagger-codegen
 
