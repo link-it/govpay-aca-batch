@@ -43,7 +43,7 @@ jobs:
         if [ -z "$NVD_API_KEY" ]; then
           echo "NVD_API_KEY is NOT set!"
         else
-          echo "NVD_API_KEY is set. Length: ${#NVD_API_KEY}"
+          echo "NVD_API_KEY is set."
         fi
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
@@ -52,7 +52,7 @@ jobs:
         if [ -z "$OSS_INDEX_USER" ]; then
           echo "OSS_INDEX_USER is NOT set!"
         else
-          echo "OSS_INDEX_USER is set. Length: ${#OSS_INDEX_USER}"
+          echo "OSS_INDEX_USER is set."
         fi
       env:
         OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
@@ -61,7 +61,7 @@ jobs:
         if [ -z "$OSS_INDEX_PASSWORD" ]; then
           echo "OSS_INDEX_PASSWORD is NOT set!"
         else
-          echo "OSS_INDEX_PASSWORD is set. Length: ${#OSS_INDEX_PASSWORD}"
+          echo "OSS_INDEX_PASSWORD is set."
         fi
       env:
         OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
