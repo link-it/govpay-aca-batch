@@ -55,7 +55,7 @@ jobs:
           echo "OSS_INDEX_USER is set. Length: ${#OSS_INDEX_USER}"
         fi
       env:
-        OSS_INDEX_USER: ${{ env.OSS_INDEX_USER }}
+        OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
     - name: Check OSS_INDEX_PASSWORD
       run: |
         if [ -z "$OSS_INDEX_PASSWORD" ]; then
@@ -79,6 +79,8 @@ jobs:
       run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
+        OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
 
     - name: Show JaCoCo report location and Zip JaCoCo HTML report
       run: |
