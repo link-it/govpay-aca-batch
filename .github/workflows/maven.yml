@@ -12,7 +12,7 @@ on:
   push:
     branches: [ "main" ]
     tags:
-      - '*'  # Trigger per tutti i tag 
+      - '*'  # Trigger per tutti i tag
   pull_request:
     branches: [ "main" ]
 
@@ -29,7 +29,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Clona tutta la history Git 
+        fetch-depth: 0  # Clona tutta la history Git
     - name: Set timezone to Europe/Rome
       run: sudo timedatectl set-timezone Europe/Rome
     - name: Set up JDK 21
@@ -47,6 +47,24 @@ jobs:
         fi
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+    - name: Check OSS_INDEX_USER
+      run: |
+        if [ -z "$OSS_INDEX_USER" ]; then
+          echo "OSS_INDEX_USER is NOT set!"
+        else
+          echo "OSS_INDEX_USER is set. Length: ${#OSS_INDEX_USER}"
+        fi
+      env:
+        OSS_INDEX_USER: ${{ secrets.OSS_INDEX_USER }}
+    - name: Check OSS_INDEX_PASSWORD
+      run: |
+        if [ -z "$OSS_INDEX_PASSWORD" ]; then
+          echo "OSS_INDEX_PASSWORD is NOT set!"
+        else
+          echo "OSS_INDEX_PASSWORD is set. Length: ${#OSS_INDEX_PASSWORD}"
+        fi
+      env:
+        OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
 
     #  Cache .dependency-check/data
     - name: Cache OWASP Dependency-Check DB
@@ -56,7 +74,7 @@ jobs:
         key: ${{ runner.os }}-owasp-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-owasp-
-          
+
     - name: Build with Maven
       run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report
       env:
@@ -69,8 +87,8 @@ jobs:
         cd target/site
         zip -r ../jacoco-html-report.zip jacoco
         cd ../../
-        ls -lh target/  
-    
+        ls -lh target/
+
     - name: Copy dependencies
       run: |
         mkdir -p target/dependency
@@ -91,7 +109,7 @@ jobs:
           -Dsonar.coverage.exclusions=**/test/**,**/*Test*.java
           -Dsonar.java.source=21
           -Dsonar.java.libraries=target/dependency
-          
+
     - name: Upload artifact to GitHub
       uses: actions/upload-artifact@v4.6.0
       with:
@@ -102,7 +120,7 @@ jobs:
           target/jacoco-html-report.zip
           target/dependency-check-report.html
           target/dependency-check-report.xml
-        
+
   release:
     runs-on: ubuntu-latest
     needs: build
@@ -122,7 +140,7 @@ jobs:
       run: |
         cp target/govpay-aca-batch.jar target/govpay-aca-batch-${{ github.ref_name }}.jar  # Rinominare il file
         cp target/site/jacoco/jacoco.xml target/jacoco.xml
-    
+
     - name: Zip SQL files
       # Crea un file zip (target/sql.zip) contenente i file presenti in src/main/resources/sql
       run: |
@@ -145,5 +163,4 @@ jobs:
           target/dependency-check-report.html
           target/dependency-check-report.xml
       env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }} 
-        
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
