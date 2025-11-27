@@ -29,6 +29,7 @@ LICENSE_COMPATIBILITY = {
     'MIT License': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'MIT'},
     'The MIT License': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'MIT'},
     'MIT': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'MIT'},
+    'MIT-0': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'MIT-0'},
 
     # BSD variants
     'BSD License': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'BSD'},
@@ -108,6 +109,7 @@ LICENSE_COMPATIBILITY = {
     # CDDL with GPL dual licenses (can choose either license, so enterprise safe)
     'CDDL+GPL License': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'CDDL+GPL'},
     'CDDL/GPLv2+CE': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'CDDL/GPL-2.0-with-CE'},
+    'CDDL + GPLv2 with classpath exception': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'CDDL/GPL-2.0-with-CE'},
 
     # Multi-license (Apache + CDDL + EPL) - used by Tomcat Servlet API
     'Apache License, Version 2.0 and Common Development And Distribution License (CDDL) Version 1.0 and Eclipse Public License - v 2.0': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'Apache-2.0+CDDL+EPL-2.0'},
@@ -128,6 +130,9 @@ LICENSE_COMPATIBILITY = {
     'CC0-1.0': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'CC0-1.0'},
     'Public Domain, per Creative Commons CC0': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'CC0-1.0'},
     'CC0': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'CC0-1.0'},
+
+    # Oracle Free Use Terms and Conditions (FUTC) - used by Oracle JDBC drivers
+    'Oracle Free Use Terms and Conditions (FUTC)': {'gplv3_compatible': True, 'enterprise_safe': True, 'category': 'Oracle-FUTC'},
 }
 
 def normalize_license_name(license_name):
