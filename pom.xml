@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.4</version>
+		<version>3.5.8</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
@@ -67,7 +67,7 @@
 		<owasp.plugin.failBuildOnCVSS>11</owasp.plugin.failBuildOnCVSS>
 		<owasp.ossindex.prevents429.sleep>5</owasp.ossindex.prevents429.sleep> <!-- https://github.com/sonatype/ossindex-maven/issues/17 -->
 		
-		<logback.version>1.5.16</logback.version>
+		<logback.version>1.5.19</logback.version>
 		
 		<h2.version>2.3.232</h2.version>
 
