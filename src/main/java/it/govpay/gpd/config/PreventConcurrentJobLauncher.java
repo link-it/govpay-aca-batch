@@ -154,8 +154,7 @@ public class PreventConcurrentJobLauncher {
         }
         Map<String, JobParameter<?>> params = jobExecution.getJobParameters().getParameters();
         if (params.containsKey(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID)) {
-            Object value = params.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue();
-            return value != null ? value.toString() : null;
+            return params.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue().toString();
         }
         return null;
     }
