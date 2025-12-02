@@ -1,13 +1,11 @@
 package it.govpay.gpd.config;
 
 import java.time.OffsetDateTime;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.JobParametersInvalidException;
@@ -48,7 +46,6 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
 		this.jobLauncher = jobLauncher;
 		this.preventConcurrentJobLauncher = preventConcurrentJobLauncher;
 		this.pendenzaSenderJob = pendenzaSenderJob;
-
     }
 
     private void runSendPendenzeGpdJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
@@ -68,9 +65,7 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
 
 		if (currentRunningJobExecution != null) {
 			// Verifica se il job è stale (bloccato o in stato anomalo)
-			boolean isStale = this.preventConcurrentJobLauncher.isJobExecutionStale(currentRunningJobExecution);
-
-			if (isStale) {
+			if (this.preventConcurrentJobLauncher.isJobExecutionStale(currentRunningJobExecution)) {
 				log.warn("JobExecution {} rilevata come STALE. Procedo con abbandono e riavvio.",
 					currentRunningJobExecution.getId());
 
@@ -79,7 +74,6 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
 
 				if (abandoned) {
 					log.info("Job stale abbandonato con successo. Avvio nuova esecuzione.");
-					// Procedi con l'avvio di una nuova esecuzione
 					runSendPendenzeGpdJob();
 					log.info("{} completato.", Costanti.SEND_PENDENZE_GPD_JOBNAME);
 				} else {
@@ -92,8 +86,7 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
 			}
 
 			// Job in esecuzione normale - estrai il clusterid dell'esecuzione corrente
-            Map<String, JobParameter<?>> runningParams = currentRunningJobExecution.getJobParameters().getParameters();
-            String runningClusterId = runningParams.containsKey(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID) ? runningParams.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue().toString() : null;
+			String runningClusterId = this.preventConcurrentJobLauncher.getClusterIdFromExecution(currentRunningJobExecution);
 
             if (runningClusterId != null && !runningClusterId.equals(this.clusterId)) {
                 log.info("Il job {} è in esecuzione su un altro nodo ({}). Uscita.", Costanti.SEND_PENDENZE_GPD_JOBNAME, runningClusterId);

@@ -3,16 +3,20 @@ package it.govpay.gpd.config;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import it.govpay.gpd.costanti.Costanti;
 
 @Service
 public class PreventConcurrentJobLauncher {
@@ -39,10 +43,9 @@ public class PreventConcurrentJobLauncher {
     public JobExecution getCurrentRunningJobExecution(String jobName) {
         Set<JobExecution> runningJobs = jobExplorer.findRunningJobExecutions(jobName);
         if (!runningJobs.isEmpty()) {
-            // Restituisce la prima esecuzione in corso.
             List<JobExecution> list = runningJobs.stream().toList();
 
-            log.info("Trovati si seguenti Job in esecuzione: ");
+            log.info("Trovati i seguenti Job in esecuzione: ");
 			for (JobExecution je : list) {
 				log.info("JobExecution corrente: {}", je.getJobInstance().getJobName());
 			}
@@ -137,5 +140,23 @@ public class PreventConcurrentJobLauncher {
                 jobExecution.getId(), e.getMessage(), e);
             return false;
         }
+    }
+
+    /**
+     * Estrae il cluster ID dai parametri di un'esecuzione del job.
+     *
+     * @param jobExecution l'esecuzione del job
+     * @return il cluster ID oppure null se non presente
+     */
+    public String getClusterIdFromExecution(JobExecution jobExecution) {
+        if (jobExecution == null) {
+            return null;
+        }
+        Map<String, JobParameter<?>> params = jobExecution.getJobParameters().getParameters();
+        if (params.containsKey(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID)) {
+            Object value = params.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue();
+            return value != null ? value.toString() : null;
+        }
+        return null;
     }
 }

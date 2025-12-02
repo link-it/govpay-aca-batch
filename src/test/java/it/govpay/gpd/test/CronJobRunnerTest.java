@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -20,9 +22,9 @@ import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobInstance;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.repository.JobRepository;
-
 import org.springframework.test.util.ReflectionTestUtils;
 
 import it.govpay.gpd.config.PreventConcurrentJobLauncher;
@@ -68,9 +70,16 @@ class CronJobRunnerTest {
         return execution;
     }
 
+    private JobExecution mkExecutionWithoutClusterId() {
+    	JobInstance jobinstance = new JobInstance(1L, JOB_NAME);
+        JobParameters params = new JobParametersBuilder().toJobParameters();
+        return new JobExecution(jobinstance, 1L, params);
+    }
+
+    // ============ Test getCurrentRunningJobExecution ============
+
     @Test
     void whenJobRunningOnAnotherNode_thenDetected() {
-        // simuliamo un job già in esecuzione con clusterId diverso
         Set<JobExecution> set = new HashSet<>();
         set.add(mkExecutionWithCluster("OtherNode"));
 
@@ -84,7 +93,6 @@ class CronJobRunnerTest {
 
     @Test
     void whenJobRunningOnSameNode_thenDetected() {
-        // simuliamo un job già in esecuzione con il nostro stesso clusterId
         Set<JobExecution> set = new HashSet<>();
         set.add(mkExecutionWithCluster("GovPay-ACA-Batch"));
 
@@ -104,6 +112,8 @@ class CronJobRunnerTest {
 
     	assertNull(currentRunningJobExecution);
     }
+
+    // ============ Test isJobExecutionStale ============
 
     @Test
     void whenJobInUnknownStatus_thenIsStale() {
@@ -147,5 +157,87 @@ class CronJobRunnerTest {
     @Test
     void whenNullExecution_thenNotStale() {
         assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(null));
+    }
+
+    @Test
+    void whenJobStartedWithNullStartTime_thenNotStale() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, null);
+        assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(execution));
+    }
+
+    @Test
+    void whenJobFailed_thenNotStale() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.FAILED, LocalDateTime.now().minusHours(25));
+        assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(execution));
+    }
+
+    // ============ Test abandonStaleJobExecution ============
+
+    @Test
+    void whenAbandoningStaleJob_thenSuccess() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+
+        boolean result = preventConcurrentJobLauncher.abandonStaleJobExecution(execution);
+
+        assertTrue(result);
+        assertEquals(BatchStatus.FAILED, execution.getStatus());
+        assertNotNull(execution.getEndTime());
+    }
+
+    @Test
+    void whenAbandoningStaleJobWithSteps_thenStepsAlsoAbandoned() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+        StepExecution stepExecution = new StepExecution("testStep", execution);
+        stepExecution.setStatus(BatchStatus.STARTED);
+        execution.addStepExecutions(java.util.List.of(stepExecution));
+
+        boolean result = preventConcurrentJobLauncher.abandonStaleJobExecution(execution);
+
+        assertTrue(result);
+        assertEquals(BatchStatus.FAILED, execution.getStatus());
+        assertEquals(BatchStatus.FAILED, stepExecution.getStatus());
+    }
+
+    @Test
+    void whenAbandoningNullExecution_thenReturnsFalse() {
+        assertFalse(preventConcurrentJobLauncher.abandonStaleJobExecution(null));
+    }
+
+    @Test
+    void whenAbandoningThrowsException_thenReturnsFalse() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+
+        doThrow(new RuntimeException("Test exception")).when(jobRepository).update(any(JobExecution.class));
+
+        boolean result = preventConcurrentJobLauncher.abandonStaleJobExecution(execution);
+
+        assertFalse(result);
+    }
+
+    // ============ Test getClusterIdFromExecution ============
+
+    @Test
+    void whenExecutionHasClusterId_thenReturnsIt() {
+        JobExecution execution = mkExecutionWithCluster("TestCluster");
+
+        String clusterId = preventConcurrentJobLauncher.getClusterIdFromExecution(execution);
+
+        assertEquals("TestCluster", clusterId);
+    }
+
+    @Test
+    void whenExecutionHasNoClusterId_thenReturnsNull() {
+        JobExecution execution = mkExecutionWithoutClusterId();
+
+        String clusterId = preventConcurrentJobLauncher.getClusterIdFromExecution(execution);
+
+        assertNull(clusterId);
+    }
+
+    @Test
+    void whenNullExecution_thenReturnsNull() {
+        String clusterId = preventConcurrentJobLauncher.getClusterIdFromExecution(null);
+
+        assertNull(clusterId);
     }
 }
