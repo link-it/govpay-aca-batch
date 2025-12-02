@@ -32,25 +32,25 @@ import it.govpay.gpd.costanti.Costanti;
 public class CronJobRunner implements CommandLineRunner, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(CronJobRunner.class);
-    
+
     private ApplicationContext context;
-    
+
     private PreventConcurrentJobLauncher preventConcurrentJobLauncher;
-    
+
     private JobLauncher jobLauncher;
-    
+
     private Job pendenzaSenderJob;
-    
+
     @Value("${it.govpay.gpd.batch.clusterId:GovPay-ACA-Batch}")
 	private String clusterId;
-    
+
     public CronJobRunner(JobLauncher jobLauncher, PreventConcurrentJobLauncher preventConcurrentJobLauncher, @Qualifier(Costanti.SEND_PENDENZE_GPD_JOBNAME) Job pendenzaSenderJob) {
 		this.jobLauncher = jobLauncher;
 		this.preventConcurrentJobLauncher = preventConcurrentJobLauncher;
 		this.pendenzaSenderJob = pendenzaSenderJob;
-    	
+
     }
-    
+
     private void runSendPendenzeGpdJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
         JobParameters params = new JobParametersBuilder()
                 .addString(Costanti.GOVPAY_GPD_JOB_ID, Costanti.SEND_PENDENZE_GPD_JOBNAME)
@@ -59,15 +59,39 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
                 .toJobParameters();
         jobLauncher.run(pendenzaSenderJob, params);
     }
-    
+
     @Override
     public void run(String... args) throws Exception {
         log.info("Avvio {} da command line", Costanti.SEND_PENDENZE_GPD_JOBNAME);
-        
+
         JobExecution currentRunningJobExecution = this.preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME);
-        
+
 		if (currentRunningJobExecution != null) {
-			// Estrai il clusterid dell'esecuzione corrente
+			// Verifica se il job è stale (bloccato o in stato anomalo)
+			boolean isStale = this.preventConcurrentJobLauncher.isJobExecutionStale(currentRunningJobExecution);
+
+			if (isStale) {
+				log.warn("JobExecution {} rilevata come STALE. Procedo con abbandono e riavvio.",
+					currentRunningJobExecution.getId());
+
+				// Abbandona il job stale
+				boolean abandoned = this.preventConcurrentJobLauncher.abandonStaleJobExecution(currentRunningJobExecution);
+
+				if (abandoned) {
+					log.info("Job stale abbandonato con successo. Avvio nuova esecuzione.");
+					// Procedi con l'avvio di una nuova esecuzione
+					runSendPendenzeGpdJob();
+					log.info("{} completato.", Costanti.SEND_PENDENZE_GPD_JOBNAME);
+				} else {
+					log.error("Impossibile abbandonare il job stale. Uscita.");
+				}
+				// Terminazione dell'applicazione
+				int exitCode = SpringApplication.exit(context, () -> abandoned ? 0 : 1);
+				System.exit(exitCode);
+				return;
+			}
+
+			// Job in esecuzione normale - estrai il clusterid dell'esecuzione corrente
             Map<String, JobParameter<?>> runningParams = currentRunningJobExecution.getJobParameters().getParameters();
             String runningClusterId = runningParams.containsKey(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID) ? runningParams.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue().toString() : null;
 
@@ -76,9 +100,12 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
             } else {
             	log.warn("Il job {} è ancora in esecuzione sul nodo corrente ({}). Uscita.", Costanti.SEND_PENDENZE_GPD_JOBNAME, runningClusterId);
             }
+            // Terminazione dell'applicazione
+            int exitCode = SpringApplication.exit(context, () -> 0);
+            System.exit(exitCode);
 			return;
 		}
-        
+
         runSendPendenzeGpdJob();
         log.info("{} completato.", Costanti.SEND_PENDENZE_GPD_JOBNAME);
         // Terminazione dell'applicazione
