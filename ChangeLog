@@ -1,3 +1,11 @@
+2025-11-28  Giuliano Pintori <pintori@link.it>
+
+	* [GpdBatch]
+	Aggiunta gestione del recovery per stati anomali del job batch.
+	Un job è considerato stale se in stato UNKNOWN/ABANDONED o in esecuzione da più ore del timeout configurato.
+	Il job stale viene automaticamente abbandonato e marcato come FAILED, permettendo il riavvio.
+	Aggiunta proprietà di configurazione 'it.govpay.gpd.batch.max-execution-hours' (default: 24 ore).
+
 2025-11-27  Giuliano Pintori <pintori@link.it>
 
 	* [Pipeline]

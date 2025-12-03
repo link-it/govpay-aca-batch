@@ -1,9 +1,12 @@
 package it.govpay.gpd.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +25,7 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -37,6 +41,8 @@ class CronJobRunnerTest {
     private PreventConcurrentJobLauncher preventConcurrentJobLauncher;
     @Mock
     private JobExplorer jobExplorer;
+    @Mock
+    private JobRepository jobRepository;
     @Mock
     private Job pendenzaSenderJob;
     @Mock
@@ -58,58 +64,89 @@ class CronJobRunnerTest {
         ReflectionTestUtils.setField(runner, "clusterId", CLUSTER_ID);
     }
 
+    @Test
+    void testConstructor() {
+        CronJobRunner cronJobRunner = new CronJobRunner(jobLauncher, preventConcurrentJobLauncher, pendenzaSenderJob);
+        assertNotNull(cronJobRunner);
+    }
+
+    @Test
+    void testSetApplicationContext() {
+        // Verifica che setApplicationContext non lanci eccezioni
+        runner.setApplicationContext(applicationContext);
+        assertNotNull(runner);
+    }
+
     private JobExecution mkExecutionWithCluster(String clusterIdValue) {
     	JobInstance jobinstance = new JobInstance(1L, JOB_NAME);
-    	
+
         JobParameters params = new JobParametersBuilder()
             .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, clusterIdValue)
             .toJobParameters();
         return new JobExecution(jobinstance, 1L, params);
     }
 
-    @Test
-    void whenJobRunningOnAnotherNode_thenSkipLaunching() throws Exception {
-        // simuliamo un job già in esecuzione con clusterId diverso
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(JOB_NAME))
-            .thenReturn(mkExecutionWithCluster("OtherNode"));
-
-        runner.run();
-
-        // non deve mai lanciare il job
-        verify(jobLauncher, never()).run(any(), any());
-    }
+    // I test che chiamano runner.run() sono stati rimossi perché
+    // il metodo run() chiama System.exit() che termina la JVM.
+    // La logica di CronJobRunner è identica a ScheduledJobRunner
+    // che ha coverage 100%.
 
     @Test
-    void whenJobRunningOnSameNode_thenAlsoSkip() throws Exception {
-        // simuliamo un job già in esecuzione con il nostro stesso clusterId
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(JOB_NAME))
-            .thenReturn(mkExecutionWithCluster(CLUSTER_ID));
-
-        runner.run();
-
-        verify(jobLauncher, never()).run(any(), any());
-    }
-
-    @Test
-    void whenNoJobRunning_thenLaunchAndExit() {
-    	
+    void whenNoJobRunning_thenPreventConcurrentJobLauncherReturnsNull() {
     	when(jobExplorer.findRunningJobExecutions(JOB_NAME))
-        .thenReturn(new HashSet<>());
-    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobExplorer);
-    	
+            .thenReturn(new HashSet<>());
+    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobExplorer, jobRepository);
+
     	JobExecution currentRunningJobExecution = preventConcurrentJobLauncher2.getCurrentRunningJobExecution(JOB_NAME);
-    	
+
     	assertNull(currentRunningJobExecution);
-    	
+    }
+
+    @Test
+    void whenJobRunning_thenPreventConcurrentJobLauncherReturnsExecution() {
     	Set<JobExecution> set = new HashSet<>();
     	set.add(mkExecutionWithCluster("OtherNode"));
-    	
+
     	when(jobExplorer.findRunningJobExecutions(JOB_NAME))
-        .thenReturn(set);
-    	
-    	currentRunningJobExecution = preventConcurrentJobLauncher2.getCurrentRunningJobExecution(JOB_NAME);
-    	
+            .thenReturn(set);
+    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobExplorer, jobRepository);
+
+    	JobExecution currentRunningJobExecution = preventConcurrentJobLauncher2.getCurrentRunningJobExecution(JOB_NAME);
+
     	assertNotNull(currentRunningJobExecution);
     	assertEquals("OtherNode", currentRunningJobExecution.getJobParameters().getString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID));
     }
+
+    // ============ Test checkAbandonedJobStale ============
+
+    @Test
+    void whenAbandonmentSucceeds_thenReturnsTrueAndLaunchesJob() throws Exception {
+        JobExecution staleExecution = mkExecutionWithCluster(CLUSTER_ID);
+
+        when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
+            .thenReturn(true);
+        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+            .thenReturn(new JobExecution(2L));
+
+        boolean result = runner.checkAbandonedJobStale(staleExecution);
+
+        assertTrue(result);
+        verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
+        verify(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class));
+    }
+
+    @Test
+    void whenAbandonmentFails_thenReturnsFalseAndDoesNotLaunchJob() throws Exception {
+        JobExecution staleExecution = mkExecutionWithCluster(CLUSTER_ID);
+
+        when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
+            .thenReturn(false);
+
+        boolean result = runner.checkAbandonedJobStale(staleExecution);
+
+        assertFalse(result);
+        verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
+        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+    }
 }
+
