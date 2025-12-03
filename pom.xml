@@ -71,9 +71,7 @@
 		
 		<h2.version>2.3.232</h2.version>
 
-		<!-- CronJobRunner escluso perché usa System.exit() che impedisce i test unitari standard.
-		     La stessa logica è testata in ScheduledJobRunner (100% coverage). -->
-		<sonar.coverage.exclusions>**/test/**,**/*Test*.java,**/CronJobRunner.java</sonar.coverage.exclusions>
+		<sonar.coverage.exclusions>**/test/**,**/*Test*.java</sonar.coverage.exclusions>
 	</properties>
 
 	<profiles>
