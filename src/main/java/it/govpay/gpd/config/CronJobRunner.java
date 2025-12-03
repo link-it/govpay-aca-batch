@@ -66,19 +66,10 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
 		if (currentRunningJobExecution != null) {
 			// Verifica se il job è stale (bloccato o in stato anomalo)
 			if (this.preventConcurrentJobLauncher.isJobExecutionStale(currentRunningJobExecution)) {
-				log.warn("JobExecution {} rilevata come STALE. Procedo con abbandono e riavvio.",
-					currentRunningJobExecution.getId());
+				log.warn("JobExecution {} rilevata come STALE. Procedo con abbandono e riavvio.", currentRunningJobExecution.getId());
 
-				// Abbandona il job stale
-				boolean abandoned = this.preventConcurrentJobLauncher.abandonStaleJobExecution(currentRunningJobExecution);
-
-				if (abandoned) {
-					log.info("Job stale abbandonato con successo. Avvio nuova esecuzione.");
-					runSendPendenzeGpdJob();
-					log.info("{} completato.", Costanti.SEND_PENDENZE_GPD_JOBNAME);
-				} else {
-					log.error("Impossibile abbandonare il job stale. Uscita.");
-				}
+				boolean abandoned = checkAbandonedJobStale(currentRunningJobExecution);
+				
 				// Terminazione dell'applicazione
 				int exitCode = SpringApplication.exit(context, () -> abandoned ? 0 : 1);
 				System.exit(exitCode);
@@ -105,6 +96,21 @@ public class CronJobRunner implements CommandLineRunner, ApplicationContextAware
         int exitCode = SpringApplication.exit(context, () -> 0);
         System.exit(exitCode);
     }
+
+	public boolean checkAbandonedJobStale(JobExecution currentRunningJobExecution) throws JobExecutionAlreadyRunningException,
+			JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
+		// Abbandona il job stale
+		boolean abandoned = this.preventConcurrentJobLauncher.abandonStaleJobExecution(currentRunningJobExecution);
+
+		if (abandoned) {
+			log.info("Job stale abbandonato con successo. Avvio nuova esecuzione.");
+			runSendPendenzeGpdJob();
+			log.info("{} completato.", Costanti.SEND_PENDENZE_GPD_JOBNAME);
+		} else {
+			log.error("Impossibile abbandonare il job stale. Uscita.");
+		}
+		return abandoned;
+	}
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

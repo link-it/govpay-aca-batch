@@ -1,8 +1,14 @@
 package it.govpay.gpd.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
@@ -109,6 +115,38 @@ class CronJobRunnerTest {
 
     	assertNotNull(currentRunningJobExecution);
     	assertEquals("OtherNode", currentRunningJobExecution.getJobParameters().getString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID));
+    }
+
+    // ============ Test checkAbandonedJobStale ============
+
+    @Test
+    void whenAbandonmentSucceeds_thenReturnsTrueAndLaunchesJob() throws Exception {
+        JobExecution staleExecution = mkExecutionWithCluster(CLUSTER_ID);
+
+        when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
+            .thenReturn(true);
+        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+            .thenReturn(new JobExecution(2L));
+
+        boolean result = runner.checkAbandonedJobStale(staleExecution);
+
+        assertTrue(result);
+        verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
+        verify(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class));
+    }
+
+    @Test
+    void whenAbandonmentFails_thenReturnsFalseAndDoesNotLaunchJob() throws Exception {
+        JobExecution staleExecution = mkExecutionWithCluster(CLUSTER_ID);
+
+        when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
+            .thenReturn(false);
+
+        boolean result = runner.checkAbandonedJobStale(staleExecution);
+
+        assertFalse(result);
+        verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
+        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
     }
 }
 
