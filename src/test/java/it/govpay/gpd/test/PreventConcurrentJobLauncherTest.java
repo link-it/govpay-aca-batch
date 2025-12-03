@@ -199,6 +199,21 @@ class PreventConcurrentJobLauncherTest {
     }
 
     @Test
+    void whenAbandoningStaleJobWithCompletedSteps_thenStepsNotModified() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+        StepExecution stepExecution = new StepExecution("testStep", execution);
+        stepExecution.setStatus(BatchStatus.COMPLETED);
+        execution.addStepExecutions(java.util.List.of(stepExecution));
+
+        boolean result = preventConcurrentJobLauncher.abandonStaleJobExecution(execution);
+
+        assertTrue(result);
+        assertEquals(BatchStatus.FAILED, execution.getStatus());
+        // Lo step completato non viene modificato
+        assertEquals(BatchStatus.COMPLETED, stepExecution.getStatus());
+    }
+
+    @Test
     void whenAbandoningNullExecution_thenReturnsFalse() {
         assertFalse(preventConcurrentJobLauncher.abandonStaleJobExecution(null));
     }
