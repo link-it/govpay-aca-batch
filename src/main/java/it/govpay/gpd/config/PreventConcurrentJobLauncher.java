@@ -27,8 +27,8 @@ public class PreventConcurrentJobLauncher {
 
     private JobRepository jobRepository;
 
-    @Value("${it.govpay.gpd.batch.max-execution-hours:24}")
-    private int maxExecutionHours;
+    @Value("${it.govpay.gpd.batch.stale-threshold-minutes:120}")
+    private int staleThresholdMinutes;
 
     public PreventConcurrentJobLauncher(JobExplorer jobExplorer, JobRepository jobRepository) {
     	this.jobExplorer = jobExplorer;
@@ -59,7 +59,7 @@ public class PreventConcurrentJobLauncher {
      * Verifica se un'esecuzione del job è in stato anomalo (stale).
      * Un job è considerato stale se:
      * - È in stato UNKNOWN o ABANDONED
-     * - È in esecuzione da più ore di maxExecutionHours
+     * - Non viene aggiornato da più di staleThresholdMinutes minuti
      *
      * @param jobExecution l'esecuzione del job da verificare
      * @return true se il job è stale, false altrimenti
@@ -70,7 +70,6 @@ public class PreventConcurrentJobLauncher {
         }
 
         BatchStatus status = jobExecution.getStatus();
-        LocalDateTime startTime = jobExecution.getStartTime();
 
         // Verifica stati anomali
         if (status == BatchStatus.UNKNOWN || status == BatchStatus.ABANDONED) {
@@ -78,16 +77,19 @@ public class PreventConcurrentJobLauncher {
             return true;
         }
 
-        // Verifica timeout per job in esecuzione
-        if (startTime != null && status == BatchStatus.STARTED) {
-            LocalDateTime now = LocalDateTime.now();
-            Duration duration = Duration.between(startTime, now);
-            long hoursRunning = duration.toHours();
+        // Verifica se il job non viene aggiornato da troppo tempo
+        if (status == BatchStatus.STARTED) {
+            LocalDateTime lastUpdated = jobExecution.getLastUpdated();
+            if (lastUpdated != null) {
+                LocalDateTime now = LocalDateTime.now();
+                Duration duration = Duration.between(lastUpdated, now);
+                long minutesSinceLastUpdate = duration.toMinutes();
 
-            if (hoursRunning > maxExecutionHours) {
-                log.warn("JobExecution {} è in esecuzione da {} ore (limite: {} ore). Considerata stale.",
-                    jobExecution.getId(), hoursRunning, maxExecutionHours);
-                return true;
+                if (minutesSinceLastUpdate > staleThresholdMinutes) {
+                    log.warn("JobExecution {} non aggiornata da {} minuti (soglia: {} minuti). Considerata stale.",
+                        jobExecution.getId(), minutesSinceLastUpdate, staleThresholdMinutes);
+                    return true;
+                }
             }
         }
 
@@ -107,15 +109,15 @@ public class PreventConcurrentJobLauncher {
         }
 
         try {
-            log.info("Abbandono JobExecution stale: {} (stato: {}, avviata: {})",
-                jobExecution.getId(), jobExecution.getStatus(), jobExecution.getStartTime());
+            log.info("Abbandono JobExecution stale: {} (stato: {}, lastUpdated: {})",
+                jobExecution.getId(), jobExecution.getStatus(), jobExecution.getLastUpdated());
 
             // Aggiorna lo stato a FAILED e imposta end time
             jobExecution.setStatus(BatchStatus.FAILED);
             jobExecution.setEndTime(LocalDateTime.now());
             jobExecution.setExitStatus(org.springframework.batch.core.ExitStatus.FAILED
-                .addExitDescription("Job abbandonato automaticamente: esecuzione stale rilevata dopo "
-                    + maxExecutionHours + " ore o stato anomalo"));
+                .addExitDescription("Job abbandonato automaticamente: non aggiornato da oltre "
+                    + staleThresholdMinutes + " minuti o stato anomalo"));
 
             // Aggiorna anche tutti gli step in esecuzione
             jobExecution.getStepExecutions().forEach(stepExecution -> {

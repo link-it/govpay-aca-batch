@@ -45,8 +45,8 @@ class PreventConcurrentJobLauncherTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         preventConcurrentJobLauncher = new PreventConcurrentJobLauncher(jobExplorer, jobRepository);
-        // Imposta il timeout a 24 ore (come da configurazione di default)
-        ReflectionTestUtils.setField(preventConcurrentJobLauncher, "maxExecutionHours", 24);
+        // Imposta la soglia di inattività a 120 minuti (come da configurazione di default)
+        ReflectionTestUtils.setField(preventConcurrentJobLauncher, "staleThresholdMinutes", 120);
     }
 
     private JobExecution mkExecutionWithCluster(String clusterIdValue) {
@@ -58,7 +58,7 @@ class PreventConcurrentJobLauncherTest {
         return new JobExecution(jobinstance, 1L, params);
     }
 
-    private JobExecution mkExecutionWithClusterAndStatus(String clusterIdValue, BatchStatus status, LocalDateTime startTime) {
+    private JobExecution mkExecutionWithClusterAndStatus(String clusterIdValue, BatchStatus status, LocalDateTime lastUpdated) {
     	JobInstance jobinstance = new JobInstance(1L, JOB_NAME);
 
         JobParameters params = new JobParametersBuilder()
@@ -66,7 +66,8 @@ class PreventConcurrentJobLauncherTest {
             .toJobParameters();
         JobExecution execution = new JobExecution(jobinstance, 1L, params);
         execution.setStatus(status);
-        execution.setStartTime(startTime);
+        execution.setStartTime(LocalDateTime.now());
+        execution.setLastUpdated(lastUpdated);
         return execution;
     }
 
@@ -130,26 +131,26 @@ class PreventConcurrentJobLauncherTest {
     }
 
     @Test
-    void whenJobRunningForTooLong_thenIsStale() {
-        // Job avviato 25 ore fa (oltre il limite di 24 ore)
-        LocalDateTime startTime = LocalDateTime.now().minusHours(25);
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, startTime);
+    void whenJobNotUpdatedForTooLong_thenIsStale() {
+        // Job non aggiornato da 130 minuti (oltre la soglia di 120 minuti)
+        LocalDateTime lastUpdated = LocalDateTime.now().minusMinutes(130);
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, lastUpdated);
 
         assertTrue(preventConcurrentJobLauncher.isJobExecutionStale(execution));
     }
 
     @Test
-    void whenJobRunningWithinTimeout_thenNotStale() {
-        // Job avviato 1 ora fa (entro il limite di 24 ore)
-        LocalDateTime startTime = LocalDateTime.now().minusHours(1);
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, startTime);
+    void whenJobRecentlyUpdated_thenNotStale() {
+        // Job aggiornato 60 minuti fa (entro la soglia di 120 minuti)
+        LocalDateTime lastUpdated = LocalDateTime.now().minusMinutes(60);
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, lastUpdated);
 
         assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(execution));
     }
 
     @Test
     void whenJobCompleted_thenNotStale() {
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.COMPLETED, LocalDateTime.now().minusHours(25));
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.COMPLETED, LocalDateTime.now().minusMinutes(60));
 
         assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(execution));
     }
@@ -160,14 +161,14 @@ class PreventConcurrentJobLauncherTest {
     }
 
     @Test
-    void whenJobStartedWithNullStartTime_thenNotStale() {
+    void whenJobStartedWithNullLastUpdated_thenNotStale() {
         JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, null);
         assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(execution));
     }
 
     @Test
     void whenJobFailed_thenNotStale() {
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.FAILED, LocalDateTime.now().minusHours(25));
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.FAILED, LocalDateTime.now().minusMinutes(60));
         assertFalse(preventConcurrentJobLauncher.isJobExecutionStale(execution));
     }
 
@@ -175,7 +176,7 @@ class PreventConcurrentJobLauncherTest {
 
     @Test
     void whenAbandoningStaleJob_thenSuccess() {
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusMinutes(130));
 
         boolean result = preventConcurrentJobLauncher.abandonStaleJobExecution(execution);
 
@@ -186,7 +187,7 @@ class PreventConcurrentJobLauncherTest {
 
     @Test
     void whenAbandoningStaleJobWithSteps_thenStepsAlsoAbandoned() {
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusMinutes(130));
         StepExecution stepExecution = new StepExecution("testStep", execution);
         stepExecution.setStatus(BatchStatus.STARTED);
         execution.addStepExecutions(java.util.List.of(stepExecution));
@@ -200,7 +201,7 @@ class PreventConcurrentJobLauncherTest {
 
     @Test
     void whenAbandoningStaleJobWithCompletedSteps_thenStepsNotModified() {
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusMinutes(130));
         StepExecution stepExecution = new StepExecution("testStep", execution);
         stepExecution.setStatus(BatchStatus.COMPLETED);
         execution.addStepExecutions(java.util.List.of(stepExecution));
@@ -220,7 +221,7 @@ class PreventConcurrentJobLauncherTest {
 
     @Test
     void whenAbandoningThrowsException_thenReturnsFalse() {
-        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusHours(25));
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now().minusMinutes(130));
 
         doThrow(new RuntimeException("Test exception")).when(jobRepository).update(any(JobExecution.class));
 
