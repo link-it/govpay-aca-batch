@@ -1,10 +1,16 @@
+<p align="center">
+<img src="https://www.link.it/wp-content/uploads/2025/01/logo-govpay.svg" alt="GovPay Logo" width="200"/>
+</p>
+
+# GovPay - Porta di accesso al sistema pagoPA - ACA Batch
+
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=link-it_govpay-aca-batch&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=link-it_govpay-aca-batch)
 [![Docker Hub](https://img.shields.io/docker/v/linkitaly/govpay-aca-batch?label=Docker%20Hub&sort=semver)](https://hub.docker.com/r/linkitaly/govpay-aca-batch)
 [![License](https://img.shields.io/github/license/link-it/govpay-aca-batch)](LICENSE)
 
-# GovPay A.C.A. Batch
+## Sommario
 
-Batch di alimentazione del GPD (Gestione Posizioni Debitorie) per gli Avvisi di Cortesia Automatici pagoPA.
+Batch Spring Boot per l'alimentazione dell'Archivio Centralizzato Avvisi pagoPA.
 
 ## Requisiti
 
@@ -195,8 +201,8 @@ it.govpay.gpd.batch.client.baseUrl=[BASE URL SERVIZIO GPD PAGOPA]
 
 | Ambiente | URL |
 |----------|-----|
-| Produzione | `https://api.platform.pagopa.it/gpd/api/v1` |
-| UAT/Collaudo | `https://api.uat.platform.pagopa.it/gpd/api/v1` |
+| Produzione | `https://api.platform.pagopa.it/aca/debt-positions-service/v1/` |
+| UAT/Collaudo | `https://api.uat.platform.pagopa.it/aca/debt-positions-service/v1/` |
 
 ### Proprietà Batch
 
@@ -209,7 +215,7 @@ it.govpay.gpd.time-zone=Europe/Rome
 # Dimensione del chunk di lavoro
 it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=[DIMENSIONE CHUNK]
 
-# Numero di giorni su cui limitare la ricerca delle pendenze da spedire al GPD
+# Numero di giorni su cui limitare la ricerca delle pendenze da spedire al ACA
 it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=[LIMITE TEMPORALE RICERCA PENDENZE]
 
 # Cluster ID (identificativo del nodo in ambiente cluster)
