@@ -1,3 +1,22 @@
+2025-12-05  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 1.1.4
+
+2025-12-05  Giuliano Pintori <pintori@link.it>
+
+	* [GpdBatch]
+	Modificata logica di rilevamento job stale: ora si controlla il campo LAST_UPDATED invece di START_TIME.
+	Un job è considerato stale se non viene aggiornato da più minuti della soglia configurata.
+	Questo permette l'esecuzione di job di lunga durata con molti Enti Creditori.
+	Rinominata proprietà 'max-execution-hours' in 'stale-threshold-minutes' (default: 120 minuti).
+
+	* [Pipeline]
+	Aggiunta pubblicazione automatica dell'immagine Docker su Docker Hub in fase di release.
+
+	* [Doc]
+	Aggiornato README con esempi di esecuzione per le diverse modalità (standalone, cron, Docker).
+	Aggiunta documentazione per Docker run, Docker Compose e Kubernetes CronJob.
+
 2025-11-28  Giuliano Pintori <pintori@link.it>
 
 	* [GpdBatch]
