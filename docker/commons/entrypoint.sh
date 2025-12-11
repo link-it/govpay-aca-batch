@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ##############################################################################
-# GovPay A.C.A. (Avvisi Cortesia Automatici) - Script di Entrypoint
+# GovPay A.C.A. (Archivio Centralizzato Avvisi) - Script di Entrypoint
 #
 # Supporta nomenclatura variabili legacy e govpay-docker
 ##############################################################################

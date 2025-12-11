@@ -5,7 +5,7 @@ ARG govpay_aca_home=/opt/govpay-aca
 ARG govpay_aca_log=/var/log/govpay-aca
 
 LABEL maintainer="Link.it s.r.l."
-LABEL description="GovPay A.C.A. (Avvisi Cortesia Automatici) Batch Processor"
+LABEL description="GovPay A.C.A. (Archivio Centralizzato Avvisi) Batch Processor"
 LABEL govpay.aca.version="${govpay_aca_fullversion}"
 USER root
 

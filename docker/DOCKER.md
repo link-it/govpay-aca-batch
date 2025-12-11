@@ -1,6 +1,6 @@
-# GovPay A.C.A. (Avvisi Cortesia Automatici) - Configurazione Docker
+# GovPay A.C.A. (Archivio Centralizzato Avvisi) - Configurazione Docker
 
-Containerizzazione Docker per il batch GovPay A.C.A. che gestisce l'invio automatico di avvisi di cortesia per posizioni debitorie tramite il servizio GPD (Gestione Posizioni Debitorie) di pagoPA.
+Containerizzazione Docker per il batch GovPay A.C.A. che gestisce l'invio automatico di avvisi di pagamento per posizioni debitorie tramite il servizio GPD (Gestione Posizioni Debitorie) di pagoPA.
 
 ## Panoramica
 
