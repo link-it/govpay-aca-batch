@@ -1,3 +1,14 @@
+2025-12-12  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 1.1.5
+
+2025-12-12  Giuliano Pintori <pintori@link.it>
+
+	* [GDE]
+	Corretto bug per cui l'esito degli eventi GDE non veniva impostato in caso di errori di rete
+	(ResourceAccessException, UnknownHostException).
+	Aggiunto fallback per garantire che l'esito sia sempre valorizzato.
+
 2025-12-05  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 1.1.4
