@@ -89,6 +89,7 @@ public interface EventoGdpMapper {
 			} else {
 				nuovoEvento.setDettaglioEsito(restClientException.getMessage());
 				nuovoEvento.setSottotipoEsito("500");
+				nuovoEvento.setEsito(EsitoEvento.FAIL);
 			}
 		} else if(responseEntity != null){
 			nuovoEvento.setDettaglioEsito(HttpStatus.valueOf(responseEntity.getStatusCode().value()).getReasonPhrase());
@@ -98,6 +99,11 @@ public interface EventoGdpMapper {
 			} else {
 				nuovoEvento.setEsito(EsitoEvento.KO);
 			}
+		} else {
+			// Fallback: caso in cui entrambi i parametri sono null
+			nuovoEvento.setEsito(EsitoEvento.FAIL);
+			nuovoEvento.setSottotipoEsito("500");
+			nuovoEvento.setDettaglioEsito("Errore interno");
 		}
 	}
 
