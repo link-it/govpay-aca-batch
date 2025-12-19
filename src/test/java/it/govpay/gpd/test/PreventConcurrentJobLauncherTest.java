@@ -230,6 +230,49 @@ class PreventConcurrentJobLauncherTest {
         assertFalse(result);
     }
 
+    // ============ Test forceAbandonJobExecution ============
+
+    @Test
+    void whenForceAbandoningJob_thenSuccess() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now());
+
+        boolean result = preventConcurrentJobLauncher.forceAbandonJobExecution(execution, "Test forzato");
+
+        assertTrue(result);
+        assertEquals(BatchStatus.ABANDONED, execution.getStatus());
+        assertNotNull(execution.getEndTime());
+    }
+
+    @Test
+    void whenForceAbandoningJobWithSteps_thenStepsAlsoAbandoned() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now());
+        StepExecution stepExecution = new StepExecution("testStep", execution);
+        stepExecution.setStatus(BatchStatus.STARTED);
+        execution.addStepExecutions(java.util.List.of(stepExecution));
+
+        boolean result = preventConcurrentJobLauncher.forceAbandonJobExecution(execution, "Test forzato");
+
+        assertTrue(result);
+        assertEquals(BatchStatus.ABANDONED, execution.getStatus());
+        assertEquals(BatchStatus.ABANDONED, stepExecution.getStatus());
+    }
+
+    @Test
+    void whenForceAbandoningNullExecution_thenReturnsFalse() {
+        assertFalse(preventConcurrentJobLauncher.forceAbandonJobExecution(null, "Test"));
+    }
+
+    @Test
+    void whenForceAbandoningThrowsException_thenReturnsFalse() {
+        JobExecution execution = mkExecutionWithClusterAndStatus("GovPay-ACA-Batch", BatchStatus.STARTED, LocalDateTime.now());
+
+        doThrow(new RuntimeException("Test exception")).when(jobRepository).update(any(JobExecution.class));
+
+        boolean result = preventConcurrentJobLauncher.forceAbandonJobExecution(execution, "Test");
+
+        assertFalse(result);
+    }
+
     // ============ Test getClusterIdFromExecution ============
 
     @Test
