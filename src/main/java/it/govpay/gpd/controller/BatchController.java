@@ -315,16 +315,13 @@ public class BatchController {
      * Ottiene l'exit code di un'esecuzione.
      */
     private String getExitCode(JobExecution execution) {
-        return execution.getExitStatus() != null ? execution.getExitStatus().getExitCode() : null;
+        return execution.getExitStatus().getExitCode();
     }
 
     /**
      * Ottiene l'exit description troncata a 500 caratteri.
      */
     private String getTruncatedExitDescription(JobExecution execution) {
-        if (execution.getExitStatus() == null) {
-            return null;
-        }
         String description = execution.getExitStatus().getExitDescription();
         if (description != null && description.length() > 500) {
             return description.substring(0, 500) + "...";
