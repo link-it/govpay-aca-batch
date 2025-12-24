@@ -145,6 +145,58 @@ public class PreventConcurrentJobLauncher {
     }
 
     /**
+     * Termina forzatamente un'esecuzione del job, indipendentemente dal suo stato.
+     * A differenza di abandonStaleJobExecution, questo metodo
+     * non verifica se l'esecuzione è stale, ma la termina forzatamente.
+     * <p>
+     * ATTENZIONE: Usare con cautela. Questa operazione non termina il processo Java
+     * che sta eseguendo il job, ma solo aggiorna i metadati nel database.
+     *
+     * @param jobExecution L'esecuzione da terminare forzatamente
+     * @param reason Motivo della terminazione forzata
+     * @return true se la terminazione è riuscita, false altrimenti
+     */
+    public boolean forceAbandonJobExecution(JobExecution jobExecution, String reason) {
+        if (jobExecution == null) {
+            return false;
+        }
+
+        try {
+            log.warn("Terminazione forzata JobExecution {} (Status: {}, Motivo: {})",
+                jobExecution.getId(), jobExecution.getStatus(), reason);
+
+            // Aggiorna lo stato a ABANDONED e imposta end time
+            jobExecution.setStatus(BatchStatus.ABANDONED);
+            jobExecution.setEndTime(LocalDateTime.now());
+            jobExecution.setExitStatus(org.springframework.batch.core.ExitStatus.STOPPED
+                .addExitDescription("Job terminato forzatamente: " + reason));
+
+            // Aggiorna anche tutti gli step in esecuzione
+            jobExecution.getStepExecutions().forEach(stepExecution -> {
+                if (stepExecution.getStatus() == BatchStatus.STARTED) {
+                    log.info("Terminazione forzata StepExecution: {} (stato: {})",
+                        stepExecution.getStepName(), stepExecution.getStatus());
+                    stepExecution.setStatus(BatchStatus.ABANDONED);
+                    stepExecution.setEndTime(LocalDateTime.now());
+                    stepExecution.setExitStatus(org.springframework.batch.core.ExitStatus.STOPPED
+                        .addExitDescription("Step terminato forzatamente"));
+                    jobRepository.update(stepExecution);
+                }
+            });
+
+            // Aggiorna il job execution nel repository
+            jobRepository.update(jobExecution);
+
+            log.info("JobExecution {} terminata forzatamente con successo", jobExecution.getId());
+            return true;
+        } catch (Exception e) {
+            log.error("Errore nella terminazione forzata di JobExecution {}: {}",
+                jobExecution.getId(), e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
      * Estrae il cluster ID dai parametri di un'esecuzione del job.
      *
      * @param jobExecution l'esecuzione del job

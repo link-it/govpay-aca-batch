@@ -1,3 +1,19 @@
+2025-12-19  Giuliano Pintori <pintori@link.it>
+
+	* [GpdBatch]
+	Issue #31
+	Aggiunta API REST per l'esecuzione manuale e il monitoraggio del batch.
+	Nuovi endpoint:
+	- GET /api/batch/run - Esecuzione manuale del job (parametro force=true per terminazione forzata)
+	- GET /api/batch/status - Stato corrente del batch
+	- GET /api/batch/lastExecution - Informazioni sull'ultima esecuzione
+	- GET /api/batch/nextExecution - Informazioni sulla prossima esecuzione schedulata
+	Aggiunto metodo forceAbandonJobExecution per terminazione forzata di job in esecuzione.
+
+	* [Test]
+	Aggiunti test per BatchController (20 test) e forceAbandonJobExecution (4 test).
+	Aggiunta dipendenza Awaitility per test asincroni.
+
 2025-12-12  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 1.1.5
