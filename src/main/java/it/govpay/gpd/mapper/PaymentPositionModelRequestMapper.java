@@ -211,6 +211,9 @@ public abstract class PaymentPositionModelRequestMapper {
 		transferModel.setRemittanceInformation(getRemittanceInformation(singoloVersamentoGdpEntity, versamentoGpdEntity.getIuvVersamento()));
 
 
+		// TransferModel.JSON_PROPERTY_CATEGORY (obbligatorio per tutti i transfer)
+		transferModel.setCategory(getCategory(singoloVersamentoGdpEntity));
+
 		// Bollo Telematico / IBAN
 		if(singoloVersamentoGdpEntity.getTipoBollo() != null) {
 			// TransferModel.JSON_PROPERTY_STAMP
@@ -218,7 +221,7 @@ public abstract class PaymentPositionModelRequestMapper {
 			stamp.setHashDocument(singoloVersamentoGdpEntity.getHashDocumento());
 			stamp.setProvincialResidence(singoloVersamentoGdpEntity.getProvinciaResidenza());
 			stamp.setStampType(singoloVersamentoGdpEntity.getTipoBollo());
-			transferModel.setStamp(stamp );
+			transferModel.setStamp(stamp);
 		} else {
 			mapInformazioniEntrata(singoloVersamentoGdpEntity, transferModel);
 		}
@@ -233,9 +236,6 @@ public abstract class PaymentPositionModelRequestMapper {
 
 
 	private void mapInformazioniEntrata(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, TransferModel transferModel) {
-		// TransferModel.JSON_PROPERTY_CATEGORY
-		transferModel.setCategory(getCategory(singoloVersamentoGdpEntity));
-
 		boolean postale = false;
 		String ibanScelto = null;
 

@@ -1,3 +1,22 @@
+2026-01-22  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 1.1.6
+
+2026-01-22  Giuliano Pintori <pintori@link.it>
+
+	* [GpdBatch]
+	Corretto bug per cui le pendenze con voce di tipo Marca da Bollo Telematica venivano
+	inviate con il parametro "category" a null, causando errore 400 dall'API GPD.
+	Il campo category e' ora valorizzato per tutti i transfer, inclusi quelli con bollo.
+
+	* [Build]
+	Risolta vulnerabilita' di sicurezza CVE-2025-68161 (Log4j Socket Appender MITM).
+	Aggiornato Log4j da 2.24.3 a 2.25.3.
+
+	* [Test]
+	Aggiunto test TC_11_SendTestPendenzaMBTCategoryNotNull per verificare che la category
+	sia sempre valorizzata anche per le pendenze con Marca da Bollo Telematica.
+
 2025-12-19  Giuliano Pintori <pintori@link.it>
 
 	* [GpdBatch]
