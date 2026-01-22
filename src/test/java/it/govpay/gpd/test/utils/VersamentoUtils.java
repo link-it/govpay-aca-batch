@@ -304,7 +304,9 @@ public class VersamentoUtils {
 		singoloVersamentoFullEntity.setHashDocumento(hashDocumento);
 		singoloVersamentoFullEntity.setProvinciaResidenza(provinciaResidenza);
 		singoloVersamentoFullEntity.setTipoBollo(tipoBollo);
-		
+		singoloVersamentoFullEntity.setTipoContabilita(Costanti.TIPO_CONTABILITA_ALTRO);
+		singoloVersamentoFullEntity.setCodContabilita(Costanti.CODTRIBUTO_MBT);
+
 		return singoloVersamentoFullEntity;
 	}
 	

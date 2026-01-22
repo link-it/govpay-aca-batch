@@ -25,6 +25,7 @@ GovPay A.C.A. Batch è un componente del progetto [GovPay](https://github.com/li
 ## Versioni disponibili
 
 - `latest` - ultima versione stabile
+- `1.1.6`
 - `1.1.5`
 - `1.1.4`
 
