@@ -287,6 +287,7 @@
 								<modelPackage>it.govpay.gpd.client.beans</modelPackage>
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
+								<useJakartaEe>true</useJakartaEe>
 							</configOptions>
 							<output>${project.basedir}/target</output>
 							<generateApiTests>false</generateApiTests>
@@ -313,6 +314,7 @@
 								<modelPackage>it.govpay.gde.client.beans</modelPackage>
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
+								<useJakartaEe>true</useJakartaEe>
 								<async>true</async>
 							</configOptions>
 							<output>${project.basedir}/target</output>
