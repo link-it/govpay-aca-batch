@@ -4,10 +4,10 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.8</version>
-		<relativePath /> <!-- lookup parent from repository -->
+		<groupId>org.gov4j.govpay</groupId>
+		<artifactId>govpay-bom</artifactId>
+		<version>1.1.1-SNAPSHOT</version>
+		<relativePath>../govpay-bom</relativePath>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
 	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
@@ -17,62 +17,12 @@
 	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
 
 	<properties>
-		<java.version>21</java.version>
-		<maven.compiler.source>${java.version}</maven.compiler.source>
-		<maven.compiler.target>${java.version}</maven.compiler.target>
-		<maven.compiler.release>${java.version}</maven.compiler.release>
-
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
-		<!-- Versioni Plugin Maven -->
-		<maven.compiler.plugin.version>3.8.0</maven.compiler.plugin.version>
-		<maven.install.plugin.version>2.5.2</maven.install.plugin.version>
-		<exec.maven.plugin.versione>1.6.0</exec.maven.plugin.versione>
-
-		<!-- Apache Commons IO -->
-		<commons-io.version>2.18.0</commons-io.version>
-		
-		<!-- Apache Commons Lang3 -->
-		<commons-lang3.version>3.18.0</commons-lang3.version>
-
-		<!-- Swagger-codegen -->
-		<openapi.tool.codegen.version>6.6.0</openapi.tool.codegen.version>
-
-		<!-- jackson-databind-nullable -->
-		<jackson.databind.nullable.version>0.2.1</jackson.databind.nullable.version>
-
-		<!-- Javax -->
-		<javax.annotation.version>1.3.2</javax.annotation.version>
-
-		<!-- Swagger-annotations -->
-		<swagger-annotations.version>1.6.2</swagger-annotations.version>
-
 		<!-- annotazione bean generati notnull -->
 		<jsr305.version>3.0.2</jsr305.version>
 
-		<!-- mapper conversione oggetti -->
-		<mapstruct.version>1.5.1.Final</mapstruct.version>
-
-		<jacoco.version>0.8.13</jacoco.version>
 		<wagon-ssh-external.version>3.5.3</wagon-ssh-external.version>
-		
-		<javax.annotation-api.version>1.3.2</javax.annotation-api.version>
-		
+
 		<owasp.falsePositives.dir>src/main/resources/owasp/falsePositives</owasp.falsePositives.dir>
-		<!-- owasp config -->
-		<owasp>verify</owasp> <!-- owasp phase, use 'none' for disable -->
-		<owasp.plugin.version>12.1.3</owasp.plugin.version>
-		<owasp.plugin.autoUpdate>true</owasp.plugin.autoUpdate> <!-- Impostare a false quando ci sono problemi su repository NIST -->
-		<owasp.plugin.failBuildOnCVSS>11</owasp.plugin.failBuildOnCVSS>
-		<owasp.ossindex.prevents429.sleep>5</owasp.ossindex.prevents429.sleep> <!-- https://github.com/sonatype/ossindex-maven/issues/17 -->
-		
-		<logback.version>1.5.19</logback.version>
-
-		<!-- log4j versione 2.25.3 risolve CVE-2025-68161 -->
-		<log4j2.version>2.25.3</log4j2.version>
-
-		<h2.version>2.3.232</h2.version>
 
 		<sonar.coverage.exclusions>**/test/**,**/*Test*.java</sonar.coverage.exclusions>
 	</properties>
@@ -186,7 +136,6 @@
 		<dependency>
 			<groupId>org.mapstruct</groupId>
 			<artifactId>mapstruct</artifactId>
-			<version>${mapstruct.version}</version>
 		</dependency>
 
 		<!-- Dipendenze client GovPay -->
@@ -212,21 +161,13 @@
 		</dependency>
 
 		<dependency>
-			<groupId>javax.annotation</groupId>
-			<artifactId>javax.annotation-api</artifactId>
-			<version>${javax.annotation-api.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>io.swagger</groupId>
+			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-annotations</artifactId>
-			<version>${swagger-annotations.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
-			<version>${jackson.databind.nullable.version}</version>
 		</dependency>
 
 		<dependency>
@@ -243,7 +184,6 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>${commons-io.version}</version>
 		</dependency>
 
 		<dependency>
@@ -288,28 +228,37 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>repackage</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
 					<release>${java.version}</release>
 					<forceJavacCompilerUse>true</forceJavacCompilerUse>
 					<annotationProcessorPaths>
-						<annotationProcessorPath>
+						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 							<version>${lombok.version}</version>
-						</annotationProcessorPath>
-						<annotationProcessorPath>
+						</path>
+						<path>
 							<groupId>org.mapstruct</groupId>
 							<artifactId>mapstruct-processor</artifactId>
 							<version>${mapstruct.version}</version>
-						</annotationProcessorPath>
-						<annotationProcessorPath>
-							<groupId>org.hibernate</groupId>
+						</path>
+						<path>
+							<groupId>org.hibernate.orm</groupId>
 							<artifactId>hibernate-jpamodelgen</artifactId>
 							<version>${hibernate.version}</version>
-						</annotationProcessorPath>
+						</path>
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
@@ -317,7 +266,6 @@
 			<plugin>
 				<groupId>org.openapitools</groupId>
 				<artifactId>openapi-generator-maven-plugin</artifactId>
-				<version>${openapi.tool.codegen.version}</version>
 				<executions>
 					<execution>
 						<goals>
@@ -377,7 +325,6 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>${jacoco.version}</version>
 				<executions>
 					<execution>
 						<goals>
@@ -404,26 +351,11 @@
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>${owasp.plugin.version}</version>
-				<executions>
-					<execution>
-						<id>check owasp</id>
-						<phase>${owasp}</phase>
-						<configuration>
-							<autoUpdate>${owasp.plugin.autoUpdate}</autoUpdate>
-							<failBuildOnCVSS>${owasp.plugin.failBuildOnCVSS}</failBuildOnCVSS>
-							<format>ALL</format>
-							<suppressionFiles>
-                            	<suppressionFile>${owasp.falsePositives.dir}/CVE-2018-14335.xml</suppressionFile>
-                            </suppressionFiles>
-                            <nvdApiDelay>120000</nvdApiDelay><!-- 2 minuti -->
-							<nvdMaxRetryCount>3</nvdMaxRetryCount> <!-- 3 max tentativi visto il timeout alto -->
-						</configuration>
-						<goals>
-							<goal>aggregate</goal>
-						</goals>
-					</execution>
-				</executions>
+				<configuration>
+					<suppressionFiles>
+						<suppressionFile>${owasp.falsePositives.dir}/CVE-2018-14335.xml</suppressionFile>
+					</suppressionFiles>
+				</configuration>
 			</plugin>		
 	        <plugin>
 	            <groupId>com.github.spotbugs</groupId>
