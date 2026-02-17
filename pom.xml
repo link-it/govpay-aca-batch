@@ -6,12 +6,12 @@
 	<parent>
 		<groupId>org.gov4j.govpay</groupId>
 		<artifactId>govpay-bom</artifactId>
-		<version>1.1.1-SNAPSHOT</version>
+		<version>1.1.1</version>
 		<relativePath>../govpay-bom</relativePath>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
 	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
-	<version>1.1.6</version>
+	<version>1.2.0</version>
 	<packaging>${packaging.type}</packaging>
 	<name>GovPay - Batch - Caricamento Posizioni Debitorie</name>
 	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
