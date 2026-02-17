@@ -31,11 +31,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
-import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.gde.client.EventiApi;
+import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
 
@@ -51,9 +51,8 @@ import it.govpay.gpd.test.utils.VersamentoUtils;
 @SpringBatchTest
 class UC_5_NoGdeTest extends UC_00_BaseTest {
 
-	@Autowired
-	@MockitoBean(name = "gpdApi")
-	DebtPositionsApiApi gpdApi;
+	@MockitoBean
+	GpdApiService gpdApiService;
 
 	@Autowired
 	EventiApi gdeApi;
@@ -68,16 +67,15 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
 	@Qualifier(value = "gpdSenderJob")
 	private Job job;
 
-	@Value("${it.govpay.gpd.batch.client.baseUrl}")
-	String gpdBaseUrl;
-	
 	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni:7}")
 	private Integer numeroGiorni;
-	
+
+	DebtPositionsApiApi gpdApi;
+
 	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
-	
+
 	@AfterEach
     void tearDown() {
         jobRepositoryTestUtils.removeJobExecutions();
@@ -88,16 +86,10 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
 		MockitoAnnotations.openMocks(this);
 		this.cleanDB();
 
-		Mockito.lenient()
-		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
+		gpdApi = Mockito.mock(DebtPositionsApiApi.class);
 
-			@Override
-			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
-				ApiClient apiClient = new ApiClient();
-				apiClient.setBasePath(gpdBaseUrl);
-				return apiClient;
-			}
-		});
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApi);
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
 	}
 
 	@Test

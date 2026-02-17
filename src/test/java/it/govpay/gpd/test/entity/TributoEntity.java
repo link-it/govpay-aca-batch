@@ -1,5 +1,6 @@
 package it.govpay.gpd.test.entity;
 
+import it.govpay.common.entity.DominioEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

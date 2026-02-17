@@ -8,7 +8,6 @@ import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +20,6 @@ import org.springframework.web.client.RestClientException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import it.govpay.gpd.client.api.DebtPositionActionsApiApi;
-import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
@@ -31,12 +28,13 @@ import it.govpay.gpd.entity.VersamentoGpdEntity.StatoVersamento;
 import it.govpay.gpd.gde.service.GdeService;
 import it.govpay.gpd.mapper.PaymentPositionModelRequestMapperImpl;
 import it.govpay.gpd.repository.SingoloVersamentoGpdRepository;
+import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.utils.Utils;
 
 @Component
 public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEntity, VersamentoGpdEntity>{
 
-	
+
 	public static final String AGGIORNAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ESITO = "Aggiornamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con esito [{}].";
 	public static final String AGGIORNAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE = "Aggiornamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore {}.";
 	public static final String ANNULLAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ESITO = "Annullamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con esito [{}].";
@@ -49,24 +47,20 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 	PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl;
 
-	DebtPositionsApiApi gpdApi;
-
-	DebtPositionActionsApiApi gpdActionsApi;
+	GpdApiService gpdApiService;
 
 	GdeService gdeService;
-	
+
 	@Value("${it.govpay.gpd.batch.policy.reinvio.403.enabled:false}")
 	private Boolean reinvioErrore403;
 
 	public SendPendenzaToGpdProcessor(PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl,
-			@Qualifier("gpdApi") DebtPositionsApiApi gpdApi, 
-			@Qualifier("gpdActionsApi") DebtPositionActionsApiApi gpdActionsApi, GdeService gdeService, 
+			GpdApiService gpdApiService, GdeService gdeService,
 			ObjectMapper objectMapper, SingoloVersamentoGpdRepository singoloVersamentoGpdRepository) {
 		this.paymentPositionModelRequestMapperImpl = paymentPositionModelRequestMapperImpl;
 		this.paymentPositionModelRequestMapperImpl.setObjectMapper(objectMapper);
 		this.paymentPositionModelRequestMapperImpl.setSingoloVersamentoGpdRepository(singoloVersamentoGpdRepository);
-		this.gpdApi = gpdApi;
-		this.gpdActionsApi = gpdActionsApi;
+		this.gpdApiService = gpdApiService;
 		this.gdeService = gdeService;
 	}
 
@@ -100,20 +94,20 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		if(!Utils.isValidIuv(item)) {
 			logger.warn("IUV non presente per la Pendenza [IdA2A:{}, ID:{}], caricamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "IUV non presente", new byte[0], Charset.defaultCharset());
-			
+
 			this.gdeService.salvaCreatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
 			return item;
 		}
-		
+
 		// pendenza con data scadenza precedente ad ora non vengono spedite
 		if(!Utils.isValidDueDate(item)) {
 			logger.warn("Due date decorsa per la Pendenza [IdA2A:{}, ID:{}], caricamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "Due date decorsa", new byte[0], Charset.defaultCharset());
-			
+
 			this.gdeService.salvaCreatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
 			return item;
 		}
-		
+
 		PaymentPositionModel paymentPositionModel = null;
 		try {
 			paymentPositionModel = this.paymentPositionModelRequestMapperImpl.versamentoGpdToPaymentPositionModel(item);
@@ -125,7 +119,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		}
 
 		try {
-			ResponseEntity<PaymentPositionModel> responseEntity = this.gpdApi.createPositionWithHttpInfo(
+			ResponseEntity<PaymentPositionModel> responseEntity = this.gpdApiService.getGpdApi(item.getCodDominio()).createPositionWithHttpInfo(
 					item.getCodDominio(), paymentPositionModel, xRequestId, true);
 			HttpStatusCode statusCode = responseEntity.getStatusCode();
 
@@ -143,20 +137,20 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		PaymentPositionModelBaseResponse positionModelBaseResponse = null;
 		if (statusCode.value() == 201) {
 			this.gdeService.salvaCreatePositionOk(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity);
-			
+
 			// controllo che sia stata pubblicata
 			positionModelBaseResponse = this.getPosition(item);
-			
+
 			if (positionModelBaseResponse != null) {
 				// pubblica la pendenza se e' in stato DRAFT
 				if (positionModelBaseResponse.getStatus() == StatusEnum.DRAFT) {
 					return this.publishPosition(item);
 				}
-				
+
 				// in tutti gli altri casi non si puo' piu' intervenire con la create
 				return item;
 			}
-			
+
 			return item;
 		}
 
@@ -170,7 +164,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 			positionModelBaseResponse = this.getPosition(item);
 
 			if (positionModelBaseResponse != null) {
-				// salva evento di creazione KO 
+				// salva evento di creazione KO
 				this.gdeService.salvaCreatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, null);
 
 				// pubblica la pendenza se e' in stato DRAFT
@@ -187,7 +181,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		return null;
 	}
 
-	private VersamentoGpdEntity handleCreatePositionException(RestClientException e, VersamentoGpdEntity item, PaymentPositionModel paymentPositionModel, 
+	private VersamentoGpdEntity handleCreatePositionException(RestClientException e, VersamentoGpdEntity item, PaymentPositionModel paymentPositionModel,
 			String xRequestId, OffsetDateTime dataStart) {
 		ResponseEntity<PaymentPositionModel> responseEntity = null;
 		if (e instanceof HttpClientErrorException httpClientError) {
@@ -203,7 +197,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 				PaymentPositionModelBaseResponse positionModelBaseResponse = this.getPosition(item);
 
 				if (positionModelBaseResponse != null) {
-					// salva evento di creazione KO 
+					// salva evento di creazione KO
 					this.gdeService.salvaCreatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
 
 					// pubblica la pendenza se e' in stato DRAFT
@@ -232,7 +226,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 			ResponseEntity<PaymentPositionModel> responseEntity) {
 		logger.info("Caricamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore 403 Forbidden, EC non abilitato all'invio delle pendenze sul GPD.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 
-		// salva evento di creazione KO 
+		// salva evento di creazione KO
 		this.gdeService.salvaCreatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
 
 		// ripeto se previsto dalla configurazione
@@ -243,12 +237,12 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		logger.info("Aggiornamento Pendenza [IdA2A:{}, ID:{}] sul GPD...", item.getCodApplicazione(), item.getCodVersamentoEnte());
 		return updatePositionEngine(item, AGGIORNAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ESITO, AGGIORNAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE, true);
 	}
-	
+
 	public VersamentoGpdEntity cancelPosition(VersamentoGpdEntity item) {
 		logger.info("Annullamento Pendenza [IdA2A:{}, ID:{}] attraverso modifica stato in DRAFT sul GPD...", item.getCodApplicazione(), item.getCodVersamentoEnte());
 		return updatePositionEngine(item, ANNULLAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ESITO, ANNULLAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE, false);
 	}
-	
+
 	public VersamentoGpdEntity updatePositionEngine(VersamentoGpdEntity item, String logMsgOk, String logMsgKo, boolean toPublish) {
 		OffsetDateTime dataStart = OffsetDateTime.now();
 		String xRequestId = Utils.creaXRequestId();
@@ -256,20 +250,20 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		if(!Utils.isValidIuv(item)) {
 			logger.warn("IUV non presente per la Pendenza [IdA2A:{}, ID:{}], aggiornamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "IUV non presente", new byte[0], Charset.defaultCharset());
-			
+
 			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
 			return item;
 		}
-		
+
 		// pendenza con data scadenza precedente ad ora non vengono spedite
 		if(!Utils.isValidDueDate(item)) {
 			logger.warn("Due date decorsa per la Pendenza [IdA2A:{}, ID:{}], aggiornamento non verra' effettuato.", item.getCodApplicazione(), item.getCodVersamentoEnte());
 			HttpClientErrorException e = new HttpClientErrorException(HttpStatusCode.valueOf(400), "Due date decorsa", new byte[0], Charset.defaultCharset());
-			
+
 			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e);
 			return item;
 		}
-		
+
 		PaymentPositionModel paymentPositionModel = null;
 		try {
 			paymentPositionModel = this.paymentPositionModelRequestMapperImpl.versamentoGpdToPaymentPositionModel(item);
@@ -281,7 +275,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		}
 
 		try {
-			ResponseEntity<PaymentPositionModel> responseEntity = this.gpdApi.updatePositionWithHttpInfo(
+			ResponseEntity<PaymentPositionModel> responseEntity = this.gpdApiService.getGpdApi(item.getCodDominio()).updatePositionWithHttpInfo(
 					item.getCodDominio(), Utils.generaIupd(item), paymentPositionModel, xRequestId, toPublish);
 
 			logger.info(logMsgOk, item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCode().value());
@@ -292,7 +286,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		}
 	}
 
-	private VersamentoGpdEntity handleUpdatePositionResponse(String logMsg, VersamentoGpdEntity item, PaymentPositionModel paymentPositionModel, 
+	private VersamentoGpdEntity handleUpdatePositionResponse(String logMsg, VersamentoGpdEntity item, PaymentPositionModel paymentPositionModel,
 			HttpStatusCode statusCode, String xRequestId,
 			OffsetDateTime dataStart, ResponseEntity<PaymentPositionModel> responseEntity) {
 		if (statusCode.value() == 200) {
@@ -319,8 +313,8 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, null);
 		return null;
 	}
-	
-	private VersamentoGpdEntity handleUpdatePositionException(String logMsg, RestClientException e, VersamentoGpdEntity item, PaymentPositionModel paymentPositionModel, 
+
+	private VersamentoGpdEntity handleUpdatePositionException(String logMsg, RestClientException e, VersamentoGpdEntity item, PaymentPositionModel paymentPositionModel,
 			String xRequestId, OffsetDateTime dataStart) {
 		ResponseEntity<PaymentPositionModel> responseEntity = null;
 		if (e instanceof HttpClientErrorException httpClientError) {
@@ -360,7 +354,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		String xRequestId = Utils.creaXRequestId();
 
 		try {
-			responseEntity = this.gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(item.getCodDominio(), Utils.generaIupd(item), xRequestId);
+			responseEntity = this.gpdApiService.getGpdApi(item.getCodDominio()).getOrganizationDebtPositionByIUPDWithHttpInfo(item.getCodDominio(), Utils.generaIupd(item), xRequestId);
 
 			logger.info("Lettura Pendenza [IdA2A:{}, ID:{}] dal GPD completato con esito [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCode().value());
 
@@ -403,7 +397,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		String xRequestId = Utils.creaXRequestId();
 
 		try {
-			responseEntity = this.gpdActionsApi.publishPositionWithHttpInfo(item.getCodDominio(), Utils.generaIupd(item), xRequestId);
+			responseEntity = this.gpdApiService.getGpdActionsApi(item.getCodDominio()).publishPositionWithHttpInfo(item.getCodDominio(), Utils.generaIupd(item), xRequestId);
 
 			logger.info("Publish Pendenza [IdA2A:{}, ID:{}] sul GPD completato con esito [{}].", item.getCodApplicazione(), item.getCodVersamentoEnte(), responseEntity.getStatusCode().value());
 
@@ -436,6 +430,6 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		logger.debug("HTTP Status Code: {}", e.getStatusCode().value());
 		logger.debug("Status Text: {}", e.getStatusText());
 		logger.debug("HTTP Headers: {}", e.getResponseHeaders());
-		logger.debug("Response Body: {}", e.getResponseBodyAsString());	
+		logger.debug("Response Body: {}", e.getResponseBodyAsString());
 	}
 }
