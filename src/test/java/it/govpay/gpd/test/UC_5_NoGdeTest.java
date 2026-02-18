@@ -28,21 +28,20 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.jdbc.Sql;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
-import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
 
 
-@SpringBootTest(classes = Application.class, properties = {
-        "it.govpay.gde.enabled=false"
-})
+@SpringBootTest(classes = Application.class)
+@Sql(statements = "DELETE FROM connettori WHERE cod_connettore = 'govpay_gde_api'", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @EnableAutoConfiguration
 @DisplayName("Test Invio GPD e GDE")
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
@@ -53,9 +52,6 @@ class UC_5_NoGdeTest extends UC_00_BaseTest {
 
 	@MockitoBean
 	GpdApiService gpdApiService;
-
-	@Autowired
-	EventiApi gdeApi;
 
 	@Autowired
 	private JobLauncherTestUtils jobLauncherTestUtils;

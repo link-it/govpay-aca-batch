@@ -2,6 +2,8 @@ package it.govpay.gpd.gde.service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,80 +12,89 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import it.govpay.gde.client.api.impl.ApiException;
+import it.govpay.common.client.gde.HttpDataHolder;
+import it.govpay.common.configurazione.service.ConfigurazioneService;
+import it.govpay.common.gde.AbstractGdeService;
+import it.govpay.common.gde.GdeEventInfo;
 import it.govpay.gde.client.beans.Header;
 import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
-import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.gde.mapper.EventoGdpMapperImpl;
 import it.govpay.gpd.gde.utils.GdeUtils;
 import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.utils.Utils;
 
 @Service
-public class GdeService {
+public class GdeService extends AbstractGdeService {
 
 	private Logger logger = LoggerFactory.getLogger(GdeService.class);
 
-	private EventiApi gdeApi;
-
-	private GpdApiService gpdApiService;
-
-	@Value("${it.govpay.gde.enabled:true}")
-	private Boolean gdeEnabled;
+	private final GpdApiService gpdApiService;
 
 	@Value("${it.govpay.gpd.batch.clusterId:GovPay-ACA-Batch}")
 	private String clusterId;
 
-	private ObjectMapper objectMapper;
+	private final EventoGdpMapperImpl eventoGdpMapper;
 
-	private EventoGdpMapperImpl eventoGdpMapper;
+	private final ConfigurazioneService configurazioneService;
 
-	public GdeService(ObjectMapper objectMapper, @Qualifier("gdeApi") EventiApi gdeApi, EventoGdpMapperImpl eventoGdpMapper,
+	public GdeService(ObjectMapper objectMapper,
+			@Qualifier("asyncHttpExecutor") Executor asyncHttpExecutor,
+			ConfigurazioneService configurazioneService,
+			EventoGdpMapperImpl eventoGdpMapper,
 			GpdApiService gpdApiService) {
-		this.objectMapper = objectMapper;
-		this.gdeApi = gdeApi;
+		super(objectMapper, asyncHttpExecutor, configurazioneService);
+		this.configurazioneService = configurazioneService;
 		this.eventoGdpMapper = eventoGdpMapper;
 		this.gpdApiService = gpdApiService;
 	}
 
-	public void inviaEvento(NuovoEvento nuovoEvento) {
-		if(this.gdeEnabled.booleanValue()) {
-			logger.info("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE...", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza());
-			try {
-				this.gdeApi.addEventoWithHttpInfoAsync(nuovoEvento).thenApply(response -> {
-					logger.info("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE completata con esito [{}].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), response.statusCode());
-					return null;
-				}).exceptionally(ex -> {
-					if (ex.getCause() instanceof HttpClientErrorException httpClientErrorException) {
-						int statusCode = httpClientErrorException.getStatusCode().value();
-						logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore [%s],[%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), statusCode, ex.getMessage() ), ex);
-					} else if (ex.getCause() instanceof HttpServerErrorException httpServerErrorException) {
-						int statusCode = httpServerErrorException.getStatusCode().value();
-						logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore [%s],[%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), statusCode, ex.getMessage() ), ex);
-					} else {
-						logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore [%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), ex.getMessage()), ex);
-					}
-					return null;
-				});
-			} catch (HttpClientErrorException | HttpServerErrorException e) {
-				int statusCode = e.getStatusCode().value();
-				logger.error(String.format("Spedizione evento per la pendenza [IdA2A:%s, ID:%s] al GDE completata con errore: [%s],[%s].", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), statusCode, e.getResponseBodyAsString()), e);
-			} catch (ApiException e) {
-				logger.error(String.format("GDE non raggiungibile: %s", e.getMessage()), e);
-			}
-		} else {
-			logger.debug("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE non abilitata.", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza());
+	@Override
+	protected String getGdeEndpoint() {
+		return configurazioneService.getServizioGDE().getUrl() + Costanti.EVENTI;
+	}
+
+	@Override
+	protected NuovoEvento convertToGdeEvent(GdeEventInfo eventInfo) {
+		throw new UnsupportedOperationException(
+				"GdeService usa sendEventAsync(NuovoEvento) direttamente, non il pattern GdeEventInfo");
+	}
+
+	@Override
+	public boolean isAbilitato() {
+		try {
+			return super.isAbilitato();
+		} catch (Exception e) {
+			logger.debug("Servizio GDE non configurato: {}", e.getMessage());
+			return false;
 		}
+	}
+
+	public void sendEventAsync(NuovoEvento nuovoEvento) {
+		if (!isAbilitato()) {
+			logger.debug("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE non abilitata.", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza());
+			return;
+		}
+		logger.info("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE...", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza());
+		CompletableFuture.runAsync(() -> {
+			try {
+				getGdeRestTemplate().postForEntity(getGdeEndpoint(), nuovoEvento, Void.class);
+				logger.info("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE completata con successo.", nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza());
+			} catch (Exception ex) {
+				logger.warn("Spedizione evento per la pendenza [IdA2A:{}, ID:{}] al GDE completata con errore: {}",
+						nuovoEvento.getIdA2A(), nuovoEvento.getIdPendenza(), ex.getMessage());
+				logger.debug("Dettaglio errore GDE:", ex);
+			} finally {
+				HttpDataHolder.clear();
+			}
+		}, this.asyncExecutor);
 	}
 
 	public static String getHttpMethod(String tipoEvento) {
@@ -193,7 +204,7 @@ public class GdeService {
 
 		GdeUtils.serializzaPayload(this.objectMapper, nuovoEvento, request, responseEntity, e);
 
-		this.inviaEvento(nuovoEvento);
+		this.sendEventAsync(nuovoEvento);
 	}
 
 	public NuovoEvento creaEventoOK(VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd) {

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
+import java.util.concurrent.Executor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,10 +21,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.govpay.common.configurazione.service.ConfigurazioneService;
 import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
-import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.gde.mapper.EventoGdpMapperImpl;
 import it.govpay.gpd.gde.service.GdeService;
 import it.govpay.gpd.service.GpdApiService;
@@ -36,7 +37,7 @@ class GdeServiceTest {
 	GpdApiService gpdApiService;
 
 	@Mock
-	EventiApi gdeApi;
+	ConfigurazioneService configurazioneService;
 
 	@Mock
 	EventoGdpMapperImpl eventoGdpMapper;
@@ -46,8 +47,8 @@ class GdeServiceTest {
 	@BeforeEach
 	void setUp() {
 		ObjectMapper objectMapper = new ObjectMapper();
-		gdeService = new GdeService(objectMapper, gdeApi, eventoGdpMapper, gpdApiService);
-		ReflectionTestUtils.setField(gdeService, "gdeEnabled", Boolean.TRUE);
+		Executor syncExecutor = Runnable::run;
+		gdeService = new GdeService(objectMapper, syncExecutor, configurazioneService, eventoGdpMapper, gpdApiService);
 		ReflectionTestUtils.setField(gdeService, "clusterId", "TEST-CLUSTER");
 	}
 

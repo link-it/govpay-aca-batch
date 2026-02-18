@@ -23,6 +23,11 @@ INSERT INTO connettori (cod_connettore, cod_proprieta, valore) VALUES ('PAGOPA_A
 INSERT INTO connettori (cod_connettore, cod_proprieta, valore) VALUES ('PAGOPA_ACA', 'HTTP_HEADER_AUTH_HEADER_NAME', 'Ocp-Apim-Subscription-Key');
 INSERT INTO connettori (cod_connettore, cod_proprieta, valore) VALUES ('PAGOPA_ACA', 'HTTP_HEADER_AUTH_HEADER_VALUE', 'ABC123');
 
+-- Connettore GDE (codice da ConfigurazioneKeys.COD_CONNETTORE_GDE)
+INSERT INTO connettori (cod_connettore, cod_proprieta, valore) VALUES ('govpay_gde_api', 'URL', 'http://fakehost:8080');
+INSERT INTO connettori (cod_connettore, cod_proprieta, valore) VALUES ('govpay_gde_api', 'ABILITATO', 'true');
+INSERT INTO connettori (cod_connettore, cod_proprieta, valore) VALUES ('govpay_gde_api', 'TIPOAUTENTICAZIONE', 'NONE');
+
 INSERT INTO applicazioni (cod_applicazione, auto_iuv, firma_ricevuta, cod_connettore_integrazione, trusted, cod_applicazione_iuv, reg_exp, id, principal)
 VALUES ('IDA2A01', false, '0', 'IDA2A01_INTEGRAZIONE', false, '34', '34[0-9]*', 1, 'gpadmin');
 

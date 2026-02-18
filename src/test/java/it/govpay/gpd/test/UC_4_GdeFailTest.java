@@ -34,7 +34,6 @@ import it.govpay.gpd.client.api.DebtPositionsApiApi;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
-import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.VersamentoUtils;
@@ -51,9 +50,6 @@ class UC_4_GdeFailTest extends UC_00_BaseTest {
 
 	@MockitoBean
 	GpdApiService gpdApiService;
-
-	@Autowired
-	EventiApi gdeApi;
 
 	@Autowired
 	private JobLauncherTestUtils jobLauncherTestUtils;
