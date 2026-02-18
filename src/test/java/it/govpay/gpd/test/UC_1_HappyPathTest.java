@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionActionsApiApi;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
-import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentOptionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
@@ -51,6 +51,7 @@ import it.govpay.gpd.client.beans.Stamp;
 import it.govpay.gpd.client.beans.TransferMetadataModel;
 import it.govpay.gpd.client.beans.TransferModel;
 import it.govpay.gpd.gde.client.EventiApi;
+import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.utils.GpdUtils;
@@ -67,13 +68,8 @@ import it.govpay.gpd.test.utils.VersamentoUtils;
 @SpringBatchTest
 class UC_1_HappyPathTest extends UC_00_BaseTest {
 
-	@Autowired
-	@MockitoBean(name = "gpdApi")
-	DebtPositionsApiApi gpdApi;
-	
-	@Autowired
-	@MockitoBean(name = "gpdActionsApi")
-	DebtPositionActionsApiApi gpdActionsApi;
+	@MockitoBean
+	GpdApiService gpdApiService;
 
 	@Autowired
 	@MockitoBean
@@ -84,23 +80,22 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 
 	@Autowired
 	private JobRepositoryTestUtils jobRepositoryTestUtils;
-	
+
 	@Autowired
 	@Qualifier(value = "gpdSenderJob")
 	private Job job;
 
-	@Value("${it.govpay.gpd.batch.client.baseUrl}")
-	String gpdBaseUrl;
-	
 	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni:7}")
 	private Integer numeroGiorni;
 
+	DebtPositionsApiApi gpdApi;
+	DebtPositionActionsApiApi gpdActionsApi;
 	HttpResponse<InputStream> mockHttpResponseOk;
 
 	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
-	
+
 	@AfterEach
     void tearDown() {
         jobRepositoryTestUtils.removeJobExecutions();
@@ -112,27 +107,12 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 		MockitoAnnotations.openMocks(this);
 		this.cleanDB();
 
-		Mockito.lenient()
-		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
+		gpdApi = Mockito.mock(DebtPositionsApiApi.class);
+		gpdActionsApi = Mockito.mock(DebtPositionActionsApiApi.class);
 
-			@Override
-			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
-				ApiClient apiClient = new ApiClient();
-				apiClient.setBasePath(gpdBaseUrl);
-				return apiClient;
-			}
-		});
-		
-		Mockito.lenient()
-		.when(gpdActionsApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
-
-			@Override
-			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
-				ApiClient apiClient = new ApiClient();
-				apiClient.setBasePath(gpdBaseUrl);
-				return apiClient;
-			}
-		});
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApi);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any())).thenReturn(gpdActionsApi);
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
 
 		// Creazione del mock della HttpResponse
 		mockHttpResponseOk = Mockito.mock(HttpResponse.class);
@@ -140,7 +120,7 @@ class UC_1_HappyPathTest extends UC_00_BaseTest {
 		// Configurazione del comportamento del mock
 		Mockito.lenient().when(mockHttpResponseOk.statusCode()).thenReturn(200);
 		Mockito.lenient().when(mockHttpResponseOk.body()).thenReturn(new ByteArrayInputStream("".getBytes()));
-		
+
 		initailizeJobLauncherTestUtils();
 	}
 	

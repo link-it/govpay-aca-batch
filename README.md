@@ -62,17 +62,11 @@ java -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
   --spring.jpa.database-platform="[DIALECT JPA]" \
   --spring.jpa.properties.hibernate.dialect="[DIALECT JPA]" \
   --it.govpay.gpd.time-zone="Europe/Rome" \
-  --it.govpay.gpd.batch.client.header.subscriptionKey.name="Ocp-Apim-Subscription-Key" \
-  --it.govpay.gpd.batch.client.header.subscriptionKey.value="[VALORE SUBSCRIPTION-KEY]" \
-  --it.govpay.gpd.batch.client.debugging=[true|false] \
-  --it.govpay.gpd.batch.client.baseUrl="[BASE URL SERVIZIO GPD PAGOPA]" \
   --it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=10 \
   --it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=7 \
   --it.govpay.gpd.batch.clusterId=[CLUSTER_ID] \
   --it.govpay.gpd.batch.stale-threshold-minutes=120 \
-  --it.govpay.gpd.batch.policy.reinvio.403.enabled=[true|false] \
-  --it.govpay.gde.enabled=[true|false] \
-  --it.govpay.gde.client.baseUrl=[BASE URL SERVIZIO GDE]
+  --it.govpay.gpd.batch.policy.reinvio.403.enabled=[true|false]
 ```
 
 Esempio di configurazione crontab per esecuzione ogni 10 minuti:
@@ -98,8 +92,6 @@ docker run --rm \
   -e GOVPAY_DB_NAME=[NOME DATABASE] \
   -e GOVPAY_DB_USER=[USERNAME DB] \
   -e GOVPAY_DB_PASSWORD=[PASSWORD DB] \
-  -e GOVPAY_ACA_GPD_ENV=[prod|uat] \
-  -e GOVPAY_ACA_GPD_SUBSCRIPTIONKEY=[VALORE SUBSCRIPTION-KEY] \
   linkitaly/govpay-aca-batch:latest
 ```
 
@@ -117,9 +109,6 @@ services:
       GOVPAY_DB_NAME: [NOME DATABASE]
       GOVPAY_DB_USER: [USERNAME DB]
       GOVPAY_DB_PASSWORD: [PASSWORD DB]
-      # GPD pagoPA
-      GOVPAY_ACA_GPD_ENV: [prod|uat]
-      GOVPAY_ACA_GPD_SUBSCRIPTIONKEY: [VALORE SUBSCRIPTION-KEY]
       # Modalità cron interno
       GOVPAY_ACA_BATCH_USA_CRON: "true"
       GOVPAY_ACA_BATCH_INTERVALLO_CRON: 5  # minuti
@@ -186,25 +175,6 @@ spring.jpa.properties.hibernate.dialect=[DIALECT JPA]
 spring.jpa.hibernate.ddl-auto=[COMPORTAMENTO HIBERNATE GENERAZIONE SCHEMA]
 ```
 
-### Proprietà GPD pagoPA
-
-```properties
-# -------------- GPD PAGOPA ----------------
-
-# Informazioni per la connessione verso PagoPA
-it.govpay.gpd.batch.client.header.subscriptionKey.name=[NOME HEADER SUBSCRIPTION-KEY]
-it.govpay.gpd.batch.client.header.subscriptionKey.value=[VALORE SUBSCRIPTION-KEY]
-it.govpay.gpd.batch.client.debugging=[true|false]
-it.govpay.gpd.batch.client.baseUrl=[BASE URL SERVIZIO GPD PAGOPA]
-```
-
-**URL ambienti pagoPA:**
-
-| Ambiente | URL |
-|----------|-----|
-| Produzione | `https://api.platform.pagopa.it/aca/debt-positions-service/v1/` |
-| UAT/Collaudo | `https://api.uat.platform.pagopa.it/aca/debt-positions-service/v1/` |
-
 ### Proprietà Batch
 
 ```properties
@@ -228,18 +198,6 @@ it.govpay.gpd.batch.stale-threshold-minutes=[MINUTI SOGLIA INATTIVITA]
 
 # Policy reinvio per il codice di errore 403
 it.govpay.gpd.batch.policy.reinvio.403.enabled=[true|false]
-```
-
-### Proprietà GDE (Giornale degli Eventi)
-
-```properties
-# -------------- GDE ----------------
-
-# Abilita il servizio GDE
-it.govpay.gde.enabled=[true|false]
-
-# Base URL del servizio GDE
-it.govpay.gde.client.baseUrl=[BASE URL SERVIZIO GDE]
 ```
 
 ## Licenza

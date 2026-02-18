@@ -1,3 +1,21 @@
+2026-02-17  Giuliano Pintori <pintori@link.it>
+
+	* [GpdBatch]
+	Issue #35
+	Introdotta risoluzione dinamica del connettore ACA per dominio tramite govpay-common.
+	Il client GPD non e' piu' configurato staticamente da application.properties ma viene
+	risolto a runtime per ogni pendenza: codDominio -> IntermediarioRepository -> codConnettoreAca
+	-> ConnettoreService. Le istanze API vengono cachate per codice connettore.
+	Creato servizio GpdApiService che gestisce la risoluzione e il caching dei client GPD.
+	Rimosso SubscriptionKeyInterceptor (la subscription key e' ora gestita dal connettore).
+	Aggiornato GdeService per utilizzare base path dinamiche per dominio.
+
+	* [Test]
+	Issue #35
+	Aggiornata test suite per la risoluzione dinamica del connettore ACA.
+	Aggiornati script SQL di test con tabelle intermediari, stazioni e connettori.
+	Sostituiti mock statici dei bean API con mock di GpdApiService in tutti i test case.
+
 2026-01-22  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 1.1.6

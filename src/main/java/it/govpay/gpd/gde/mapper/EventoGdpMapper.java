@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import it.govpay.gde.client.beans.CategoriaEvento;
 import it.govpay.gde.client.beans.ComponenteEvento;
 import it.govpay.gde.client.beans.DettaglioRichiesta;
@@ -21,6 +23,7 @@ import it.govpay.gde.client.beans.EsitoEvento;
 import it.govpay.gde.client.beans.Header;
 import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gde.client.beans.RuoloEvento;
+import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 
@@ -74,11 +77,15 @@ public interface EventoGdpMapper {
 		return nuovoEvento;
 	}
 
+	int MAX_DETTAGLIO_ESITO_LENGTH = 1000;
+
+	ObjectMapper PROBLEM_OBJECT_MAPPER = new ObjectMapper();
+
 	default void estraiInformazioniDaException(ResponseEntity<?> responseEntity, RestClientException restClientException,
 			NuovoEvento nuovoEvento) {
 		if(restClientException != null) {
 			if (restClientException instanceof HttpStatusCodeException httpStatusCodeException) {
-				nuovoEvento.setDettaglioEsito(httpStatusCodeException.getResponseBodyAsString());
+				nuovoEvento.setDettaglioEsito(estraiDettaglioEsito(httpStatusCodeException.getResponseBodyAsString()));
 				nuovoEvento.setSottotipoEsito(httpStatusCodeException.getStatusCode() + "");
 
 				if (httpStatusCodeException.getStatusCode().is5xxServerError()) {
@@ -87,7 +94,7 @@ public interface EventoGdpMapper {
 					nuovoEvento.setEsito(EsitoEvento.KO);
 				}
 			} else {
-				nuovoEvento.setDettaglioEsito(restClientException.getMessage());
+				nuovoEvento.setDettaglioEsito(truncate(restClientException.getMessage(), MAX_DETTAGLIO_ESITO_LENGTH));
 				nuovoEvento.setSottotipoEsito("500");
 				nuovoEvento.setEsito(EsitoEvento.FAIL);
 			}
@@ -105,6 +112,39 @@ public interface EventoGdpMapper {
 			nuovoEvento.setSottotipoEsito("500");
 			nuovoEvento.setDettaglioEsito("Errore interno");
 		}
+	}
+
+	default String estraiDettaglioEsito(String responseBody) {
+		if (responseBody == null || responseBody.isBlank()) {
+			return null;
+		}
+
+		try {
+			ProblemJson problem = PROBLEM_OBJECT_MAPPER.readValue(responseBody, ProblemJson.class);
+
+			StringBuilder sb = new StringBuilder();
+			if (problem.getTitle() != null) {
+				sb.append(problem.getTitle());
+			}
+			if (problem.getStatus() != null) {
+				if (!sb.isEmpty()) sb.append(" ");
+				sb.append("(").append(problem.getStatus()).append(")");
+			}
+			if (problem.getDetail() != null) {
+				if (!sb.isEmpty()) sb.append(": ");
+				sb.append(problem.getDetail());
+			}
+
+			String result = sb.toString();
+			return result.isEmpty() ? truncate(responseBody, MAX_DETTAGLIO_ESITO_LENGTH) : result;
+		} catch (Exception e) {
+			return truncate(responseBody, MAX_DETTAGLIO_ESITO_LENGTH);
+		}
+	}
+
+	default String truncate(String value, int maxLength) {
+		if (value == null) return null;
+		return value.length() <= maxLength ? value : value.substring(0, maxLength);
 	}
 
 	default DettaglioRichiesta mapDettagliRichiesta(OffsetDateTime dataStart, String urlOperazione, String httpMethod, List<Header> headers) {

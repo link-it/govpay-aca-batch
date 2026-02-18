@@ -21,7 +21,7 @@ import it.govpay.gpd.repository.VersamentoFilters;
 import it.govpay.gpd.repository.VersamentoGpdRepository;
 import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.gpd.test.entity.ApplicazioneEntity;
-import it.govpay.gpd.test.entity.DominioEntity;
+import it.govpay.common.entity.DominioEntity;
 import it.govpay.gpd.test.entity.SingoloVersamentoFullEntity;
 import it.govpay.gpd.test.entity.SingoloVersamentoFullEntity.StatoSingoloVersamento;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;

@@ -27,9 +27,6 @@ Questa configurazione Docker fornisce:
 - `GOVPAY_DB_NAME`: Nome del database
 - `GOVPAY_DB_USER`: Username del database
 - `GOVPAY_DB_PASSWORD`: Password del database
-- `GOVPAY_ACA_GPD_ENV`: Ambiente GPD (prod, uat, collaudo) o `GOVPAY_ACA_GPD_CUSTOMURL` per URL personalizzato
-- `GOVPAY_ACA_GPD_SUBSCRIPTIONKEY`: Chiave di sottoscrizione API pagoPA
-
 ### 3. Avviare i Servizi
 
 ```bash
@@ -211,16 +208,6 @@ GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY=5
 GOVPAY_ACA_READY_DB_CHECK_SLEEP_TIME=2
 ```
 
-## Integrazione con GDE (Giornale degli Eventi)
-
-L'integrazione con GDE è disabilitata di default. Per abilitarla, specificare l'URL del servizio:
-
-```env
-GOVPAY_ACA_GDE_URL=http://govpay-gde-api:8080
-```
-
-Quando `GOVPAY_ACA_GDE_URL` è impostato, l'integrazione GDE viene automaticamente abilitata e il batch registrerà gli eventi nel giornale.
-
 ## Configuration Reference
 
 ### Variabili d'Ambiente - Database
@@ -238,16 +225,6 @@ Quando `GOVPAY_ACA_GDE_URL` è impostato, l'integrazione GDE viene automaticamen
 | `GOVPAY_ACA_MAX_POOL` | No | `10` | Connessioni massime pool HikariCP |
 | `GOVPAY_DS_JDBC_LIBS` | No | `/opt/jdbc-drivers` | Percorso driver JDBC |
 
-### Variabili d'Ambiente - GPD (pagoPA)
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GOVPAY_ACA_GPD_ENV` | **Yes*** | - | Ambiente GPD: `prod`, `produzione`, `uat`, `collaudo`, `test`, `stage` |
-| `GOVPAY_ACA_GPD_CUSTOMURL` | **Yes*** | - | URL personalizzato GPD (alternativo a `GOVPAY_ACA_GPD_ENV`) |
-| `GOVPAY_ACA_GPD_SUBSCRIPTIONKEY` | **Yes** | - | Subscription Key API pagoPA |
-
-**Nota:* È richiesto `GOVPAY_ACA_GPD_ENV` **oppure** `GOVPAY_ACA_GPD_CUSTOMURL` (non entrambi)
-
 ### Variabili d'Ambiente - Modalità Deployment
 
 | Variable | Required | Default | Description |
@@ -255,12 +232,6 @@ Quando `GOVPAY_ACA_GDE_URL` è impostato, l'integrazione GDE viene automaticamen
 | `GOVPAY_ACA_BATCH_USA_CRON` | No | `false` | Modalità CRON: `true`, `si`, `yes`, `1` |
 | `GOVPAY_ACA_BATCH_INTERVALLO_CRON` | No | `5` | Intervallo scheduler in minuti (modalità CRON) |
 | `SERVER_PORT` | No | `10001` | Porta Actuator (modalità CRON) |
-
-### Variabili d'Ambiente - Integrazione GDE
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `GOVPAY_ACA_GDE_URL` | No | - | URL servizio GDE (se impostato, GDE viene abilitato) |
 
 ### Variabili d'Ambiente - Inizializzazione Database
 
@@ -341,34 +312,9 @@ govpay-aca-batch/docker/
     └── init_aca_db.sh            # Script inizializzazione Database
 ```
 
-## Ambienti PagoPA
-
-Il container supporta la configurazione automatica degli ambienti pagoPA tramite la variabile `GOVPAY_ACA_GPD_ENV`:
-
-### Produzione
-```env
-GOVPAY_ACA_GPD_ENV=prod
-# oppure
-GOVPAY_ACA_GPD_ENV=produzione
-```
-**URL generato:** `https://api.platform.pagopa.it/gpd/api/v1`
-
-### UAT/Collaudo
-```env
-GOVPAY_ACA_GPD_ENV=uat
-# oppure uno di: collaudo, test, stage
-```
-**URL generato:** `https://api.uat.platform.pagopa.it/gpd/api/v1`
-
-### URL Personalizzato
-Per ambienti non standard o on-premise:
-```env
-GOVPAY_ACA_GPD_CUSTOMURL=https://custom-gpd-server.example.com/gpd/api/v1
-```
-
 ## Esempi di Configurazione
 
-### Esempio Minimo (PostgreSQL + UAT)
+### Esempio Minimo (PostgreSQL)
 
 ```env
 # Database
@@ -378,15 +324,11 @@ GOVPAY_DB_NAME=govpay
 GOVPAY_DB_USER=govpay
 GOVPAY_DB_PASSWORD=secret123
 
-# GPD pagoPA
-GOVPAY_ACA_GPD_ENV=uat
-GOVPAY_ACA_GPD_SUBSCRIPTIONKEY=your-subscription-key-here
-
 # Modalità auto-schedulata (ogni 5 minuti)
 GOVPAY_ACA_BATCH_USA_CRON=true
 ```
 
-### Esempio Completo (Oracle + Produzione + Inizializzazione DB)
+### Esempio Completo (Oracle + Inizializzazione DB)
 
 ```env
 # Database Oracle
@@ -405,13 +347,6 @@ GOVPAY_ACA_MAX_POOL=20
 # Inizializzazione database
 GOVPAY_ACA_POP_DB_SKIP=FALSE
 GOVPAY_ACA_LIVE_DB_CHECK_MAX_RETRY=60
-
-# GPD pagoPA Produzione
-GOVPAY_ACA_GPD_ENV=prod
-GOVPAY_ACA_GPD_SUBSCRIPTIONKEY=prod-subscription-key
-
-# GDE
-GOVPAY_ACA_GDE_URL=https://govpay-gde.example.com
 
 # Modalità gestita esternamente (CronJob K8s)
 GOVPAY_ACA_BATCH_USA_CRON=false

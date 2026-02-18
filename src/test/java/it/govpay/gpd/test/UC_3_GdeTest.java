@@ -44,12 +44,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.api.DebtPositionActionsApiApi;
 import it.govpay.gpd.client.api.DebtPositionsApiApi;
-import it.govpay.gpd.client.api.impl.ApiClient;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.gde.client.EventiApi;
+import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.utils.GdeProblemUtils;
 import it.govpay.gpd.test.utils.GpdUtils;
 import it.govpay.gpd.test.utils.ObjectMapperUtils;
@@ -66,14 +66,9 @@ import it.govpay.gpd.test.utils.VersamentoUtils;
 @SpringBatchTest
 class UC_3_GdeTest extends UC_00_BaseTest {
 
-	@Autowired
-	@MockitoBean(name = "gpdApi")
-	DebtPositionsApiApi gpdApi;
-	
-	@Autowired
-	@MockitoBean(name = "gpdActionsApi")
-	DebtPositionActionsApiApi gpdActionsApi;
-	
+	@MockitoBean
+	GpdApiService gpdApiService;
+
 	@Autowired
 	@MockitoBean
 	EventiApi gdeApi;
@@ -87,15 +82,14 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	@Autowired
 	@Qualifier(value = "gpdSenderJob")
 	private Job job;
-	
-	@Value("${it.govpay.gpd.batch.client.baseUrl}")
-	String gpdBaseUrl;
-	
+
 	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni:7}")
 	private Integer numeroGiorni;
-	
+
 	private ObjectMapper mapper = ObjectMapperUtils.createObjectMapper();
-	
+
+	DebtPositionsApiApi gpdApi;
+	DebtPositionActionsApiApi gpdActionsApi;
 	HttpResponse<InputStream> gdeMockHttpResponseOk;
 	HttpResponse<InputStream> gdeMockHttpResponse503;
 	HttpResponse<InputStream> gdeMockHttpResponse400;
@@ -103,7 +97,7 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
 	}
-	
+
 	@AfterEach
     void tearDown() {
         jobRepositoryTestUtils.removeJobExecutions();
@@ -115,28 +109,13 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 		MockitoAnnotations.openMocks(this);
 		this.cleanDB();
 
-		Mockito.lenient()
-		.when(gpdApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
+		gpdApi = Mockito.mock(DebtPositionsApiApi.class);
+		gpdActionsApi = Mockito.mock(DebtPositionActionsApiApi.class);
 
-			@Override
-			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
-				ApiClient apiClient = new ApiClient();
-				apiClient.setBasePath(gpdBaseUrl);
-				return apiClient;
-			}
-		});
-		
-		Mockito.lenient()
-		.when(gpdActionsApi.getApiClient()).thenAnswer(new Answer<ApiClient>() {
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApi);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any())).thenReturn(gpdActionsApi);
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
 
-			@Override
-			public ApiClient answer(InvocationOnMock invocation) throws Throwable {
-				ApiClient apiClient = new ApiClient();
-				apiClient.setBasePath(gpdBaseUrl);
-				return apiClient;
-			}
-		});
-		
 		// Creazione del mock della HttpResponse
 		gdeMockHttpResponseOk = Mockito.mock(HttpResponse.class);
 
@@ -146,14 +125,14 @@ class UC_3_GdeTest extends UC_00_BaseTest {
 
 		// Creazione del mock della HttpResponse
 		gdeMockHttpResponse503 = Mockito.mock(HttpResponse.class);
-		
+
 		// Configurazione del comportamento del mock
 		Mockito.lenient().when(gdeMockHttpResponse503.statusCode()).thenReturn(503);
 		Mockito.lenient().when(gdeMockHttpResponse503.body()).thenReturn(new ByteArrayInputStream(this.mapper.writeValueAsString(GdeProblemUtils.createProblem503()).getBytes()));
 
 		// Creazione del mock della HttpResponse
 		gdeMockHttpResponse400 = Mockito.mock(HttpResponse.class);
-		
+
 		// Configurazione del comportamento del mock
 		Mockito.lenient().when(gdeMockHttpResponse400.statusCode()).thenReturn(400);
 		Mockito.lenient().when(gdeMockHttpResponse400.body()).thenReturn(new ByteArrayInputStream(this.mapper.writeValueAsString(GdeProblemUtils.createProblem400()).getBytes()));

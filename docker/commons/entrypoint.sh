@@ -125,52 +125,6 @@ if [ "${GOVPAY_ACA_POP_DB_SKIP:-TRUE}" != "TRUE" ] && [ -n "${GOVPAY_DB_TYPE}" ]
 fi
 
 ##############################################################################
-# Configurazione URL Base GPD (Gestione Posizioni Debitorie)
-##############################################################################
-
-# Priorità 1: URL custom (se specificato, ha precedenza)
-if [ -n "${GOVPAY_ACA_GPD_CUSTOMURL}" ]; then
-    IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL="${GOVPAY_ACA_GPD_CUSTOMURL}"
-    log_info "Utilizzo URL GPD personalizzato: ${IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL}"
-# Priorità 2: Selezione URL basata su ambiente
-elif [ -n "${GOVPAY_ACA_GPD_ENV}" ]; then
-    # Conversione a minuscolo per confronto case-insensitive
-    GPD_ENV=$(echo "${GOVPAY_ACA_GPD_ENV}" | tr '[:upper:]' '[:lower:]')
-
-    case "${GPD_ENV}" in
-        prod|produzione)
-            IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL="https://api.platform.pagopa.it/gpd/api/v1"
-            log_info "Utilizzo ambiente GPD PRODUZIONE"
-            ;;
-        collaudo|test|stage|uat)
-            IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL="https://api.uat.platform.pagopa.it/gpd/api/v1"
-            log_info "Utilizzo ambiente GPD UAT/TEST"
-            ;;
-        *)
-            log_error "Valore GOVPAY_ACA_GPD_ENV non valido: ${GOVPAY_ACA_GPD_ENV}"
-            log_error "Valori ammessi: collaudo, test, stage, uat, prod, produzione"
-            exit 1
-            ;;
-    esac
-    log_info "URL Base GPD: ${IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL}"
-fi
-
-# Validazione configurazione GPD obbligatoria
-if [ -z "${IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL}" ]; then
-    log_error "Configurazione URL Base GPD mancante"
-    log_error "Impostare una di: GOVPAY_ACA_GPD_CUSTOMURL o GOVPAY_ACA_GPD_ENV"
-    exit 1
-fi
-export IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL
-
-if [ -z "${GOVPAY_ACA_GPD_SUBSCRIPTIONKEY}" ]; then
-    log_error "Subscription Key GPD mancante"
-    log_error "Richiesta: GOVPAY_ACA_GPD_SUBSCRIPTIONKEY"
-    exit 1
-fi
-export IT_GOVPAY_GPD_BATCH_CLIENT_HEADER_SUBSCRIPTIONKEY_VALUE="${GOVPAY_ACA_GPD_SUBSCRIPTIONKEY}"
-
-##############################################################################
 # Configurazione Cluster ID
 ##############################################################################
 
@@ -179,23 +133,6 @@ IT_GOVPAY_GPD_BATCH_CLUSTERID=$(grep -E "[[:space:]]${HOSTNAME}[[:space:]]*" /et
 # Fallback a hostname se estrazione IP fallisce
 [ -z "${IT_GOVPAY_GPD_BATCH_CLUSTERID}" ] && IT_GOVPAY_GPD_BATCH_CLUSTERID=$(hostname)
 export IT_GOVPAY_GPD_BATCH_CLUSTERID
-
-##############################################################################
-# Configurazione Integrazione GDE
-##############################################################################
-
-# Integrazione GDE disabilitata di default a meno che non venga fornito GOVPAY_ACA_GDE_URL
-if [ -n "${GOVPAY_ACA_GDE_URL}" ]; then
-    IT_GOVPAY_GDE_ENABLED=true
-    IT_GOVPAY_GDE_CLIENT_BASEURL="${GOVPAY_ACA_GDE_URL}"
-    export IT_GOVPAY_GDE_ENABLED IT_GOVPAY_GDE_CLIENT_BASEURL
-    log_info "Integrazione GDE abilitata"
-    log_info "URL GDE: ${IT_GOVPAY_GDE_CLIENT_BASEURL}"
-else
-    IT_GOVPAY_GDE_ENABLED=false
-    export IT_GOVPAY_GDE_ENABLED
-    log_info "Integrazione GDE disabilitata"
-fi
 
 ##############################################################################
 # Configurazione Modalità di Deploy
@@ -254,8 +191,6 @@ log_info "Riepilogo Configurazione"
 log_info "========================================"
 log_info "Database: ${SPRING_DATASOURCE_URL}"
 log_info "Pool: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE}/${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE}"
-log_info "GPD: ${IT_GOVPAY_GPD_BATCH_CLIENT_BASEURL}"
-log_info "GDE: ${IT_GOVPAY_GDE_ENABLED}"
 log_info "Cluster ID: ${IT_GOVPAY_GPD_BATCH_CLUSTERID}"
 log_info "Java: MaxRAMPercentage=${GOVPAY_ACA_JVM_MAX_RAM_PERCENTAGE:-${DEFAULT_MAX_RAM_PERCENTAGE}}%"
 log_info "========================================"
