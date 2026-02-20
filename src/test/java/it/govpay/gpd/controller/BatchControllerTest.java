@@ -8,12 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -30,28 +30,35 @@ import org.springframework.batch.core.JobInstance;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import it.govpay.gpd.config.PreventConcurrentJobLauncher;
+import it.govpay.common.batch.dto.BatchStatusInfo;
+import it.govpay.common.batch.dto.LastExecutionInfo;
+import it.govpay.common.batch.dto.NextExecutionInfo;
+import it.govpay.common.batch.dto.Problem;
+import it.govpay.common.batch.runner.JobExecutionHelper;
+import it.govpay.common.batch.service.JobConcurrencyService;
+import it.govpay.common.client.service.ConnettoreService;
 import it.govpay.gpd.costanti.Costanti;
 
 class BatchControllerTest {
 
     @Mock
-    private JobLauncher jobLauncher;
+    private JobExecutionHelper jobExecutionHelper;
+
+    @Mock
+    private JobConcurrencyService jobConcurrencyService;
 
     @Mock
     private JobExplorer jobExplorer;
 
     @Mock
-    private PreventConcurrentJobLauncher preventConcurrentJobLauncher;
+    private Job pendenzaSenderJob;
 
     @Mock
-    private Job pendenzaSenderJob;
+    private ConnettoreService connettoreService;
 
     @Mock
     private Environment environment;
@@ -59,20 +66,21 @@ class BatchControllerTest {
     private BatchController batchController;
 
     private static final String CLUSTER_ID = "TestCluster";
-    private static final String TIME_ZONE = "Europe/Rome";
+    private static final ZoneId ZONE_ID = ZoneId.of("Europe/Rome");
+    private static final long SCHEDULER_INTERVAL_MILLIS = 600000L;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        batchController = new BatchController(jobLauncher, jobExplorer, preventConcurrentJobLauncher, pendenzaSenderJob, environment, TIME_ZONE);
-        ReflectionTestUtils.setField(batchController, "clusterId", CLUSTER_ID);
-        ReflectionTestUtils.setField(batchController, "schedulerIntervalMillis", 600000L);
+        when(jobExecutionHelper.getJobConcurrencyService()).thenReturn(jobConcurrencyService);
+        batchController = new BatchController(jobExecutionHelper, jobExplorer, pendenzaSenderJob,
+                connettoreService, environment, ZONE_ID, SCHEDULER_INTERVAL_MILLIS);
     }
 
     private JobExecution createJobExecution(String clusterId, BatchStatus status) {
         JobInstance jobInstance = new JobInstance(1L, Costanti.SEND_PENDENZE_GPD_JOBNAME);
         JobParameters params = new JobParametersBuilder()
-                .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, clusterId)
+                .addString(JobConcurrencyService.JOB_PARAM_CLUSTER_ID, clusterId)
                 .toJobParameters();
         JobExecution execution = new JobExecution(jobInstance, 1L, params);
         execution.setStatus(status);
@@ -85,14 +93,14 @@ class BatchControllerTest {
 
     @Test
     void whenNoJobRunning_thenReturns202Accepted() throws Exception {
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(null);
 
         JobExecution mockExecution = createJobExecution(CLUSTER_ID, BatchStatus.COMPLETED);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        when(jobExecutionHelper.runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)))
                 .thenReturn(mockExecution);
 
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(false);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         assertNull(response.getBody());
@@ -100,19 +108,19 @@ class BatchControllerTest {
         // Attendi che il job asincrono venga avviato
         Awaitility.await()
                 .atMost(2, TimeUnit.SECONDS)
-                .untilAsserted(() -> verify(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class)));
+                .untilAsserted(() -> verify(jobExecutionHelper).runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)));
     }
 
     @Test
     void whenNoJobRunningAndForzaEsecuzioneTrue_thenReturns202Accepted() throws Exception {
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(null);
 
         JobExecution mockExecution = createJobExecution(CLUSTER_ID, BatchStatus.COMPLETED);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        when(jobExecutionHelper.runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)))
                 .thenReturn(mockExecution);
 
-        ResponseEntity<Object> response = batchController.eseguiJob(true);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(true);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         assertNull(response.getBody());
@@ -123,14 +131,14 @@ class BatchControllerTest {
     @Test
     void whenJobAlreadyRunning_thenReturns409Conflict() {
         JobExecution runningExecution = createJobExecution("OtherCluster", BatchStatus.STARTED);
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(runningExecution);
-        when(preventConcurrentJobLauncher.isJobExecutionStale(runningExecution))
+        when(jobConcurrencyService.isJobExecutionStale(runningExecution))
                 .thenReturn(false);
-        when(preventConcurrentJobLauncher.getClusterIdFromExecution(runningExecution))
+        when(jobConcurrencyService.getClusterIdFromExecution(runningExecution))
                 .thenReturn("OtherCluster");
 
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(false);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -144,34 +152,34 @@ class BatchControllerTest {
     @Test
     void whenJobIsStale_thenAbandonAndReturns202Accepted() throws Exception {
         JobExecution staleExecution = createJobExecution("StaleCluster", BatchStatus.STARTED);
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(staleExecution);
-        when(preventConcurrentJobLauncher.isJobExecutionStale(staleExecution))
+        when(jobConcurrencyService.isJobExecutionStale(staleExecution))
                 .thenReturn(true);
-        when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
+        when(jobConcurrencyService.abandonStaleJobExecution(staleExecution))
                 .thenReturn(true);
 
         JobExecution mockExecution = createJobExecution(CLUSTER_ID, BatchStatus.COMPLETED);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        when(jobExecutionHelper.runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)))
                 .thenReturn(mockExecution);
 
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(false);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
-        verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
+        verify(jobConcurrencyService).abandonStaleJobExecution(staleExecution);
     }
 
     @Test
     void whenJobIsStaleButAbandonFails_thenReturns503ServiceUnavailable() {
         JobExecution staleExecution = createJobExecution("StaleCluster", BatchStatus.STARTED);
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(staleExecution);
-        when(preventConcurrentJobLauncher.isJobExecutionStale(staleExecution))
+        when(jobConcurrencyService.isJobExecutionStale(staleExecution))
                 .thenReturn(true);
-        when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
+        when(jobConcurrencyService.abandonStaleJobExecution(staleExecution))
                 .thenReturn(false);
 
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(false);
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -184,32 +192,32 @@ class BatchControllerTest {
     @Test
     void whenForzaEsecuzioneAndJobRunning_thenForceAbandonAndReturns202Accepted() throws Exception {
         JobExecution runningExecution = createJobExecution("OtherCluster", BatchStatus.STARTED);
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(runningExecution);
-        when(preventConcurrentJobLauncher.forceAbandonJobExecution(eq(runningExecution), anyString()))
+        when(jobConcurrencyService.forceAbandonJobExecution(eq(runningExecution), anyString()))
                 .thenReturn(true);
 
         JobExecution mockExecution = createJobExecution(CLUSTER_ID, BatchStatus.COMPLETED);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        when(jobExecutionHelper.runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)))
                 .thenReturn(mockExecution);
 
-        ResponseEntity<Object> response = batchController.eseguiJob(true);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(true);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
-        verify(preventConcurrentJobLauncher).forceAbandonJobExecution(eq(runningExecution), anyString());
+        verify(jobConcurrencyService).forceAbandonJobExecution(eq(runningExecution), anyString());
         // Non deve verificare se è stale quando forza l'esecuzione
-        verify(preventConcurrentJobLauncher, never()).isJobExecutionStale(any());
+        verify(jobConcurrencyService, never()).isJobExecutionStale(any());
     }
 
     @Test
     void whenForzaEsecuzioneButForceAbandonFails_thenReturns503ServiceUnavailable() {
         JobExecution runningExecution = createJobExecution("OtherCluster", BatchStatus.STARTED);
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(runningExecution);
-        when(preventConcurrentJobLauncher.forceAbandonJobExecution(eq(runningExecution), anyString()))
+        when(jobConcurrencyService.forceAbandonJobExecution(eq(runningExecution), anyString()))
                 .thenReturn(false);
 
-        ResponseEntity<Object> response = batchController.eseguiJob(true);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(true);
 
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -221,10 +229,10 @@ class BatchControllerTest {
 
     @Test
     void whenExceptionDuringJobCheck_thenReturns500InternalServerError() {
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenThrow(new RuntimeException("Database connection error"));
 
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(false);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -237,58 +245,29 @@ class BatchControllerTest {
 
     @Test
     void whenJobLauncherThrowsExceptionAsync_thenReturns202ButLogsError() throws Exception {
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(null);
 
-        // Il job launcher lancia un'eccezione (simulando un errore durante l'esecuzione)
-        doThrow(new RuntimeException("Job execution failed"))
-                .when(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class));
+        when(jobExecutionHelper.runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)))
+                .thenThrow(new RuntimeException("Job execution failed"));
 
-        // La risposta deve comunque essere 202 perché l'esecuzione è asincrona
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
-
-        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
-
-        // Attendi che il CompletableFuture abbia provato ad eseguire il job
-        Awaitility.await()
-                .atMost(2, TimeUnit.SECONDS)
-                .untilAsserted(() -> verify(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class)));
-    }
-
-    // ============ Test verifica parametri job ============
-
-    @Test
-    void whenJobStarted_thenCorrectParametersArePassed() throws Exception {
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
-                .thenReturn(null);
-
-        JobExecution mockExecution = createJobExecution(CLUSTER_ID, BatchStatus.COMPLETED);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
-                .thenAnswer(invocation -> {
-                    JobParameters params = invocation.getArgument(1);
-                    assertEquals(Costanti.SEND_PENDENZE_GPD_JOBNAME, params.getString(Costanti.GOVPAY_GPD_JOB_ID));
-                    assertEquals(CLUSTER_ID, params.getString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID));
-                    assertNotNull(params.getString(Costanti.GOVPAY_GPD_JOB_PARAMETER_WHEN));
-                    return mockExecution;
-                });
-
-        ResponseEntity<Object> response = batchController.eseguiJob(false);
+        ResponseEntity<Object> response = batchController.eseguiJobEndpoint(false);
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
 
         Awaitility.await()
                 .atMost(2, TimeUnit.SECONDS)
-                .untilAsserted(() -> verify(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class)));
+                .untilAsserted(() -> verify(jobExecutionHelper).runJob(eq(pendenzaSenderJob), eq(Costanti.SEND_PENDENZE_GPD_JOBNAME)));
     }
 
     // ============ Test endpoint /status ============
 
     @Test
     void whenGetStatus_andNoJobRunning_thenReturnsNotRunning() {
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(null);
 
-        ResponseEntity<BatchStatusInfo> response = batchController.getStatus();
+        ResponseEntity<BatchStatusInfo> response = batchController.getStatusEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -299,12 +278,12 @@ class BatchControllerTest {
     @Test
     void whenGetStatus_andJobRunning_thenReturnsRunningStatus() {
         JobExecution runningExecution = createJobExecution(CLUSTER_ID, BatchStatus.STARTED);
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(runningExecution);
-        when(preventConcurrentJobLauncher.getClusterIdFromExecution(runningExecution))
+        when(jobConcurrencyService.getClusterIdFromExecution(runningExecution))
                 .thenReturn(CLUSTER_ID);
 
-        ResponseEntity<BatchStatusInfo> response = batchController.getStatus();
+        ResponseEntity<BatchStatusInfo> response = batchController.getStatusEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -322,7 +301,7 @@ class BatchControllerTest {
         when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
                 .thenReturn(Collections.emptyList());
 
-        ResponseEntity<LastExecutionInfo> response = batchController.getLastExecution();
+        ResponseEntity<LastExecutionInfo> response = batchController.getLastExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -339,10 +318,10 @@ class BatchControllerTest {
                 .thenReturn(List.of(jobInstance));
         when(jobExplorer.getJobExecutions(jobInstance))
                 .thenReturn(List.of(completedExecution));
-        when(preventConcurrentJobLauncher.getClusterIdFromExecution(completedExecution))
+        when(jobConcurrencyService.getClusterIdFromExecution(completedExecution))
                 .thenReturn(CLUSTER_ID);
 
-        ResponseEntity<LastExecutionInfo> response = batchController.getLastExecution();
+        ResponseEntity<LastExecutionInfo> response = batchController.getLastExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -362,7 +341,7 @@ class BatchControllerTest {
         when(jobExplorer.getJobExecutions(jobInstance))
                 .thenReturn(List.of(runningExecution));
 
-        ResponseEntity<LastExecutionInfo> response = batchController.getLastExecution();
+        ResponseEntity<LastExecutionInfo> response = batchController.getLastExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -375,7 +354,7 @@ class BatchControllerTest {
     void whenGetNextExecution_andCronMode_thenReturnsCronInfo() {
         when(environment.matchesProfiles("cron")).thenReturn(true);
 
-        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecution();
+        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -390,7 +369,7 @@ class BatchControllerTest {
         when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
                 .thenReturn(Collections.emptyList());
 
-        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecution();
+        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -412,7 +391,7 @@ class BatchControllerTest {
         when(jobExplorer.getJobExecutions(jobInstance))
                 .thenReturn(List.of(completedExecution));
 
-        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecution();
+        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
@@ -435,10 +414,10 @@ class BatchControllerTest {
                 .thenReturn(List.of(jobInstance));
         when(jobExplorer.getJobExecutions(jobInstance))
                 .thenReturn(List.of(completedExecution));
-        when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
+        when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(runningExecution);
 
-        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecution();
+        ResponseEntity<NextExecutionInfo> response = batchController.getNextExecutionEndpoint();
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());

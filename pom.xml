@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.gov4j.govpay</groupId>
 		<artifactId>govpay-bom</artifactId>
-		<version>1.1.1</version>
+		<version>1.1.2-SNAPSHOT</version>
 		<relativePath>../govpay-bom</relativePath>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
