@@ -82,6 +82,7 @@ if [ -n "${LOCALFILE}" ]
 then
   DOCKERFILE="govpay-aca/Dockerfile.daFile"
   cp -f "${LOCALFILE}" buildcontext/
+  cp -fr ../src/main/resources/sql buildcontext/
 else
   DOCKERFILE="govpay-aca/Dockerfile.github"
 fi

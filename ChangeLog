@@ -1,3 +1,23 @@
+2026-02-25  Giuliano Pintori <pintori@link.it>
+
+	* [Build]
+	Issue #35
+	Aggiornata govpay-bom alla versione 1.1.2.
+	Aggiornata govpay-common alla versione 1.0.0.
+
+	* [GDE]
+	Issue #35
+	Corretto calcolo della durata evento: ora espressa in millisecondi anziche' secondi.
+
+	* [Docker]
+	Issue #35
+	Aggiunto Dockerfile.daFile per il build locale dell'immagine Docker.
+	Aggiornato build_image.sh per copiare gli script SQL nel build context locale.
+
+	* [Test]
+	Issue #35
+	Aggiornati test per compatibilita' con le nuove versioni delle librerie.
+
 2026-02-17  Giuliano Pintori <pintori@link.it>
 
 	* [GpdBatch]
