@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.gov4j.govpay</groupId>
 		<artifactId>govpay-bom</artifactId>
-		<version>1.1.1</version>
+		<version>1.1.2</version>
 		<relativePath>../govpay-bom</relativePath>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
@@ -84,7 +84,7 @@
 		<dependency>
 			<groupId>org.gov4j.govpay</groupId>
 			<artifactId>govpay-common</artifactId>
-			<version>1.0.0-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 
 		<dependency>
@@ -294,34 +294,6 @@
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
 								<useJakartaEe>true</useJakartaEe>
-							</configOptions>
-							<output>${project.basedir}/target</output>
-							<generateApiTests>false</generateApiTests>
-							<generateModelTests>false</generateModelTests>
-						</configuration>
-					</execution>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<id>generate-sources-client-gde</id>
-						<phase>generate-sources</phase>
-						<configuration>
-							<inputSpec>${project.basedir}/src/main/resources/gde/openapi.yaml</inputSpec>
-							<generatorName>java</generatorName>
-							<configOptions>
-								<booleanGetterPrefix>is</booleanGetterPrefix>
-								<dateLibrary>java8</dateLibrary>
-								<library>native</library>
-								<serializationLibrary>jackson</serializationLibrary>
-								<sourceFolder>generated-sources/java/</sourceFolder>
-								<apiPackage>it.govpay.gde.client.api</apiPackage>
-								<invokerPackage>it.govpay.gde.client.api.impl</invokerPackage>
-								<modelPackage>it.govpay.gde.client.beans</modelPackage>
-								<useAnnotatedBasePath>true</useAnnotatedBasePath>
-								<useBeanValidation>false</useBeanValidation>
-								<useJakartaEe>true</useJakartaEe>
-								<async>true</async>
 							</configOptions>
 							<output>${project.basedir}/target</output>
 							<generateApiTests>false</generateApiTests>

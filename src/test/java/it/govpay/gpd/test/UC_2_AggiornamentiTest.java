@@ -3,13 +3,9 @@ package it.govpay.gpd.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.net.http.HttpResponse;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +44,6 @@ import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum;
 import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.entity.VersamentoGpdEntity.StatoVersamento;
-import it.govpay.gpd.gde.client.EventiApi;
 import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.utils.GpdUtils;
@@ -69,10 +64,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 	GpdApiService gpdApiService;
 
 	@Autowired
-	@MockitoBean
-	EventiApi gdeApi;
-
-	@Autowired
 	private JobLauncherTestUtils jobLauncherTestUtils;
 
 	@Autowired
@@ -87,7 +78,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 
 	DebtPositionsApiApi gpdApi;
 	DebtPositionActionsApiApi gpdActionsApi;
-	HttpResponse<InputStream> mockHttpResponseOk;
 
 	private void initailizeJobLauncherTestUtils() {
 		jobLauncherTestUtils.setJob(job);
@@ -110,13 +100,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApi);
 		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any())).thenReturn(gpdActionsApi);
 		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
-
-		// Creazione del mock della HttpResponse
-		mockHttpResponseOk = Mockito.mock(HttpResponse.class);
-
-		// Configurazione del comportamento del mock
-		Mockito.lenient().when(mockHttpResponseOk.statusCode()).thenReturn(200);
-		Mockito.lenient().when(mockHttpResponseOk.body()).thenReturn(new ByteArrayInputStream("".getBytes()));
 	}
 
 	@Test
@@ -141,15 +124,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -217,15 +191,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -276,15 +241,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -341,15 +297,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -387,15 +334,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -437,15 +375,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -474,15 +403,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -535,15 +455,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -574,15 +485,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -635,15 +537,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -673,15 +566,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
 							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -734,15 +618,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -785,15 +660,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -822,15 +688,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
 							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.NOT_FOUND);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -872,15 +729,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -909,15 +757,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
 							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.CONFLICT);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -959,15 +798,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -996,15 +826,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
 							return GpdUtils.creaResponseUpdateKo(invocation, HttpStatus.SERVICE_UNAVAILABLE);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -1046,15 +867,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1080,15 +892,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			Mockito.lenient()
 			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
 					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), new byte[0], Charset.defaultCharset()));
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
 
 			initailizeJobLauncherTestUtils();
 			jobExecution = jobLauncherTestUtils.launchJob();
@@ -1128,15 +931,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1163,15 +957,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
 					))
 			.thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT, "Conflict"));
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
 
 			initailizeJobLauncherTestUtils();
 			jobExecution = jobLauncherTestUtils.launchJob();
@@ -1211,15 +996,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1245,15 +1021,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			Mockito.lenient()
 			.when(gpdApi.updatePositionWithHttpInfo(any(), any(), any(), any(), any()
 					)).thenThrow(HttpClientErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), objectMapper.writeValueAsBytes(GpdUtils.createProblem503()), StandardCharsets.UTF_8));
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
 
 			initailizeJobLauncherTestUtils();
 			jobExecution = jobLauncherTestUtils.launchJob();
@@ -1284,15 +1051,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1320,15 +1078,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
 					)).thenThrow(HttpClientErrorException.create(HttpStatus.FORBIDDEN, "Forbidden", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), 
 							objectMapper.writeValueAsBytes(GpdUtils.createProblem403()), StandardCharsets.UTF_8));
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
 
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
@@ -1371,15 +1120,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), 
 							objectMapper.writeValueAsBytes(GpdUtils.createProblem404()), Charset.defaultCharset()));
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1415,15 +1155,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.VALID);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -1465,15 +1196,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), 
 							objectMapper.writeValueAsBytes(GpdUtils.createProblem404()), Charset.defaultCharset()));
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1511,15 +1233,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
 					)).thenThrow(HttpClientErrorException.create(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")),
 							objectMapper.writeValueAsBytes(GpdUtils.createProblem503()), StandardCharsets.UTF_8));
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
 
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
@@ -1563,15 +1276,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1602,15 +1306,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 
@@ -1652,15 +1347,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						}
 					});
 
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
-						}
-					});
-
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
@@ -1691,15 +1377,6 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 						@Override
 						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
 							return PaymentPositionModelUtils.creaResponseUpdatePaymentPositionModelOk(invocation);
-						}
-					});
-
-			Mockito.lenient()
-			.when(gdeApi.addEventoWithHttpInfoAsync(any()
-					)).thenAnswer(new Answer<CompletableFuture<HttpResponse<InputStream>>>() {
-						@Override
-						public CompletableFuture<HttpResponse<InputStream>> answer(InvocationOnMock invocation) throws Throwable {
-							return CompletableFuture.completedFuture(mockHttpResponseOk);
 						}
 					});
 

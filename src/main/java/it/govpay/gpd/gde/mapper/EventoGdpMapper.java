@@ -42,7 +42,7 @@ public interface EventoGdpMapper {
 		nuovoEvento.setCategoriaEvento(CategoriaEvento.INTERFACCIA);
 		nuovoEvento.setClusterId(Costanti.GOVPAY_GDE_CLUSTER_ID);
 		nuovoEvento.setDataEvento(dataStart);
-		nuovoEvento.setDurataEvento(dataEnd.toEpochSecond() - dataStart.toEpochSecond());
+		nuovoEvento.setDurataEvento(dataEnd.toInstant().toEpochMilli() - dataStart.toInstant().toEpochMilli());
 		nuovoEvento.setRuolo(RuoloEvento.CLIENT);
 		nuovoEvento.setComponente(ComponenteEvento.API_PAGOPA);
 		nuovoEvento.setTipoEvento(tipoEvento);
