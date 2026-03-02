@@ -46,6 +46,8 @@ pom.xml.versionsBackup
 /bin
 _build
 buildcontext
+# Docker build context (generated)
+docker/buildcontext/
 # swagger
 .swagger-codegen
 
