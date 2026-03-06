@@ -1,3 +1,25 @@
+2026-03-06  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 1.2.1
+
+2026-03-06  Giuliano Pintori <pintori@link.it>
+
+	* [Build]
+	Esclusione driver JDBC dal fat jar.
+	I driver JDBC (PostgreSQL, H2, Oracle, MySQL, SQL Server) non vengono piu' inclusi nel fat jar,
+	riducendo la dimensione dell'artefatto. I driver devono essere forniti esternamente a runtime
+	tramite la proprieta' 'loader.path' (PropertiesLauncher).
+
+	Modifiche:
+	- pom.xml: scope driver JDBC da 'runtime' a 'provided', esclusione esplicita nel spring-boot-maven-plugin
+	- pom.xml: aggiunto layout ZIP (PropertiesLauncher) per supporto loader.path
+	- docker/commons/entrypoint.sh: aggiunto export LOADER_PATH verso directory driver JDBC
+	- avvia_batch_aca.sh: aggiunto -Dloader.path=./jdbc-drivers al comando java
+
+	* [Doc]
+	Aggiornato README con sezione Driver JDBC e istruzioni di esecuzione con loader.path.
+	Aggiornato DOCKER.md con sezione Driver JDBC e istruzioni per il mount dei driver.
+
 2026-02-25  Giuliano Pintori <pintori@link.it>
 
 	* [Build]

@@ -127,6 +127,37 @@ spec:
           restartPolicy: OnFailure
 ```
 
+## Driver JDBC
+
+I driver JDBC **non sono inclusi** nell'immagine Docker e devono essere forniti esternamente a runtime, montandoli come volume nella directory `/opt/jdbc-drivers`.
+
+La variabile d'ambiente `LOADER_PATH` viene impostata automaticamente dall'entrypoint alla directory configurata in `GOVPAY_DS_JDBC_LIBS` (default: `/opt/jdbc-drivers`).
+
+### Esempio con Docker Run
+
+```bash
+docker run --rm \
+  -v ./jdbc-drivers:/opt/jdbc-drivers \
+  -e GOVPAY_DB_TYPE=postgresql \
+  ...
+  linkitaly/govpay-aca-batch:latest
+```
+
+### Esempio con Docker Compose
+
+```yaml
+services:
+  govpay-aca:
+    image: linkitaly/govpay-aca-batch:latest
+    volumes:
+      - ./jdbc-drivers:/opt/jdbc-drivers
+    environment:
+      GOVPAY_DB_TYPE: postgresql
+      ...
+```
+
+I driver supportati sono elencati in [jdbc-drivers/README.md](jdbc-drivers/README.md).
+
 ## Configurazione Database
 
 Il container supporta la nomenclatura delle variabili compatibile con govpay-docker. L'URL JDBC viene costruito automaticamente in base al tipo di database.

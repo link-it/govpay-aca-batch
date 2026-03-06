@@ -31,20 +31,35 @@ mvn clean install -P [jar|war]
 
 Il profilo permette di selezionare il packaging dei progetti (jar o war).
 
+## Driver JDBC
+
+I driver JDBC **non sono inclusi** nel fat jar e devono essere forniti esternamente a runtime.
+Creare una directory (es. `jdbc-drivers/`) e copiarvi il driver del database utilizzato:
+
+| Database | Driver | Download |
+|----------|--------|----------|
+| PostgreSQL | `postgresql-42.7.3.jar` | [Maven Central](https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar) |
+| MySQL | `mysql-connector-j-9.2.0.jar` | [Maven Central](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/9.2.0/mysql-connector-j-9.2.0.jar) |
+| Oracle | `ojdbc11-23.3.0.23.09.jar` | [Maven Central](https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc11/23.3.0.23.09/ojdbc11-23.3.0.23.09.jar) |
+| SQL Server | `mssql-jdbc-12.8.1.jre11.jar` | [Maven Central](https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/12.8.1.jre11/mssql-jdbc-12.8.1.jre11.jar) |
+
 ## Esecuzione
+
+Il jar utilizza `PropertiesLauncher` (layout ZIP) e richiede la proprietà `loader.path` per indicare la directory contenente i driver JDBC.
 
 ### 1. Modalità Standalone
 
 Per l'avvio dell'applicativo come standalone con scheduler interno:
 
 ```bash
-mvn spring-boot:run
+java -Dloader.path=./jdbc-drivers -jar target/govpay-aca-batch.jar
 ```
 
 Per sovrascrivere le proprietà definite nel file `application.properties`:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dspring.datasource.url=[NUOVO_VALORE] ..."
+java -Dloader.path=./jdbc-drivers -jar target/govpay-aca-batch.jar \
+  --spring.datasource.url=[NUOVO_VALORE] ...
 ```
 
 ### 2. Modalità Cron
@@ -52,7 +67,7 @@ mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Dspring.datasource.url=[NUO
 Avvio dell'applicazione per essere utilizzata all'interno di un cron esterno. Il batch viene eseguito una volta e l'applicazione termina:
 
 ```bash
-java -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
+java -Dloader.path=./jdbc-drivers -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
   --spring.batch.job.enabled=false \
   --spring.main.web-application-type="none" \
   --spring.datasource.url="[URL CONNESSIONE DB]" \
@@ -72,7 +87,7 @@ java -Dspring.profiles.active=cron -jar target/govpay-aca-batch.jar \
 Esempio di configurazione crontab per esecuzione ogni 10 minuti:
 
 ```cron
-*/10 * * * * /usr/bin/java -Dspring.profiles.active=cron -jar /opt/govpay-aca-batch/govpay-aca-batch.jar [OPZIONI...]
+*/10 * * * * /usr/bin/java -Dloader.path=/opt/jdbc-drivers -Dspring.profiles.active=cron -jar /opt/govpay-aca-batch/govpay-aca-batch.jar [OPZIONI...]
 ```
 
 ### 3. Docker
@@ -85,8 +100,11 @@ docker pull linkitaly/govpay-aca-batch:latest
 
 #### Esempio con Docker Run (esecuzione singola)
 
+I driver JDBC devono essere montati come volume nella directory `/opt/jdbc-drivers`:
+
 ```bash
 docker run --rm \
+  -v ./jdbc-drivers:/opt/jdbc-drivers \
   -e GOVPAY_DB_TYPE=[postgresql|mysql|mariadb|oracle] \
   -e GOVPAY_DB_SERVER=[HOST:PORTA] \
   -e GOVPAY_DB_NAME=[NOME DATABASE] \
