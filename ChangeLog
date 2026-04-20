@@ -1,3 +1,13 @@
+2026-04-20  Giuliano Pintori <pintori@link.it>
+
+	* [Pipeline]
+	Aggiunto job OSV Scan alla pipeline CI/CD tramite reusable workflow google/osv-scanner-action.
+	Lo scan viene eseguito su push a main e sui tag, con fail-on-vuln abilitato.
+
+	* [Database]
+	Aggiunti script di svecchiamento tabelle Spring Batch per tutti i DB supportati
+	(PostgreSQL, Oracle, MySQL, SQL Server, HSQLDB).
+
 2026-03-06  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 1.2.1
