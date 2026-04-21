@@ -27,13 +27,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0  # Clona tutta la history Git
     - name: Set timezone to Europe/Rome
       run: sudo timedatectl set-timezone Europe/Rome
     - name: Set up JDK 21
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'temurin'
@@ -66,21 +66,27 @@ jobs:
       env:
         OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
 
-    #  Cache .dependency-check/data
+    - name: Get date for cache key
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
     - name: Cache OWASP Dependency-Check DB
-      uses: actions/cache@v4
+      id: owasp-cache
+      uses: actions/cache@v5
       with:
         path: .dependency-check/data
-        key: ${{ runner.os }}-owasp-${{ github.sha }}
+        key: ${{ runner.os }}-owasp-${{ steps.date.outputs.date }}
         restore-keys: |
           ${{ runner.os }}-owasp-
 
     - name: Build with Maven
-      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report
+      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report $NOUPDATE_FLAG
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
         OSS_INDEX_PASSWORD: ${{ secrets.OSS_INDEX_PASSWORD }}
+        # Se la cache è esatta (stessa giornata) skippa l'update NVD
+        NOUPDATE_FLAG: ${{ steps.owasp-cache.outputs.cache-hit == 'true' && '-DautoUpdate=false' || '' }}
 
     - name: Show JaCoCo report location and Zip JaCoCo HTML report
       run: |
@@ -121,13 +127,13 @@ jobs:
         python3 .github/workflows/scripts/analyze_licenses.py --exceptions .github/workflows/scripts/license-exceptions.json
 
     - name: Archive licenses analysis results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: third-party-licenses
         path: third-party-licenses
 
     - name: Upload artifact to GitHub
-      uses: actions/upload-artifact@v4.6.0
+      uses: actions/upload-artifact@v7
       with:
         name: govpay-aca-batch
         path: |
@@ -161,16 +167,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Download artifact from build job
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: govpay-aca-batch
         path: target/  # Assicurati che il file venga scaricato nella cartella target
 
     - name: Download third-party-licenses artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: third-party-licenses
         path: third-party-licenses
@@ -221,7 +227,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
