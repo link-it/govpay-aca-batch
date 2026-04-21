@@ -1,3 +1,13 @@
+2026-04-21  Giuliano Pintori <pintori@link.it>
+
+	* [Build]
+	Aggiornata govpay-bom alla versione 1.1.3-SNAPSHOT.
+
+	* [Pipeline]
+	Aggiornata gestione cache OWASP: cache key basata sulla data, skip update NVD se cache fresca.
+	Aggiunto workflow notturno refresh-owasp-db.yml per mantenere la cache calda.
+	Aggiornate versioni action: checkout v6, setup-java v5, cache v5, upload/download-artifact v7.
+
 2026-04-20  Giuliano Pintori <pintori@link.it>
 
 	* [Pipeline]
