@@ -152,8 +152,9 @@ jobs:
       security-events: write
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.5"
     with:
-      matrix-property: 'be-'
+      matrix-property: ''
       fail-on-vuln: ${{ github.ref_name == 'main' || github.ref_type == 'tag' }}
+      results-file-name: osv-report.sarif
       scan-args: |-
         -r
         .
@@ -169,54 +170,60 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
-    - name: Download artifact from build job
+    # JAR — asset diretto nella release
+    - name: Download govpay-aca-batch artifact
       uses: actions/download-artifact@v7
       with:
         name: govpay-aca-batch
-        path: target/  # Assicurati che il file venga scaricato nella cartella target
+        path: jar/
 
-    - name: Download third-party-licenses artifact
+    # Report — finiranno nello ZIP
+    - name: Download third-party-licenses
       uses: actions/download-artifact@v7
       with:
         name: third-party-licenses
-        path: third-party-licenses
+        path: reports/third-party-licenses/
 
-    - name: Rename the artifact file to include the tag
+    - name: Download OSV Scanner SARIF
+      uses: actions/download-artifact@v7
+      with:
+        name: OSV Scanner SARIF file
+        path: reports/osv/
+
+    - name: Rename JAR with tag version
       run: |
-        cp target/govpay-aca-batch.jar target/govpay-aca-batch-${{ github.ref_name }}.jar  # Rinominare il file
-        cp target/site/jacoco/jacoco.xml target/jacoco.xml
+        cp jar/govpay-aca-batch.jar jar/govpay-aca-batch-${{ github.ref_name }}.jar
 
     - name: Zip SQL files
-      # Crea un file zip (target/sql.zip) contenente i file presenti in src/main/resources/sql
       run: |
         cd src/main/resources
         zip -r ../../../target/sql.zip sql
         cd ../../../
 
-    - name: Zip third-party licenses
-      # Crea un file zip (target/third-party-licenses.zip) contenente le licenze delle dipendenze
+    - name: Assemble reports ZIP
       run: |
-        if [ -d "third-party-licenses" ]; then
-          zip -r target/third-party-licenses.zip third-party-licenses
-        else
-          echo "third-party-licenses directory not found, skipping..."
-        fi
+        mkdir -p reports/owasp reports/jacoco reports/osv
 
-    - name: List files in target directory
-      run: ls -l target/
+        # OWASP e JaCoCo dall'artifact build
+        cp jar/dependency-check-report.html reports/owasp/ 2>/dev/null || true
+        cp jar/dependency-check-report.xml  reports/owasp/ 2>/dev/null || true
+        cp jar/site/jacoco/jacoco.xml       reports/jacoco/ 2>/dev/null || true
+        cp jar/jacoco-html-report.zip       reports/jacoco/ 2>/dev/null || true
+
+        # pipeline info
+        echo "Pipeline Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+          > reports/${{ github.ref_name }}_actions_run.txt
+
+        zip -r release-reports-${{ github.ref_name }}.zip reports/
+        ls -lh release-reports-${{ github.ref_name }}.zip
 
     - name: Create GitHub release
-      id: create_release
       uses: softprops/action-gh-release@v2.2.1
       with:
         files: |
-          target/govpay-aca-batch-${{ github.ref_name }}.jar
+          jar/govpay-aca-batch-${{ github.ref_name }}.jar
           target/sql.zip
-          target/jacoco.xml
-          target/jacoco-html-report.zip
-          target/dependency-check-report.html
-          target/dependency-check-report.xml
-          target/third-party-licenses.zip
+          release-reports-${{ github.ref_name }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
