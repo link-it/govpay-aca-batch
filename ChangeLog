@@ -1,3 +1,10 @@
+2026-04-23  Giuliano Pintori <pintori@link.it>
+
+	* [Pipeline]
+	Consolidamento report nella release: OWASP, JaCoCo, licenze, OSV SARIF e pipeline info
+	vengono ora assemblati in un unico release-reports-<tag>.zip.
+	Aggiunto report SARIF per OSV Scanner.
+
 2026-04-21  Giuliano Pintori <pintori@link.it>
 
 	* [Build]
