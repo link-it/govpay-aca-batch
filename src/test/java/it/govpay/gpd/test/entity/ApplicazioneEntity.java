@@ -16,7 +16,7 @@ import lombok.Setter;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
+@Entity(name = "TestApplicazioneEntity")
 @Table(name = "applicazioni")
 public class ApplicazioneEntity {
 
