@@ -1,18 +1,10 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 name: Java CI with Maven
 
 on:
   push:
     branches: [ "main" ]
     tags:
-      - '*'  # Trigger per tutti i tag
+      - '*'
   pull_request:
     branches: [ "main" ]
 
@@ -22,22 +14,26 @@ permissions:
   actions: write
 
 jobs:
-  build:
 
+  # ── Build, Test, Quality ─────────────────────────────────────────────
+  build:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v6
       with:
-        fetch-depth: 0  # Clona tutta la history Git
+        fetch-depth: 0
+
     - name: Set timezone to Europe/Rome
       run: sudo timedatectl set-timezone Europe/Rome
+
     - name: Set up JDK 21
       uses: actions/setup-java@v5
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: maven
+
     - name: Check NVD_API_KEY
       run: |
         if [ -z "$NVD_API_KEY" ]; then
@@ -47,6 +43,7 @@ jobs:
         fi
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
     - name: Check OSS_INDEX_USER
       run: |
         if [ -z "$OSS_INDEX_USER" ]; then
@@ -56,6 +53,7 @@ jobs:
         fi
       env:
         OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
+
     - name: Check OSS_INDEX_PASSWORD
       run: |
         if [ -z "$OSS_INDEX_PASSWORD" ]; then
@@ -80,7 +78,7 @@ jobs:
           ${{ runner.os }}-owasp-
 
     - name: Build with Maven
-      run: mvn clean install -P jar -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report $NOUPDATE_FLAG
+      run: mvn clean install -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report $NOUPDATE_FLAG
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
@@ -161,10 +159,57 @@ jobs:
         --lockfile
         ./pom.xml
 
+  # ── SBOM CycloneDX ───────────────────────────────────────────────────
+  sbom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >-
+      vars.DISABLE_SBOM_JOB != 'true' &&
+      (github.event_name == 'push' &&
+       (github.ref_name == 'main' || github.ref_type == 'tag' || vars.FORCE_SBOM_JOB == 'true'))
+    continue-on-error: ${{ vars.FORCE_SBOM_JOB == 'true' && github.ref_type != 'tag' && github.ref_name != 'main' }}
+    env:
+      SBOM_CYCLONEDX_PLUGIN_VERSION: '2.9.1'   # ← adegua al valore reale
+      SBOM_CYCLONEDX_SCHEMA_VERSION: '1.6'     # ← adegua al valore reale
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate SBOM (CycloneDX json + xml)
+        run: |
+          mkdir -p sbom/cyclonedx
+          echo "Generazione SBOM CycloneDX (json + xml) ..."
+          mvn org.cyclonedx:cyclonedx-maven-plugin:${SBOM_CYCLONEDX_PLUGIN_VERSION}:makeAggregateBom \
+            -DoutputDirectory=sbom/cyclonedx \
+            -DoutputName=bom.cdx \
+            -DoutputFormat=all \
+            -DschemaVersion=${SBOM_CYCLONEDX_SCHEMA_VERSION} \
+            -DskipNotDeployed=false \
+            -DincludeTestScope=false
+          ls -la sbom/cyclonedx/
+
+      - name: Upload SBOM artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom-report
+          path: sbom/
+          retention-days: 30
+
+  # ── GitHub Release (solo tag) ────────────────────────────────────────
   release:
     runs-on: ubuntu-latest
-    needs: [ build, osv-scan ]
-    if: startsWith(github.ref, 'refs/tags/')  # Esegui solo per i tag
+    needs: [ build, osv-scan, sbom ]
+    if: startsWith(github.ref, 'refs/tags/')
 
     steps:
     - name: Checkout code
@@ -190,19 +235,26 @@ jobs:
         name: OSV Scanner SARIF file
         path: reports/osv/
 
+    - name: Download SBOM
+      uses: actions/download-artifact@v7
+      with:
+        name: sbom-report
+        path: reports/sbom/
+
     - name: Rename JAR with tag version
       run: |
         cp jar/govpay-aca-batch.jar jar/govpay-aca-batch-${{ github.ref_name }}.jar
 
     - name: Zip SQL files
       run: |
+        mkdir -p target
         cd src/main/resources
         zip -r ../../../target/sql.zip sql
         cd ../../../
 
     - name: Assemble reports ZIP
       run: |
-        mkdir -p reports/owasp reports/jacoco reports/osv
+        mkdir -p reports/owasp reports/jacoco reports/osv reports/sbom
 
         # OWASP e JaCoCo dall'artifact build
         cp jar/dependency-check-report.html reports/owasp/ 2>/dev/null || true
@@ -227,6 +279,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
+  # ── Docker build & push (solo tag, dopo release) ─────────────────────
   docker:
     runs-on: ubuntu-latest
     needs: release

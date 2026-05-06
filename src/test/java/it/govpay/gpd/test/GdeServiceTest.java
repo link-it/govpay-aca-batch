@@ -1,6 +1,8 @@
 package it.govpay.gpd.test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,7 +25,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.govpay.common.configurazione.model.GdeInterfaccia;
+import it.govpay.common.configurazione.model.Giornale;
 import it.govpay.common.configurazione.service.ConfigurazioneService;
+import it.govpay.gde.client.beans.ComponenteEvento;
 import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
@@ -83,5 +90,57 @@ class GdeServiceTest {
 		org.junit.jupiter.api.Assertions.assertTrue(
 				capturedUrl != null && !capturedUrl.contains("fakehost"),
 				"La URL non deve contenere un basePath reale quando getGpdBasePath fallisce");
+	}
+
+	@Test
+	@DisplayName("getConfigurazioneComponente - componente null restituisce null")
+	void getConfigurazioneComponente_ComponenteNull() {
+		GdeInterfaccia result = ReflectionTestUtils.invokeMethod(
+				gdeService, "getConfigurazioneComponente", null, new Giornale());
+		assertNull(result);
+	}
+
+	@Test
+	@DisplayName("getConfigurazioneComponente - giornale null restituisce null")
+	void getConfigurazioneComponente_GiornaleNull() {
+		GdeInterfaccia result = ReflectionTestUtils.invokeMethod(
+				gdeService, "getConfigurazioneComponente", ComponenteEvento.API_PAGOPA, null);
+		assertNull(result);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = ComponenteEvento.class, names = {
+			"API_PAGOPA", "API_ENTE", "API_PAGAMENTO", "API_RAGIONERIA",
+			"API_BACKOFFICE", "API_PENDENZE", "API_BACKEND_IO", "API_MAGGIOLI_JPPA" })
+	@DisplayName("getConfigurazioneComponente - mappa ogni componente alla GdeInterfaccia del Giornale")
+	void getConfigurazioneComponente_MappaturaComponenti(ComponenteEvento componente) {
+		Giornale giornale = new Giornale();
+		GdeInterfaccia atteso = new GdeInterfaccia();
+		switch (componente) {
+			case API_PAGOPA -> giornale.setApiPagoPA(atteso);
+			case API_ENTE -> giornale.setApiEnte(atteso);
+			case API_PAGAMENTO -> giornale.setApiPagamento(atteso);
+			case API_RAGIONERIA -> giornale.setApiRagioneria(atteso);
+			case API_BACKOFFICE -> giornale.setApiBackoffice(atteso);
+			case API_PENDENZE -> giornale.setApiPendenze(atteso);
+			case API_BACKEND_IO -> giornale.setApiBackendIO(atteso);
+			case API_MAGGIOLI_JPPA -> giornale.setApiMaggioliJPPA(atteso);
+			default -> { /* non raggiungibile per i valori dell'EnumSource */ }
+		}
+
+		GdeInterfaccia result = ReflectionTestUtils.invokeMethod(
+				gdeService, "getConfigurazioneComponente", componente, giornale);
+
+		assertSame(atteso, result);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = ComponenteEvento.class, names = {
+			"API_SECIM", "API_MYPIVOT", "API_GOVPAY", "API_HYPERSIC_APK", "API_USER", "GOVPAY" })
+	@DisplayName("getConfigurazioneComponente - componenti non gestiti restituiscono null")
+	void getConfigurazioneComponente_DefaultBranch(ComponenteEvento componente) {
+		GdeInterfaccia result = ReflectionTestUtils.invokeMethod(
+				gdeService, "getConfigurazioneComponente", componente, new Giornale());
+		assertNull(result);
 	}
 }

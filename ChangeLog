@@ -1,3 +1,28 @@
+2026-05-05  Giuliano Pintori <pintori@link.it>
+
+	* [Build]
+	Aggiornata govpay-bom alla versione 1.1.3.
+	Aggiornata govpay-common alla versione 1.1.2.
+
+	* [GDE]
+	Implementato il nuovo metodo astratto AbstractGdeService#getConfigurazioneComponente
+	(introdotto da govpay-common 1.1.2) per risolvere la GdeInterfaccia per ComponenteEvento
+	dal Giornale di configurazione.
+
+	* [Test]
+	Rinominata l'entity name del test ApplicazioneEntity in "TestApplicazioneEntity" per
+	evitare la collisione con la nuova it.govpay.common.entity.ApplicazioneEntity introdotta
+	da govpay-common 1.1.2.
+
+	* [Pipeline]
+	Aggiunto job SBOM CycloneDX (json + xml) tramite cyclonedx-maven-plugin 2.9.1, schema 1.6.
+	L'SBOM viene pubblicato come artifact (sbom-report) e incluso nello ZIP dei report di release.
+	Il job e' disattivabile con vars.DISABLE_SBOM_JOB e forzabile con vars.FORCE_SBOM_JOB.
+	Allineata la pipeline alla struttura di govpay-fdr-batch (rimosso -P jar dal build, profilo
+	jar resta attivo by default; aggiunti separatori di sezione nel workflow).
+	Aggiunto mkdir -p target prima della creazione di sql.zip per evitare il fallimento dello
+	step sul runner di release (dove non viene eseguito mvn install).
+
 2026-04-23  Giuliano Pintori <pintori@link.it>
 
 	* [Pipeline]
