@@ -1,3 +1,19 @@
+2026-05-12  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 1.2.2
+
+2026-05-12  Giuliano Pintori <pintori@link.it>
+
+	* [Logging]
+	Issue #41
+	Rimosso src/main/resources/logback.xml dal classpath: la configurazione di logging
+	viene ora demandata al runtime (variabili d'ambiente come LOGGING_LEVEL_*, profili
+	dedicati, configurazione esterna). Il file conteneva inoltre attributi/elementi
+	di Log4j2 (configuration status/monitorInterval, tag <Property>) silenziosamente
+	ignorati da Logback.
+	I livelli di default per il profilo dev sono stati spostati su
+	application-dev.properties tramite proprieta' logging.level.*.
+
 2026-05-05  Giuliano Pintori <pintori@link.it>
 
 	* [Build]
