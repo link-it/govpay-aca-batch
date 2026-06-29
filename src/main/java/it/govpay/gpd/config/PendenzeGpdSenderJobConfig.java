@@ -16,13 +16,13 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.ItemProcessListener;
-import org.springframework.batch.core.ItemReadListener;
-import org.springframework.batch.core.ItemWriteListener;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.listener.ItemProcessListener;
+import org.springframework.batch.core.listener.ItemReadListener;
+import org.springframework.batch.core.listener.ItemWriteListener;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.step.StepExecution;
+import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
@@ -30,8 +30,8 @@ import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.integration.async.AsyncItemProcessor;
 import org.springframework.batch.integration.async.AsyncItemWriter;
-import org.springframework.batch.item.Chunk;
-import org.springframework.batch.item.database.JdbcCursorItemReader;
+import org.springframework.batch.infrastructure.item.Chunk;
+import org.springframework.batch.infrastructure.item.database.JdbcCursorItemReader;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -78,15 +78,13 @@ public class PendenzeGpdSenderJobConfig {
 	}
 
 	protected AsyncItemProcessor<VersamentoGpdEntity,VersamentoGpdEntity> asyncProcessor(SendPendenzaToGpdProcessor itemProcessor) {
-		AsyncItemProcessor<VersamentoGpdEntity, VersamentoGpdEntity> asyncItemProcessor = new AsyncItemProcessor<>();
+		AsyncItemProcessor<VersamentoGpdEntity, VersamentoGpdEntity> asyncItemProcessor = new AsyncItemProcessor<>(itemProcessor);
 		asyncItemProcessor.setTaskExecutor(taskExecutor());
-		asyncItemProcessor.setDelegate(itemProcessor);
 		return asyncItemProcessor;
 	}
 
 	protected AsyncItemWriter<VersamentoGpdEntity> asyncMessageWriter(PendenzaWriter pendenzaItemWriter){
-		AsyncItemWriter<VersamentoGpdEntity> asyncItemWriter = new AsyncItemWriter<>();
-		asyncItemWriter.setDelegate(pendenzaItemWriter);
+		AsyncItemWriter<VersamentoGpdEntity> asyncItemWriter = new AsyncItemWriter<>(pendenzaItemWriter);
 		return asyncItemWriter;
 	}
 
@@ -94,15 +92,8 @@ public class PendenzeGpdSenderJobConfig {
 	@StepScope
 	public JdbcCursorItemReader<VersamentoGpdEntity> jdbcCursorItemReader(DataSource dataSource) {
 
-		JdbcCursorItemReader<VersamentoGpdEntity> reader = new JdbcCursorItemReader<>();
-		reader.setDataSource(dataSource);
-
 		logger.debug("Le pendenze da spedire verranno scelte con la seguente query: {}", Costanti.QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA);
 
-		// Imposta la query SQL        
-		reader.setSql(Costanti.QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA);
-
-		
 		GenericConversionService cs = new DefaultConversionService();
 		cs.addConverter(Timestamp.class, OffsetDateTime.class, ts -> {
 		    if (ts == null) {
@@ -111,11 +102,13 @@ public class PendenzeGpdSenderJobConfig {
 		    return ts.toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime();
 		});
 
-		
 		// Imposta il RowMapper per convertire il ResultSet in oggetti VersamentoGpdEntity
 		LoggingBeanPropertyRowMapper<VersamentoGpdEntity> rowMapper = new LoggingBeanPropertyRowMapper<>(VersamentoGpdEntity.class);
 		rowMapper.setConversionService(cs);
-		reader.setRowMapper(rowMapper);
+
+		// In Spring Batch 6 JdbcCursorItemReader non ha piu' il costruttore vuoto:
+		// dataSource, query e rowMapper vanno passati al costruttore.
+		JdbcCursorItemReader<VersamentoGpdEntity> reader = new JdbcCursorItemReader<>(dataSource, Costanti.QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA, rowMapper);
 
 		// Imposta un PreparedStatementSetter per passare i parametri alla query.
 		// In questo esempio, impostiamo la data limite come (oggi - numeroGiorni)
@@ -157,7 +150,7 @@ public class PendenzeGpdSenderJobConfig {
 				.build();
 	}
 
-	public class ChunkListener implements org.springframework.batch.core.ChunkListener {
+	public class ChunkListener implements org.springframework.batch.core.listener.ChunkListener {
 
 		@Override
 		public void beforeChunk(ChunkContext context) {

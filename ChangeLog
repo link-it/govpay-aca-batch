@@ -1,3 +1,34 @@
+2026-06-29  Giuliano Pintori <pintori@link.it>
+
+	* [Build]
+	Migrazione a Spring Boot 4.x / Spring Framework 7.x (Spring Batch 6). Avanzamento versione a 2.0.0-SNAPSHOT.
+	Aggiornati govpay-bom (1.1.3 -> 2.0.0-SNAPSHOT) e govpay-common (1.1.2 -> 2.0.0-SNAPSHOT), allineati alla milestone 2.0.0.
+
+	* [Batch]
+	Adattamenti al codice per Spring Batch 6 / Spring Boot 4:
+	- nuovi package batch (.job, .step, .listener, .infrastructure.item) per Job, Step, JobExecution,
+	  StepExecution, i listener, Chunk, ItemReader/Processor/Writer e JdbcCursorItemReader;
+	- JobParametersInvalidException -> InvalidJobParametersException (package .job.parameters);
+	  eccezioni di lancio spostate in .launch;
+	- rimosso JobExplorer (soppresso in Batch 6): BatchController, BatchInfraConfig e
+	  PreventConcurrentJobLauncher usano ora JobRepository (findRunningJobExecutions/getJobInstances/getJobExecutions);
+	- JobConcurrencyService di govpay-common 2.0 iniettato col solo JobRepository;
+	- passaggio da JobLauncher a JobOperator (jobOperator.start) nei runner cron/schedulato e in JobExecutionHelper;
+	- JobParameters/JobParameter ora record: getParameter(...).value() al posto di getParameters().get(...).getValue();
+	- JdbcCursorItemReader e AsyncItemProcessor/AsyncItemWriter privi del costruttore vuoto: delega e
+	  dataSource/query/rowMapper passati al costruttore.
+
+	* [GDE]
+	GdeService e GdeUtils passati a tools.jackson.databind.ObjectMapper (Jackson 3), coerenti con
+	AbstractGdeService di govpay-common 2.0; gestione dell'eccezione di serializzazione su tools.jackson.core.JacksonException.
+
+	* [Config]
+	@EntityScan spostato in org.springframework.boot.persistence.autoconfigure.
+
+	* [Test]
+	Aggiornati import e costruzione di JobExecution/JobInstance ai nuovi package e firme di Spring Batch 6;
+	mock di JobOperator/JobRepository al posto di JobLauncher/JobExplorer.
+
 2026-05-12  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 1.2.2

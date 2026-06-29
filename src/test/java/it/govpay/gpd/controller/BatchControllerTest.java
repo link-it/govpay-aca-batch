@@ -24,12 +24,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobInstance;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.JobInstance;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,7 +52,7 @@ class BatchControllerTest {
     private JobConcurrencyService jobConcurrencyService;
 
     @Mock
-    private JobExplorer jobExplorer;
+    private JobRepository jobRepository;
 
     @Mock
     private Job pendenzaSenderJob;
@@ -73,7 +73,7 @@ class BatchControllerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(jobExecutionHelper.getJobConcurrencyService()).thenReturn(jobConcurrencyService);
-        batchController = new BatchController(jobExecutionHelper, jobExplorer, pendenzaSenderJob,
+        batchController = new BatchController(jobExecutionHelper, jobRepository, pendenzaSenderJob,
                 connettoreService, environment, ZONE_ID, SCHEDULER_INTERVAL_MILLIS);
     }
 
@@ -82,7 +82,7 @@ class BatchControllerTest {
         JobParameters params = new JobParametersBuilder()
                 .addString(JobConcurrencyService.JOB_PARAM_CLUSTER_ID, clusterId)
                 .toJobParameters();
-        JobExecution execution = new JobExecution(jobInstance, 1L, params);
+        JobExecution execution = new JobExecution(1L, jobInstance, params);
         execution.setStatus(status);
         execution.setStartTime(LocalDateTime.now().minusMinutes(5));
         execution.setLastUpdated(LocalDateTime.now());
@@ -298,7 +298,7 @@ class BatchControllerTest {
 
     @Test
     void whenGetLastExecution_andNoExecutions_thenReturnsEmptyInfo() {
-        when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
+        when(jobRepository.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
                 .thenReturn(Collections.emptyList());
 
         ResponseEntity<LastExecutionInfo> response = batchController.getLastExecutionEndpoint();
@@ -314,9 +314,9 @@ class BatchControllerTest {
         JobExecution completedExecution = createJobExecution(CLUSTER_ID, BatchStatus.COMPLETED);
         completedExecution.setEndTime(LocalDateTime.now());
 
-        when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
+        when(jobRepository.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
                 .thenReturn(List.of(jobInstance));
-        when(jobExplorer.getJobExecutions(jobInstance))
+        when(jobRepository.getJobExecutions(jobInstance))
                 .thenReturn(List.of(completedExecution));
         when(jobConcurrencyService.getClusterIdFromExecution(completedExecution))
                 .thenReturn(CLUSTER_ID);
@@ -336,9 +336,9 @@ class BatchControllerTest {
         JobInstance jobInstance = new JobInstance(1L, Costanti.SEND_PENDENZE_GPD_JOBNAME);
         JobExecution runningExecution = createJobExecution(CLUSTER_ID, BatchStatus.STARTED);
 
-        when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
+        when(jobRepository.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 10))
                 .thenReturn(List.of(jobInstance));
-        when(jobExplorer.getJobExecutions(jobInstance))
+        when(jobRepository.getJobExecutions(jobInstance))
                 .thenReturn(List.of(runningExecution));
 
         ResponseEntity<LastExecutionInfo> response = batchController.getLastExecutionEndpoint();
@@ -366,7 +366,7 @@ class BatchControllerTest {
     @Test
     void whenGetNextExecution_andSchedulerMode_andNoExecutions_thenReturnsImmediateExecution() {
         when(environment.matchesProfiles("cron")).thenReturn(false);
-        when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
+        when(jobRepository.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
                 .thenReturn(Collections.emptyList());
 
         ResponseEntity<NextExecutionInfo> response = batchController.getNextExecutionEndpoint();
@@ -386,9 +386,9 @@ class BatchControllerTest {
         completedExecution.setEndTime(LocalDateTime.now().minusMinutes(5));
 
         when(environment.matchesProfiles("cron")).thenReturn(false);
-        when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
+        when(jobRepository.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
                 .thenReturn(List.of(jobInstance));
-        when(jobExplorer.getJobExecutions(jobInstance))
+        when(jobRepository.getJobExecutions(jobInstance))
                 .thenReturn(List.of(completedExecution));
 
         ResponseEntity<NextExecutionInfo> response = batchController.getNextExecutionEndpoint();
@@ -410,9 +410,9 @@ class BatchControllerTest {
         JobExecution runningExecution = createJobExecution(CLUSTER_ID, BatchStatus.STARTED);
 
         when(environment.matchesProfiles("cron")).thenReturn(false);
-        when(jobExplorer.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
+        when(jobRepository.getJobInstances(Costanti.SEND_PENDENZE_GPD_JOBNAME, 0, 5))
                 .thenReturn(List.of(jobInstance));
-        when(jobExplorer.getJobExecutions(jobInstance))
+        when(jobRepository.getJobExecutions(jobInstance))
                 .thenReturn(List.of(completedExecution));
         when(jobConcurrencyService.getCurrentRunningJobExecution(Costanti.SEND_PENDENZE_GPD_JOBNAME))
                 .thenReturn(runningExecution);
