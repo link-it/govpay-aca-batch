@@ -101,9 +101,10 @@ jobs:
         mvn dependency:copy-dependencies -DoutputDirectory=target/dependency
 
     - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@v2
+      uses: SonarSource/sonarqube-scan-action@v5
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: https://sonarcloud.io
       with:
         args: >
           -Dsonar.projectKey=link-it_govpay-aca-batch
