@@ -4,11 +4,11 @@ import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
 import java.util.TimeZone;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.cfg.EnumFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.utils.OffsetDateTimeDeserializer;
@@ -21,18 +21,18 @@ public class ObjectMapperUtils {
 		SimpleDateFormat sdf = new SimpleDateFormat(Costanti.PATTERN_TIMESTAMP_3_YYYY_MM_DD_T_HH_MM_SS_SSSXXX);
 		sdf.setTimeZone(TimeZone.getTimeZone("Europe/Rome"));
 		sdf.setLenient(false);
-		
-		ObjectMapper mapper = JsonMapper.builder().build();
-		JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addSerializer(OffsetDateTime.class, new OffsetDateTimeSerializer());
-        javaTimeModule.addDeserializer(OffsetDateTime.class, new OffsetDateTimeDeserializer());
-        mapper.registerModule(javaTimeModule);
-		mapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		mapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
-		mapper.enable(SerializationFeature.WRITE_DATES_WITH_ZONE_ID); 
-		mapper.setDateFormat(sdf);
-		
-		return mapper;
+
+		SimpleModule javaTimeModule = new SimpleModule();
+		javaTimeModule.addSerializer(OffsetDateTime.class, new OffsetDateTimeSerializer());
+		javaTimeModule.addDeserializer(OffsetDateTime.class, new OffsetDateTimeDeserializer());
+
+		return JsonMapper.builder()
+				.addModule(javaTimeModule)
+				.enable(EnumFeature.READ_ENUMS_USING_TO_STRING)
+				.enable(EnumFeature.WRITE_ENUMS_USING_TO_STRING)
+				.enable(DateTimeFeature.WRITE_DATES_WITH_ZONE_ID)
+				.disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+				.defaultDateFormat(sdf)
+				.build();
 	}
 }

@@ -1,3 +1,27 @@
+2026-07-11  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 2.0.0
+
+	* [Build]
+	Consolidate a release le versioni della milestone 2.0.0: govpay-common (2.0.0-SNAPSHOT -> 2.0.0)
+	e versione del progetto (2.0.0-SNAPSHOT -> 2.0.0). Parent govpay-bom aggiornato a 2.0.1.
+
+	* [Jackson]
+	Migrazione completa a Jackson 3 (tools.jackson) con rimozione di Jackson 2 dal classpath.
+	- Client GPD generato via OpenAPI con useJackson3=true, useSpringBoot4=true e openApiNullable=false:
+	  il databind generato usa tools.jackson (restano solo le annotazioni com.fasterxml.jackson.annotation,
+	  condivise e richieste anche da Jackson 3).
+	- OffsetDateTimeSerializer/Deserializer portati alle API Jackson 3 (StdScalarSerializer/StdScalarDeserializer,
+	  SerializationContext, currentToken()/getString()).
+	- RestTemplateConfig, WebConfig e ObjectMapperUtils (test) ricostruiti via JsonMapper.builder()
+	  (feature enum spostate in EnumFeature, feature date in DateTimeFeature).
+	- GpdApiService: MappingJackson2HttpMessageConverter -> JacksonJsonHttpMessageConverter (Spring 7 / Jackson 3).
+	- EventoGdpMapper, SendPendenzaToGpdProcessor e PaymentPositionModelRequestMapper su tools.jackson.databind.ObjectMapper;
+	  gli errori di (de)serializzazione, ora unchecked (JacksonException), riportati a IOException dove serviva.
+	- WebConfig espone il bean 'gpdObjectMapper' (iniettato con @Qualifier) mentre GdeService continua a usare
+	  l'ObjectMapper autoconfigurato (@Primary), preservando la semantica precedente.
+	- Rimosse le dipendenze jackson-datatype-jsr310 e org.openapitools:jackson-databind-nullable.
+
 2026-06-29  Giuliano Pintori <pintori@link.it>
 
 	* [Build]

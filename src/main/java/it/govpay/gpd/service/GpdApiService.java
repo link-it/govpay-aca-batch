@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -55,9 +55,9 @@ public class GpdApiService {
 		return gpdApiCache.computeIfAbsent(codConnettore, code -> {
 			RestTemplate restTemplate = connettoreService.getRestTemplate(code);
 
-			MappingJackson2HttpMessageConverter converter =
-				new MappingJackson2HttpMessageConverter(RestTemplateConfig.createObjectMapper());
-			restTemplate.getMessageConverters().removeIf(MappingJackson2HttpMessageConverter.class::isInstance);
+			JacksonJsonHttpMessageConverter converter =
+				new JacksonJsonHttpMessageConverter(RestTemplateConfig.createObjectMapper());
+			restTemplate.getMessageConverters().removeIf(JacksonJsonHttpMessageConverter.class::isInstance);
 			restTemplate.getMessageConverters().add(0, converter);
 
 			Connettore connettore = connettoreService.getConnettore(code);
@@ -74,9 +74,9 @@ public class GpdApiService {
 		return gpdActionsApiCache.computeIfAbsent(codConnettore, code -> {
 			RestTemplate restTemplate = connettoreService.getRestTemplate(code);
 
-			MappingJackson2HttpMessageConverter converter =
-				new MappingJackson2HttpMessageConverter(RestTemplateConfig.createObjectMapper());
-			restTemplate.getMessageConverters().removeIf(MappingJackson2HttpMessageConverter.class::isInstance);
+			JacksonJsonHttpMessageConverter converter =
+				new JacksonJsonHttpMessageConverter(RestTemplateConfig.createObjectMapper());
+			restTemplate.getMessageConverters().removeIf(JacksonJsonHttpMessageConverter.class::isInstance);
 			restTemplate.getMessageConverters().add(0, converter);
 
 			Connettore connettore = connettoreService.getConnettore(code);

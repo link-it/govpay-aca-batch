@@ -6,7 +6,8 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
+import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.entity.SingoloVersamentoGpdEntity;
 import it.govpay.gpd.repository.SingoloVersamentoFilters;
@@ -70,6 +71,7 @@ public abstract class UC_00_BaseTest {
 	
 	// object mapper
 	@Autowired
+	@Qualifier("gpdObjectMapper")
 	ObjectMapper objectMapper;
 	
 	public VersamentoFullEntity creaVersamentoNonEseguito() {

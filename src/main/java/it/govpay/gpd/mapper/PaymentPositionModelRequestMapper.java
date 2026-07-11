@@ -13,7 +13,8 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.client.beans.PaymentOptionMetadataModel;
 import it.govpay.gpd.client.beans.PaymentOptionModel;
@@ -335,7 +336,14 @@ public abstract class PaymentPositionModelRequestMapper {
 	}
 
 	public List<TransferMetadataModel> getTransferMetadata(String metadataString) throws IOException {
-		Metadata metadata = this.objectMapper.readValue(metadataString.getBytes(), Metadata.class);
+		Metadata metadata;
+		try {
+			metadata = this.objectMapper.readValue(metadataString.getBytes(), Metadata.class);
+		} catch (JacksonException e) {
+			// In Jackson 3 gli errori di (de)serializzazione sono unchecked: li riporto a
+			// IOException per preservare la gestione esistente nel processor.
+			throw new IOException(e);
+		}
 
 		if(metadata != null) {
 			List<MapEntry> value = metadata.getValue();

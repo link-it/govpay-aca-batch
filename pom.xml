@@ -6,12 +6,12 @@
 	<parent>
 		<groupId>org.gov4j.govpay</groupId>
 		<artifactId>govpay-bom</artifactId>
-		<version>2.0.0-SNAPSHOT</version>
+		<version>2.0.1</version>
 		<relativePath>../govpay-bom</relativePath>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
 	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
-	<version>2.0.0-SNAPSHOT</version>
+	<version>2.0.0</version>
 	<packaging>${packaging.type}</packaging>
 	<name>GovPay - Batch - Caricamento Posizioni Debitorie</name>
 	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
@@ -84,7 +84,7 @@
 		<dependency>
 			<groupId>org.gov4j.govpay</groupId>
 			<artifactId>govpay-common</artifactId>
-			<version>2.0.0-SNAPSHOT</version>
+			<version>2.0.0</version>
 		</dependency>
 
 		<dependency>
@@ -172,19 +172,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.openapitools</groupId>
-			<artifactId>jackson-databind-nullable</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
 			<artifactId>jsr305</artifactId>
 			<version>${jsr305.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
 
 		<dependency>
@@ -319,6 +309,9 @@
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
 								<useJakartaEe>true</useJakartaEe>
+								<useSpringBoot4>true</useSpringBoot4>
+								<useJackson3>true</useJackson3>
+								<openApiNullable>false</openApiNullable>
 							</configOptions>
 							<output>${project.basedir}/target</output>
 							<generateApiTests>false</generateApiTests>

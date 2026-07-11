@@ -9,8 +9,8 @@ import java.util.Random;
 
 import org.springframework.data.jpa.domain.Specification;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.entity.MapEntry;
 import it.govpay.gpd.entity.Metadata;
@@ -350,7 +350,7 @@ public class VersamentoUtils {
 		
 		try {
 			singoloVersamentoFullEntity.setMetadata(objectMapper.writeValueAsString(metadata));
-		} catch (JsonProcessingException e) {
+		} catch (JacksonException e) {
 			//donothing
 		}
 	}
