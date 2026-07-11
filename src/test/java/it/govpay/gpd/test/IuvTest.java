@@ -13,8 +13,8 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
+import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
@@ -27,6 +27,7 @@ import it.govpay.gpd.utils.IuvUtils;
 class IuvTest extends UC_00_BaseTest {
 
 	@Autowired
+	@Qualifier("gpdObjectMapper")
 	ObjectMapper objectMapper;
 
 	@Test
@@ -43,7 +44,7 @@ class IuvTest extends UC_00_BaseTest {
 	}
 
 	@Test
-	void TC_01_ObjectMapper() throws JsonProcessingException {
+	void TC_01_ObjectMapper() throws Exception {
 		try {
 
 			assertNotNull(objectMapper);

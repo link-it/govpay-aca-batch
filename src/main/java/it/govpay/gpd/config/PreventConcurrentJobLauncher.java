@@ -3,15 +3,13 @@ package it.govpay.gpd.config;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameter;
-import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.parameters.JobParameter;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,15 +21,12 @@ public class PreventConcurrentJobLauncher {
 
 	private static final Logger log = LoggerFactory.getLogger(PreventConcurrentJobLauncher.class);
 
-    private JobExplorer jobExplorer;
-
     private JobRepository jobRepository;
 
     @Value("${it.govpay.gpd.batch.stale-threshold-minutes:120}")
     private int staleThresholdMinutes;
 
-    public PreventConcurrentJobLauncher(JobExplorer jobExplorer, JobRepository jobRepository) {
-    	this.jobExplorer = jobExplorer;
+    public PreventConcurrentJobLauncher(JobRepository jobRepository) {
     	this.jobRepository = jobRepository;
 	}
 
@@ -41,7 +36,7 @@ public class PreventConcurrentJobLauncher {
      * @return l'esecuzione corrente del job oppure null se non ce ne sono
      */
     public JobExecution getCurrentRunningJobExecution(String jobName) {
-        Set<JobExecution> runningJobs = jobExplorer.findRunningJobExecutions(jobName);
+        Set<JobExecution> runningJobs = jobRepository.findRunningJobExecutions(jobName);
         if (!runningJobs.isEmpty()) {
             List<JobExecution> list = runningJobs.stream().toList();
 
@@ -206,9 +201,9 @@ public class PreventConcurrentJobLauncher {
         if (jobExecution == null) {
             return null;
         }
-        Map<String, JobParameter<?>> params = jobExecution.getJobParameters().getParameters();
-        if (params.containsKey(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID)) {
-            return params.get(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID).getValue().toString();
+        JobParameter<?> clusterIdParam = jobExecution.getJobParameters().getParameter(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID);
+        if (clusterIdParam != null) {
+            return clusterIdParam.value().toString();
         }
         return null;
     }

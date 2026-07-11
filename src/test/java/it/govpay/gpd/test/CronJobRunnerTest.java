@@ -18,13 +18,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobInstance;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.JobInstance;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -36,11 +35,10 @@ import it.govpay.gpd.costanti.Costanti;
 class CronJobRunnerTest {
 
     @Mock
-    private JobLauncher jobLauncher;
+    private JobOperator jobOperator;
     @Mock
     private PreventConcurrentJobLauncher preventConcurrentJobLauncher;
-    @Mock
-    private JobExplorer jobExplorer;
+
     @Mock
     private JobRepository jobRepository;
     @Mock
@@ -56,7 +54,7 @@ class CronJobRunnerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        runner = new CronJobRunner(jobLauncher, preventConcurrentJobLauncher, pendenzaSenderJob);
+        runner = new CronJobRunner(jobOperator, preventConcurrentJobLauncher, pendenzaSenderJob);
         // inietta il context
         runner.setApplicationContext(applicationContext);
         // valore di clusterId di default
@@ -66,7 +64,7 @@ class CronJobRunnerTest {
 
     @Test
     void testConstructor() {
-        CronJobRunner cronJobRunner = new CronJobRunner(jobLauncher, preventConcurrentJobLauncher, pendenzaSenderJob);
+        CronJobRunner cronJobRunner = new CronJobRunner(jobOperator, preventConcurrentJobLauncher, pendenzaSenderJob);
         assertNotNull(cronJobRunner);
     }
 
@@ -83,19 +81,19 @@ class CronJobRunnerTest {
         JobParameters params = new JobParametersBuilder()
             .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, clusterIdValue)
             .toJobParameters();
-        return new JobExecution(jobinstance, 1L, params);
+        return new JobExecution(1L, jobinstance, params);
     }
 
-    // I test che chiamano runner.run() sono stati rimossi perché
+    // I test che chiamano runner.start() sono stati rimossi perché
     // il metodo run() chiama System.exit() che termina la JVM.
     // La logica di CronJobRunner è identica a ScheduledJobRunner
     // che ha coverage 100%.
 
     @Test
     void whenNoJobRunning_thenPreventConcurrentJobLauncherReturnsNull() {
-    	when(jobExplorer.findRunningJobExecutions(JOB_NAME))
+    	when(jobRepository.findRunningJobExecutions(JOB_NAME))
             .thenReturn(new HashSet<>());
-    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobExplorer, jobRepository);
+    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobRepository);
 
     	JobExecution currentRunningJobExecution = preventConcurrentJobLauncher2.getCurrentRunningJobExecution(JOB_NAME);
 
@@ -107,9 +105,9 @@ class CronJobRunnerTest {
     	Set<JobExecution> set = new HashSet<>();
     	set.add(mkExecutionWithCluster("OtherNode"));
 
-    	when(jobExplorer.findRunningJobExecutions(JOB_NAME))
+    	when(jobRepository.findRunningJobExecutions(JOB_NAME))
             .thenReturn(set);
-    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobExplorer, jobRepository);
+    	PreventConcurrentJobLauncher preventConcurrentJobLauncher2 = new PreventConcurrentJobLauncher(jobRepository);
 
     	JobExecution currentRunningJobExecution = preventConcurrentJobLauncher2.getCurrentRunningJobExecution(JOB_NAME);
 
@@ -125,14 +123,14 @@ class CronJobRunnerTest {
 
         when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
             .thenReturn(true);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
-            .thenReturn(new JobExecution(2L));
+        when(jobOperator.start(eq(pendenzaSenderJob), any(JobParameters.class)))
+            .thenReturn(new JobExecution(2L, new JobInstance(2L, JOB_NAME), new JobParametersBuilder().toJobParameters()));
 
         boolean result = runner.checkAbandonedJobStale(staleExecution);
 
         assertTrue(result);
         verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
-        verify(jobLauncher).run(eq(pendenzaSenderJob), any(JobParameters.class));
+        verify(jobOperator).start(eq(pendenzaSenderJob), any(JobParameters.class));
     }
 
     @Test
@@ -146,7 +144,7 @@ class CronJobRunnerTest {
 
         assertFalse(result);
         verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
-        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+        verify(jobOperator, never()).start(any(), any(JobParameters.class));
     }
 }
 

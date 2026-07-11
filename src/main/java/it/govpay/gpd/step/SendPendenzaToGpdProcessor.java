@@ -7,7 +7,8 @@ import java.time.OffsetDateTime;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.infrastructure.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
@@ -56,7 +57,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 	public SendPendenzaToGpdProcessor(PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl,
 			GpdApiService gpdApiService, GdeService gdeService,
-			ObjectMapper objectMapper, SingoloVersamentoGpdRepository singoloVersamentoGpdRepository) {
+			@Qualifier("gpdObjectMapper") ObjectMapper objectMapper, SingoloVersamentoGpdRepository singoloVersamentoGpdRepository) {
 		this.paymentPositionModelRequestMapperImpl = paymentPositionModelRequestMapperImpl;
 		this.paymentPositionModelRequestMapperImpl.setObjectMapper(objectMapper);
 		this.paymentPositionModelRequestMapperImpl.setSingoloVersamentoGpdRepository(singoloVersamentoGpdRepository);

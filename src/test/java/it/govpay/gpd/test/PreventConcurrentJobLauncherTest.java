@@ -18,12 +18,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobInstance;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.JobInstance;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -32,8 +31,7 @@ import it.govpay.gpd.costanti.Costanti;
 
 class PreventConcurrentJobLauncherTest {
 
-    @Mock
-    private JobExplorer jobExplorer;
+
     @Mock
     private JobRepository jobRepository;
 
@@ -44,7 +42,7 @@ class PreventConcurrentJobLauncherTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        preventConcurrentJobLauncher = new PreventConcurrentJobLauncher(jobExplorer, jobRepository);
+        preventConcurrentJobLauncher = new PreventConcurrentJobLauncher(jobRepository);
         // Imposta la soglia di inattività a 120 minuti (come da configurazione di default)
         ReflectionTestUtils.setField(preventConcurrentJobLauncher, "staleThresholdMinutes", 120);
     }
@@ -55,7 +53,7 @@ class PreventConcurrentJobLauncherTest {
         JobParameters params = new JobParametersBuilder()
             .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, clusterIdValue)
             .toJobParameters();
-        return new JobExecution(jobinstance, 1L, params);
+        return new JobExecution(1L, jobinstance, params);
     }
 
     private JobExecution mkExecutionWithClusterAndStatus(String clusterIdValue, BatchStatus status, LocalDateTime lastUpdated) {
@@ -64,7 +62,7 @@ class PreventConcurrentJobLauncherTest {
         JobParameters params = new JobParametersBuilder()
             .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, clusterIdValue)
             .toJobParameters();
-        JobExecution execution = new JobExecution(jobinstance, 1L, params);
+        JobExecution execution = new JobExecution(1L, jobinstance, params);
         execution.setStatus(status);
         execution.setStartTime(LocalDateTime.now());
         execution.setLastUpdated(lastUpdated);
@@ -74,7 +72,7 @@ class PreventConcurrentJobLauncherTest {
     private JobExecution mkExecutionWithoutClusterId() {
     	JobInstance jobinstance = new JobInstance(1L, JOB_NAME);
         JobParameters params = new JobParametersBuilder().toJobParameters();
-        return new JobExecution(jobinstance, 1L, params);
+        return new JobExecution(1L, jobinstance, params);
     }
 
     // ============ Test getCurrentRunningJobExecution ============
@@ -84,7 +82,7 @@ class PreventConcurrentJobLauncherTest {
         Set<JobExecution> set = new HashSet<>();
         set.add(mkExecutionWithCluster("OtherNode"));
 
-        when(jobExplorer.findRunningJobExecutions(JOB_NAME)).thenReturn(set);
+        when(jobRepository.findRunningJobExecutions(JOB_NAME)).thenReturn(set);
 
         JobExecution currentRunningJobExecution = preventConcurrentJobLauncher.getCurrentRunningJobExecution(JOB_NAME);
 
@@ -97,7 +95,7 @@ class PreventConcurrentJobLauncherTest {
         Set<JobExecution> set = new HashSet<>();
         set.add(mkExecutionWithCluster("GovPay-ACA-Batch"));
 
-        when(jobExplorer.findRunningJobExecutions(JOB_NAME)).thenReturn(set);
+        when(jobRepository.findRunningJobExecutions(JOB_NAME)).thenReturn(set);
 
         JobExecution currentRunningJobExecution = preventConcurrentJobLauncher.getCurrentRunningJobExecution(JOB_NAME);
 
@@ -107,7 +105,7 @@ class PreventConcurrentJobLauncherTest {
 
     @Test
     void whenNoJobRunning_thenReturnsNull() {
-    	when(jobExplorer.findRunningJobExecutions(JOB_NAME)).thenReturn(new HashSet<>());
+    	when(jobRepository.findRunningJobExecutions(JOB_NAME)).thenReturn(new HashSet<>());
 
     	JobExecution currentRunningJobExecution = preventConcurrentJobLauncher.getCurrentRunningJobExecution(JOB_NAME);
 

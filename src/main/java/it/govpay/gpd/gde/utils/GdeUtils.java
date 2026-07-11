@@ -12,8 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gde.client.beans.DettaglioRichiesta;
 import it.govpay.gde.client.beans.DettaglioRisposta;
@@ -119,7 +119,7 @@ public class GdeUtils {
 	public static String writeValueAsString(ObjectMapper objectMapper, Object obj) {
 		try {
 			return objectMapper.writeValueAsString(obj);
-		} catch (JsonProcessingException e) {
+		} catch (JacksonException e) {
 			return Costanti.MSG_PAYLOAD_NON_SERIALIZZABILE;
 		}
 	}

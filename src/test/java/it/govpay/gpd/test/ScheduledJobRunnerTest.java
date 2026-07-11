@@ -14,11 +14,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.job.Job;
+import org.springframework.batch.core.job.JobExecution;
+import org.springframework.batch.core.job.JobInstance;
+import org.springframework.batch.core.job.parameters.JobParameters;
+import org.springframework.batch.core.job.parameters.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import it.govpay.gpd.config.PreventConcurrentJobLauncher;
@@ -28,7 +29,7 @@ import it.govpay.gpd.costanti.Costanti;
 class ScheduledJobRunnerTest {
 
     @Mock
-    private JobLauncher jobLauncher;
+    private JobOperator jobOperator;
     @Mock
     private PreventConcurrentJobLauncher preventConcurrentJobLauncher;
     @Mock
@@ -46,7 +47,7 @@ class ScheduledJobRunnerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         // Creo il runner con i mock
-        runner = new ScheduledJobRunner(jobLauncher, preventConcurrentJobLauncher, pendenzaSenderJob);
+        runner = new ScheduledJobRunner(jobOperator, preventConcurrentJobLauncher, pendenzaSenderJob);
         // Inietto il valore di clusterId (in produzione lo fa Spring via @Value)
         ReflectionTestUtils.setField(runner, "clusterId", CLUSTER_ID);
     }
@@ -55,7 +56,7 @@ class ScheduledJobRunnerTest {
         JobParameters params = new JobParametersBuilder()
             .addString(Costanti.GOVPAY_GPD_JOB_PARAMETER_CLUSTER_ID, cluster)
             .toJobParameters();
-        return new JobExecution(1L, params);
+        return new JobExecution(1L, new JobInstance(1L, JOB_NAME), params);
     }
 
     @Test
@@ -70,7 +71,7 @@ class ScheduledJobRunnerTest {
 
         runner.runBatchPendenzeJob();
 
-        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+        verify(jobOperator, never()).start(any(), any(JobParameters.class));
     }
 
     @Test
@@ -85,7 +86,7 @@ class ScheduledJobRunnerTest {
 
         runner.runBatchPendenzeJob();
 
-        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+        verify(jobOperator, never()).start(any(), any(JobParameters.class));
     }
 
     @Test
@@ -93,13 +94,13 @@ class ScheduledJobRunnerTest {
         when(preventConcurrentJobLauncher.getCurrentRunningJobExecution(JOB_NAME))
             .thenReturn(null);
 
-        JobExecution launched = new JobExecution(2L);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        JobExecution launched = new JobExecution(2L, new JobInstance(2L, JOB_NAME), new JobParametersBuilder().toJobParameters());
+        when(jobOperator.start(eq(pendenzaSenderJob), any(JobParameters.class)))
             .thenReturn(launched);
 
         runner.runBatchPendenzeJob();
 
-        verify(jobLauncher).run(eq(pendenzaSenderJob), jobParametersCaptor.capture());
+        verify(jobOperator).start(eq(pendenzaSenderJob), jobParametersCaptor.capture());
 
         // Verifica che i parametri del job siano correttamente costruiti
         JobParameters capturedParams = jobParametersCaptor.getValue();
@@ -119,14 +120,14 @@ class ScheduledJobRunnerTest {
         when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
             .thenReturn(true);
 
-        JobExecution launched = new JobExecution(2L);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        JobExecution launched = new JobExecution(2L, new JobInstance(2L, JOB_NAME), new JobParametersBuilder().toJobParameters());
+        when(jobOperator.start(eq(pendenzaSenderJob), any(JobParameters.class)))
             .thenReturn(launched);
 
         runner.runBatchPendenzeJob();
 
         verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
-        verify(jobLauncher).run(eq(pendenzaSenderJob), jobParametersCaptor.capture());
+        verify(jobOperator).start(eq(pendenzaSenderJob), jobParametersCaptor.capture());
 
         // Verifica che i parametri del job siano correttamente costruiti
         JobParameters capturedParams = jobParametersCaptor.getValue();
@@ -149,7 +150,7 @@ class ScheduledJobRunnerTest {
         runner.runBatchPendenzeJob();
 
         verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
-        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+        verify(jobOperator, never()).start(any(), any(JobParameters.class));
     }
 
     @Test
@@ -164,7 +165,7 @@ class ScheduledJobRunnerTest {
 
         runner.runBatchPendenzeJob();
 
-        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+        verify(jobOperator, never()).start(any(), any(JobParameters.class));
     }
 
     @Test
@@ -177,14 +178,14 @@ class ScheduledJobRunnerTest {
         when(preventConcurrentJobLauncher.abandonStaleJobExecution(staleExecution))
             .thenReturn(true);
 
-        JobExecution launched = new JobExecution(2L);
-        when(jobLauncher.run(eq(pendenzaSenderJob), any(JobParameters.class)))
+        JobExecution launched = new JobExecution(2L, new JobInstance(2L, JOB_NAME), new JobParametersBuilder().toJobParameters());
+        when(jobOperator.start(eq(pendenzaSenderJob), any(JobParameters.class)))
             .thenReturn(launched);
 
         runner.runBatchPendenzeJob();
 
         verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
-        verify(jobLauncher).run(eq(pendenzaSenderJob), jobParametersCaptor.capture());
+        verify(jobOperator).start(eq(pendenzaSenderJob), jobParametersCaptor.capture());
 
         // Verifica che i parametri del job siano correttamente costruiti
         JobParameters capturedParams = jobParametersCaptor.getValue();
@@ -205,6 +206,6 @@ class ScheduledJobRunnerTest {
         runner.runBatchPendenzeJob();
 
         verify(preventConcurrentJobLauncher).abandonStaleJobExecution(staleExecution);
-        verify(jobLauncher, never()).run(any(), any(JobParameters.class));
+        verify(jobOperator, never()).start(any(), any(JobParameters.class));
     }
 }

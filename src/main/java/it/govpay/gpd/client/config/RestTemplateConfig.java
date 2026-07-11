@@ -3,10 +3,10 @@ package it.govpay.gpd.client.config;
 import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.cfg.EnumFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
 
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.utils.OffsetDateTimeDeserializer;
@@ -17,22 +17,18 @@ public class RestTemplateConfig {
 	private RestTemplateConfig() {
 	}
 
-	public static ObjectMapper createObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
+	public static JsonMapper createObjectMapper() {
+		SimpleModule javaTimeModule = new SimpleModule();
+		javaTimeModule.addSerializer(OffsetDateTime.class, new OffsetDateTimeSerializer(Costanti.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS));
+		javaTimeModule.addDeserializer(OffsetDateTime.class, new OffsetDateTimeDeserializer(Costanti.PATTERN_YYYY_MM_DD_T_HH_MM_SS_MILLIS_VARIABILI));
 
-        objectMapper.setDateFormat(new SimpleDateFormat(Costanti.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS));
-
-        JavaTimeModule javaTimeModule = new JavaTimeModule();
-        javaTimeModule.addSerializer(OffsetDateTime.class, new OffsetDateTimeSerializer(Costanti.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS));
-        javaTimeModule.addDeserializer(OffsetDateTime.class, new OffsetDateTimeDeserializer(Costanti.PATTERN_YYYY_MM_DD_T_HH_MM_SS_MILLIS_VARIABILI));
-
-		objectMapper.registerModule(javaTimeModule);
-
-		objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
-		objectMapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
-		objectMapper.enable(SerializationFeature.WRITE_DATES_WITH_ZONE_ID);
-		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        return objectMapper;
-    }
+		return JsonMapper.builder()
+				.defaultDateFormat(new SimpleDateFormat(Costanti.PATTERN_DATA_JSON_YYYY_MM_DD_T_HH_MM_SS_SSS))
+				.addModule(javaTimeModule)
+				.enable(EnumFeature.READ_ENUMS_USING_TO_STRING)
+				.enable(EnumFeature.WRITE_ENUMS_USING_TO_STRING)
+				.enable(DateTimeFeature.WRITE_DATES_WITH_ZONE_ID)
+				.disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+				.build();
+	}
 }
