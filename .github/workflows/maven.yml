@@ -68,14 +68,21 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
+    - name: Read OWASP plugin version from pom.xml
+      id: owasp
+      run: |
+        VERSION="$(mvn -q -DforceStdout help:evaluate -Dexpression=owasp.plugin.version)"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "OWASP Dependency-Check version: $VERSION"
+
     - name: Cache OWASP Dependency-Check DB
       id: owasp-cache
       uses: actions/cache@v5
       with:
         path: .dependency-check/data
-        key: ${{ runner.os }}-owasp-${{ steps.date.outputs.date }}
+        key: ${{ runner.os }}-owasp-v${{ steps.owasp.outputs.version }}-${{ steps.date.outputs.date }}
         restore-keys: |
-          ${{ runner.os }}-owasp-
+          ${{ runner.os }}-owasp-v${{ steps.owasp.outputs.version }}-
 
     - name: Build with Maven
       run: mvn clean install -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report $NOUPDATE_FLAG
