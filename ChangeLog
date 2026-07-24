@@ -1,5 +1,8 @@
 2026-07-24  Giuliano Pintori <pintori@link.it>
 
+	* [Build]
+	Aggiornato parent govpay-bom alla versione 2.0.3.
+
 	* [Docker]
 	Immagini Docker portate al runtime JDK 25 (solo runtime, nessun cambio del
 	target di compilazione che resta Java 21). Base image aggiornata da
