@@ -1,3 +1,12 @@
+2026-07-24  Giuliano Pintori <pintori@link.it>
+
+	* [Docker]
+	Immagini Docker portate al runtime JDK 25 (solo runtime, nessun cambio del
+	target di compilazione che resta Java 21). Base image aggiornata da
+	eclipse-temurin:21-jre-alpine a eclipse-temurin:25-jre-alpine in
+	docker/govpay-aca/Dockerfile.github e Dockerfile.daFile.
+	Verificata l'esecuzione dell'intera suite di test su OpenJDK 25.0.3 LTS.
+
 2026-07-11  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 2.0.0

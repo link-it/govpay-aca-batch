@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 ARG govpay_aca_fullversion=local
 ARG govpay_aca_home=/opt/govpay-aca
