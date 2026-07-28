@@ -20,6 +20,7 @@ import it.govpay.common.batch.dto.NextExecutionInfo;
 import it.govpay.common.batch.runner.JobExecutionHelper;
 import it.govpay.common.client.service.ConnettoreService;
 import it.govpay.gpd.costanti.Costanti;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -40,8 +41,9 @@ public class BatchController extends AbstractBatchController {
             ConnettoreService connettoreService,
             Environment environment,
             ZoneId applicationZoneId,
-            @Value("${scheduler.gpdSenderJob.fixedDelayString:600000}") long schedulerIntervalMillis) {
-        super(jobExecutionHelper, jobRepository, environment, applicationZoneId, schedulerIntervalMillis);
+            @Value("${scheduler.gpdSenderJob.fixedDelayString:600000}") long schedulerIntervalMillis,
+            EntityManager entityManager) {
+        super(jobExecutionHelper, jobRepository, environment, applicationZoneId, schedulerIntervalMillis, entityManager);
         this.pendenzaSenderJob = pendenzaSenderJob;
         this.connettoreService = connettoreService;
     }
@@ -54,6 +56,17 @@ public class BatchController extends AbstractBatchController {
     @Override
     protected String getJobName() {
         return Costanti.SEND_PENDENZE_GPD_JOBNAME;
+    }
+
+    @Override
+    protected String getDisplayName() {
+        return "GovPay ACA Batch";
+    }
+
+    @Override
+    protected String getDescription() {
+        return "Alimentazione dell'Archivio Centralizzato Avvisi (ACA) di pagoPA: il batch invia le posizioni "
+                + "debitorie configurate su GovPay.";
     }
 
     @GetMapping("/run")
