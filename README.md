@@ -80,7 +80,7 @@ java -Dloader.path=./jdbc-drivers -Dspring.profiles.active=cron -jar target/govp
   --it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size=10 \
   --it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni=7 \
   --it.govpay.gpd.batch.clusterId=[CLUSTER_ID] \
-  --it.govpay.gpd.batch.stale-threshold-minutes=120 \
+  --govpay.batch.stale-threshold-minutes=120 \
   --it.govpay.gpd.batch.policy.reinvio.403.enabled=[true|false]
 ```
 
@@ -230,7 +230,7 @@ it.govpay.gpd.batch.clusterId=[CLUSTER_ID]
 
 # Soglia di inattività in minuti per considerare un job come stale
 # Un job che non viene aggiornato (LAST_UPDATED) da più di questo tempo viene considerato bloccato
-it.govpay.gpd.batch.stale-threshold-minutes=[MINUTI SOGLIA INATTIVITA]
+govpay.batch.stale-threshold-minutes=[MINUTI SOGLIA INATTIVITA]
 
 # Policy reinvio per il codice di errore 403
 it.govpay.gpd.batch.policy.reinvio.403.enabled=[true|false]
