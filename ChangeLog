@@ -1,7 +1,31 @@
-2026-07-25  Giuliano Pintori <pintori@link.it>
+2026-08-20  Giuliano Pintori <pintori@link.it>
+
+	* Rilasciata versione 2.0.1
 
 	* [Build]
-	Aggiornato parent govpay-bom alla versione 2.0.4-SNAPSHOT.
+	Versione del progetto portata da 2.0.0 a 2.0.1.
+	Aggiornato parent govpay-bom alla versione 2.0.5-SNAPSHOT.
+
+	* [Sicurezza]
+	Risoluzione delle segnalazioni dependency-check sul progetto:
+	- Logback (logback-classic, logback-core): 1.5.38 -> 1.6.3, tramite bump
+	  di logback.version in govpay-bom 2.0.5-SNAPSHOT. Fix per CVE-2026-19880
+	  (CWE-22, path traversal: un valore MDC usato come discriminator
+	  confluisce non sanificato nel path di un FileAppender annidato). Sono
+	  affette tutte le versioni da 0.9.14 a 1.6.2, senza backport sul ramo
+	  1.5.x. Il batch non definisce un logback.xml ne' usa SiftingAppender,
+	  quindi non era esposto, ma la dipendenza segnalata e' stata comunque
+	  aggiornata. Testsuite completa verde (115 test) con logback 1.6.3.
+	- CVE-2026-14683 e CVE-2026-14686 (HdrHistogram 2.2.2, transitiva da
+	  govpay-common -> micrometer-core): nessuna versione con il fix
+	  pubblicata, segnalazioni disputed/Deferred su NVD, CVSS 3.3 LOW con
+	  vettore AV:L. Aggiunte le soppressioni OWASP Dependency-Check sotto
+	  src/main/resources/owasp/falsePositives/ (un file per CVE, come negli
+	  altri progetti GovPay), con la stessa analisi gia' presente in
+	  govpay-common e govpay-fdr-batch: le regole matchano sia come <cve> sia
+	  come <vulnerabilityName>, dato che le segnalazioni non hanno CPE
+	  applicability statement su NVD e arrivano dall'analyzer OSS Index.
+	  Da rivalutare all'uscita di una release corretta di HdrHistogram.
 
 2026-07-24  Giuliano Pintori <pintori@link.it>
 

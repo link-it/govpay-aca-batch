@@ -6,12 +6,12 @@
 	<parent>
 		<groupId>org.gov4j.govpay</groupId>
 		<artifactId>govpay-bom</artifactId>
-		<version>2.0.4-SNAPSHOT</version>
+		<version>2.0.5-SNAPSHOT</version>
 		<relativePath>../govpay-bom</relativePath>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
 	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
-	<version>2.0.0</version>
+	<version>2.0.1</version>
 	<packaging>${packaging.type}</packaging>
 	<name>GovPay - Batch - Caricamento Posizioni Debitorie</name>
 	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
@@ -356,8 +356,12 @@
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
 				<configuration>
+					<!-- Falsi positivi / vulnerabilita' non applicabili: un file per CVE,
+					     le motivazioni e le condizioni di revisione sono nelle note dei file -->
 					<suppressionFiles>
 						<suppressionFile>${owasp.falsePositives.dir}/CVE-2018-14335.xml</suppressionFile>
+						<suppressionFile>${owasp.falsePositives.dir}/CVE-2026-14683.xml</suppressionFile>
+						<suppressionFile>${owasp.falsePositives.dir}/CVE-2026-14686.xml</suppressionFile>
 					</suppressionFiles>
 				</configuration>
 			</plugin>		
