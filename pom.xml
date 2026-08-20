@@ -7,7 +7,7 @@
 		<groupId>org.gov4j.govpay</groupId>
 		<artifactId>govpay-bom</artifactId>
 		<version>2.0.5-SNAPSHOT</version>
-		<relativePath>../govpay-bom</relativePath>
+		<relativePath/>
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
 	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
@@ -84,7 +84,7 @@
 		<dependency>
 			<groupId>org.gov4j.govpay</groupId>
 			<artifactId>govpay-common</artifactId>
-			<version>2.0.3-SNAPSHOT</version>
+			<version>2.0.4-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
