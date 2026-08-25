@@ -270,8 +270,19 @@ jobs:
         rm -rf buildcontext
         mkdir -p buildcontext/
         cp -fr commons buildcontext/
+        # Dockerfile.daFile fa "COPY sql /opt/sql". La sorgente e'
+        # src/main/resources/sql: la stessa che il job release zippa in sql.zip
+        # e che Dockerfile.github scarica dalla release. Il job docker di
+        # produzione non la copia perche' usa Dockerfile.github, che non ne ha
+        # bisogno: per questo il primo docker-dev falliva sul COPY.
+        if [ -d ../src/main/resources/sql ]; then
+          cp -fr ../src/main/resources/sql buildcontext/
+        else
+          echo "::warning::src/main/resources/sql assente: creo una directory vuota per soddisfare il COPY del Dockerfile."
+          mkdir -p buildcontext/sql
+        fi
         cp -f ../artifacts/govpay-aca-batch.jar buildcontext/
-        ls -lh buildcontext/
+        ls -lR buildcontext/ | head -40
 
     - name: Build and push development image
       if: ${{ endsWith(needs.build.outputs.version, '-SNAPSHOT') }}
