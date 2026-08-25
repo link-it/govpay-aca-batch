@@ -32,7 +32,7 @@ WORKDIR ${GOVPAY_ACA_HOME}
 # Download ACA JAR from GitHub release
 RUN set -eux; \
 curl -kL -sS -q -o ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/govpay-aca-batch-${GOVPAY_ACA_FULLVERSION}.jar";  \
-curl -kL -sS -q -o /tmp/sql.zip "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/sql.zip"; \
+curl -fkL -sS -q -o /tmp/sql.zip "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/sql.zip"; \
 unzip -q /tmp/sql.zip -d /opt && rm /tmp/sql.zip; \
 chown -R govpay:govpay /opt/sql; \
 curl -kL -sS -q -o /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip https://sourceforge.net/projects/hsqldb/files/hsqldb/hsqldb_2_7/hsqldb-${HSQLDB_FULLVERSION}.zip/download; \
