@@ -1,3 +1,21 @@
+2026-09-03  Giuliano Pintori <pintori@link.it>
+
+	* [Build]
+	Aggiunto alla pipeline il caricamento dell'SBOM su Dependency-Track.
+	Il nuovo job dependency-track-upload del workflow maven.yml scarica
+	l'artifact prodotto dal job sbom e carica sbom/cyclonedx/bom.cdx.json
+	sotto il progetto GovPay-Backend del server interno, tramite il nuovo
+	script script/sbom/upload-sbom-parent-required.sh.
+	L'upload avviene su tag e sui branch main/master/staging; e' forzabile
+	con la variabile FORCE_DTRACK_UPLOAD_JOB e disattivabile con
+	DISABLE_DTRACK_UPLOAD_JOB, che ha la precedenza. Su tag la versione
+	registrata e' il tag ed e' marcata come latest, sui branch protetti e'
+	il nome del branch. Richiede il secret GOVPAY_DTRACK_API_KEY.
+	Aggiunto -DprojectType=application alla generazione dell'SBOM: il
+	default del plugin CycloneDX e' 'library', che avrebbe classificato
+	su Dependency-Track come libreria un progetto che invece viene
+	distribuito come applicazione.
+
 2026-08-20  Giuliano Pintori <pintori@link.it>
 
 	* Rilasciata versione 2.0.1
