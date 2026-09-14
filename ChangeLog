@@ -1,3 +1,55 @@
+2026-09-14  Giuliano Pintori <pintori@link.it>
+
+	* [DDL]
+	Gli schemi dei metadati Spring Batch non sono piu' mantenuti in questo
+	repository. Rimossi gli schemi tenuti a mano
+	(5 tabelle_batch-create.sql + 5 tabelle_batch-drop.sql): al loro posto il packaging estrae
+	da spring-batch-core, verbatim, gli schema-<vendor>.sql, gli
+	schema-drop-<vendor>.sql e l'albero migration/**, che finiscono in
+	/opt/sql/spring-batch. Lo schema segue cosi' in automatico la
+	${spring-batch.version} definita in govpay-bom, e la deriva fra i batch non e'
+	piu' possibile: questo repository era fermo alla sequence BATCH_JOB_SEQ, mentre
+	Spring Batch 6 si aspetta BATCH_JOB_INSTANCE_SEQ.
+
+	In /opt/sql/<vendor>/ restano solo gli script nostri.
+
+	Due conseguenze dell'adozione degli schemi upstream integrali:
+	- si perdono gli indici aggiuntivi su BATCH_JOB_INSTANCE, BATCH_JOB_EXECUTION e
+	  BATCH_STEP_EXECUTION: upstream li spedisce solo per Oracle e lascia la scelta
+	  all'utente;
+	- su SQL Server upstream usa NVARCHAR dove noi usavamo VARCHAR. Con
+	  spring.jpa.hibernate.ddl-auto=validate e le entity batch di govpay-common,
+	  SQLServerDialect si aspetta varchar salvo @Nationalized: su quel vendor la
+	  validazione fallirebbe su 14 colonne. Gli altri vendor non sono interessati.
+
+	* [Build]
+	Il profilo "dist", non attivo di default, arriva da govpay-bom insieme alla
+	configurazione di maven-dependency-plugin e maven-assembly-plugin: e' identico
+	per tutti i batch e non viene duplicato qui. Nel repository restano solo
+	src/assembly/sql.xml, che elenca cosa finisce nell'archivio, e
+	src/assembly/VERSION, che registra nell'immagine le versioni degli script.
+	Il risultato e' target/sql.zip.
+
+	* [CI]
+	Il job build passa -U -Pjar,dist e pubblica target/sql.zip fra gli artefatti.
+	Il job docker-dev scompatta quell'archivio nel build context invece di copiare
+	src/main/resources/sql, e il job release lo allega come asset al posto dello
+	step "Zip SQL files" che zippava i sorgenti. Dockerfile.github, che scarica
+	sql.zip dalla release, non cambia: un solo archivio alimenta immagine di
+	sviluppo, release e immagine di produzione.
+
+	-Pjar,dist e non -Pdist: Maven disattiva i profili activeByDefault non appena
+	si passa -P, e "jar" e' quello che porta i cinque driver JDBC in scope provided.
+	-U perche' il profilo arriva ora da uno SNAPSHOT del bom e la cache Maven della
+	CI, con updatePolicy "daily", potrebbe servirne una copia vecchia.
+
+	* [Docker]
+	init_aca_db.sh esegue lo schema batch da
+	/opt/sql/spring-batch/schema-${GOVPAY_DB_TYPE}.sql e logga il contenuto di
+	/opt/sql/VERSION all'avvio. MariaDB usa ora il proprio schema upstream invece
+	di quello MySQL. docker/build_image.sh scompatta target/sql.zip nel build
+	context, con avviso esplicito se manca.
+
 2026-09-03  Giuliano Pintori <pintori@link.it>
 
 	* [Build]

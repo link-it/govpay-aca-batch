@@ -1,0 +1,7 @@
+# Generato in fase di packaging: identifica gli script SQL contenuti in /opt/sql.
+govpay-aca-batch=${project.version}
+spring-batch=${spring-batch.version}
+
+# sql/spring-batch/ contiene gli schemi ufficiali di spring-batch-core, estratti
+# verbatim dal jar della versione indicata sopra: non vanno modificati a mano.
+# sql/<vendor>/ contiene gli script delle tabelle applicative.
