@@ -1,3 +1,26 @@
+2026-09-17  Giuliano Pintori <pintori@link.it>
+
+	* [DDL]
+	Lo svecchiamento dei metadati Spring Batch arriva ora da govpay-common,
+	scompattato dal profilo dist in /opt/sql/cleanup dell'immagine: cinque file
+	SQL, uno per dialetto, piu' spring-batch-cleanup.sh che li invoca.
+
+	A differenza di quello che c'era prima, la data di taglio e' un parametro:
+	"spring-batch-cleanup.sh -d 2026-01-01" cancella tutte le esecuzioni
+	anteriori a quella data. Con -n stampa il SQL senza eseguirlo. Non c'e'
+	filtro sullo stato, quindi rientrano anche le esecuzioni non terminate: va
+	eseguito a batch fermi.
+
+	Rimossi i 5 spring-batch-cleanup.sql per vendor che stavano qui: avevano la
+	retention di 90 giorni scritta dentro il file, da modificare a mano prima di
+	lanciarli, ed erano copie identiche replicate in sei repository. Lo stesso
+	comportamento si ottiene ora con -d e una data calcolata a piacere.
+
+	* [Build]
+	Il descrittore src/assembly/sql.xml include i file di svecchiamento estratti
+	da govpay-common in target/sql-govpay-common. Nessuna configurazione di
+	plugin in questo repository: sta tutta nella pluginManagement del bom.
+
 2026-09-14  Giuliano Pintori <pintori@link.it>
 
 	* [DDL]

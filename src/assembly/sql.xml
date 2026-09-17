@@ -5,6 +5,7 @@
   Contiene due parti nettamente separate:
     sql/spring-batch/  schemi e migrazioni dei metadati Spring Batch, estratti
                        verbatim da spring-batch-core, mai modificati da noi
+    sql/cleanup/       svecchiamento dei metadati batch, da govpay-common
     sql/<vendor>/      script delle tabelle applicative, nostri
 
   Prodotto dal profilo "dist" come target/sql.zip, consumato dalla pipeline
@@ -31,6 +32,25 @@
                 <include>schema-*.sql</include>
                 <include>migration/**</include>
             </includes>
+        </fileSet>
+
+        <!-- Svecchiamento dei metadati Spring Batch: sorgente unica in
+             govpay-common, scompattata dal profilo dist -->
+        <fileSet>
+            <directory>${project.build.directory}/sql-govpay-common/sql/cleanup</directory>
+            <outputDirectory>sql/cleanup</outputDirectory>
+            <includes>
+                <include>*.sql</include>
+            </includes>
+            <fileMode>0644</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}/sql-govpay-common/sql/cleanup</directory>
+            <outputDirectory>sql/cleanup</outputDirectory>
+            <includes>
+                <include>*.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
         </fileSet>
 
         <!-- Script delle tabelle applicative -->
