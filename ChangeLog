@@ -1,5 +1,29 @@
 2026-09-17  Giuliano Pintori <pintori@link.it>
 
+	* [Batch]
+	I metadati di Spring Batch sono ora persistiti su database: l'auto-configuration
+	di govpay-common sostituisce il ResourcelessJobRepository di Spring Boot 4 con
+	uno JDBC sul DataSource dell'applicazione. Questo repository non richiede
+	modifiche di codice.
+
+	Diventano quindi effettivi la guardia anti-concorrenza fra nodi, la soglia
+	govpay.batch.stale-threshold-minutes, gli endpoint di console del batch
+	controller e lo svecchiamento in /opt/sql/cleanup. Le righe crescono a ogni
+	esecuzione, perche' ogni lancio e' una istanza distinta: e' lo svecchiamento
+	periodico a tenerle sotto controllo.
+
+	* [Test]
+	Nei profili di test il JobRepository JDBC resta disattivato
+	(govpay.batch.job-repository.jdbc.enabled=false). Le tre entity JPA dei
+	metadati batch di govpay-common e lo schema ufficiale di Spring Batch si
+	contendono le stesse tabelle: Hibernate con ddl-auto=create-drop le ricrea
+	senza le sequence che il JobRepository richiede, e caricare lo schema
+	ufficiale fa fallire l'avvio del contesto con "Table BATCH_JOB_INSTANCE
+	already exists". In esercizio lo schema arriva dall'immagine e il repository
+	e' JDBC. Conseguenza dichiarata: le suite non coprono la configurazione di
+	produzione.
+2026-09-17  Giuliano Pintori <pintori@link.it>
+
 	* [DDL]
 	Lo svecchiamento dei metadati Spring Batch arriva ora da govpay-common,
 	scompattato dal profilo dist in /opt/sql/cleanup dell'immagine: cinque file
