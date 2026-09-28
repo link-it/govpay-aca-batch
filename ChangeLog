@@ -1,3 +1,31 @@
+2026-09-28  Giuliano Pintori <pintori@link.it>
+
+	* [Logging] Transaction ID e Correlation ID nelle esecuzioni batch (BP-LOG-3).
+	Per un batch l'unita' di lavoro e' l'esecuzione del job, non una richiesta
+	HTTP: il contesto e' aperto da JobExecutionHelper a ogni avvio, con un
+	transaction id nuovo e il correlation id ereditato da chi ha lanciato il job.
+	Un avvio manuale via REST resta quindi correlato alla richiesta dell'operatore,
+	mentre gli avvii da cron o schedulati generano un correlation id proprio.
+	Il correlation id e' registrato come parametro di job non identificante, quindi
+	compare nei metadati Spring Batch e nell'API delle esecuzioni senza cambiare
+	l'identita' delle JobInstance esistenti.
+	Aggiunto logging.pattern.level con i due identificativi in ogni riga di log.
+
+	* [Logging] Livelli di log modificabili a runtime (BP-LOG-1).
+	I livelli sono letti dalla riga log_level della tabella configurazione,
+	condivisa con gli altri componenti: una modifica fatta dalla console raggiunge
+	anche questo batch entro l'intervallo di refresh. Nessun endpoint di gestione
+	locale, perche' il componente non ha Spring Security e actuator risponde sulla
+	porta applicativa: sarebbe scrittura non autenticata (BP-SEC-2).
+	management.endpoints.web.exposure.include passa a ${MANAGEMENT_ENDPOINTS:...}
+	senza cambiare il default; 'loggers' si abilita solo con una porta management
+	dedicata e segregata in rete.
+
+	* [Logging] Propagazione degli identificativi ai thread delle partizioni.
+	I task executor degli step partizionati sono decorati con MdcTaskDecorator:
+	senza decoratore i log prodotti in parallelo perderebbero transaction id e
+	correlation id dell'esecuzione che li ha generati.
+
 2026-09-17  Giuliano Pintori <pintori@link.it>
 
 	* [Batch]
