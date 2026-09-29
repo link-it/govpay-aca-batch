@@ -44,6 +44,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import it.govpay.common.logging.MdcTaskDecorator;
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 import it.govpay.gpd.step.JobCompletionNotificationListener;
@@ -66,6 +67,10 @@ public class PendenzeGpdSenderJobConfig {
 	protected TaskExecutor taskExecutor() {
 		SimpleAsyncTaskExecutor simpleAsyncTaskExecutor = new SimpleAsyncTaskExecutor(Costanti.MSG_SENDER_TASK_EXECUTOR_NAME);
 		simpleAsyncTaskExecutor.setConcurrencyLimit(1); // numero massimo di thread
+		// Propaga transaction id e correlation id ai thread delle partizioni
+		// (BP-LOG-3): senza decoratore i log paralleli perderebbero gli
+		// identificativi dell'esecuzione che li ha generati.
+		simpleAsyncTaskExecutor.setTaskDecorator(new MdcTaskDecorator());
 		return simpleAsyncTaskExecutor;
 	}
 
