@@ -319,10 +319,17 @@ jobs:
   # nel repo delle immagini di produzione.
   # Usa Dockerfile.daFile, che prende il jar dal build context: Dockerfile.github
   # scarica il jar da una GitHub release, che per una SNAPSHOT non esiste.
+  # Sulle pull request l'immagine viene costruita e scansionata ma non
+  # pubblicata: il gate si vede gia' in revisione, prima del merge.
   docker-dev:
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+    if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'pull_request' }}
+    # security-events: report SARIF della scansione dell'immagine.
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
 
     steps:
     - name: Skip (not a SNAPSHOT)
@@ -345,7 +352,7 @@ jobs:
       uses: docker/setup-buildx-action@v4
 
     - name: Login to Docker Hub
-      if: ${{ endsWith(needs.build.outputs.version, '-SNAPSHOT') }}
+      if: ${{ endsWith(needs.build.outputs.version, '-SNAPSHOT') && github.event_name == 'push' }}
       uses: docker/login-action@v4
       with:
         username: ${{ vars.DOCKERHUB_USERNAME }}
@@ -371,17 +378,35 @@ jobs:
         # ora accade sempre perche' sql.zip porta il listato oltre le 40 righe.
         ls -lR buildcontext/ | head -40 || true
 
-    - name: Build and push development image
+    # L'immagine viene costruita senza pubblicarla, scansionata, e pubblicata
+    # solo se supera il gate (vedi .github/actions/image-scan). Su main la
+    # scansione fa da preavviso: un problema emerge qui, giorni prima del tag.
+    - name: Build development image
       if: ${{ endsWith(needs.build.outputs.version, '-SNAPSHOT') }}
       uses: docker/build-push-action@v6
       with:
         context: docker/buildcontext
         file: docker/govpay-aca/Dockerfile.daFile
-        push: true
+        push: false
+        load: true
+        pull: true
         build-args: |
           govpay_aca_fullversion=${{ needs.build.outputs.version }}
         tags: |
           linkitaly/govpay-aca-batch-dev:${{ needs.build.outputs.version }}
+
+    - name: Scan development image
+      if: ${{ endsWith(needs.build.outputs.version, '-SNAPSHOT') }}
+      uses: ./.github/actions/image-scan
+      with:
+        image: linkitaly/govpay-aca-batch-dev:${{ needs.build.outputs.version }}
+        gate: ${{ vars.IMAGE_SCAN_GATE || 'block' }}
+        report-name: image-scan-report-dev
+
+    - name: Push development image
+      if: ${{ endsWith(needs.build.outputs.version, '-SNAPSHOT') && github.event_name == 'push' }}
+      run: docker push "linkitaly/govpay-aca-batch-dev:${{ needs.build.outputs.version }}"
+
 
   release:
     runs-on: ubuntu-latest
@@ -484,10 +509,37 @@ jobs:
     runs-on: ubuntu-latest
     needs: release
     if: startsWith(github.ref, 'refs/tags/')
+    # contents: write per allegare i report della scansione alla release;
+    # security-events: write per i report SARIF.
+    permissions:
+      contents: write
+      actions: read
+      security-events: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
+
+
+    # Jar e sql.zip dell'artifact sono gli stessi file allegati alla release:
+    # i loro sha256 sono quelli che il Dockerfile verifica dopo averli
+    # scaricati.
+    - name: Download jar from build job
+      uses: actions/download-artifact@v7
+      with:
+        name: govpay-aca-batch
+        path: artifacts/
+
+    - name: Checksum di jar e sql.zip
+      id: checksum
+      run: |
+        set -euo pipefail
+        SHA256="$(sha256sum artifacts/govpay-aca-batch.jar | cut -d' ' -f1)"
+        SQL_SHA256="$(sha256sum artifacts/sql.zip | cut -d' ' -f1)"
+        echo "sha256=${SHA256}" >> "$GITHUB_OUTPUT"
+        echo "sql_sha256=${SQL_SHA256}" >> "$GITHUB_OUTPUT"
+        echo "sha256 del jar: ${SHA256}"
+        echo "sha256 di sql.zip: ${SQL_SHA256}"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -509,14 +561,69 @@ jobs:
         mkdir -p buildcontext/
         cp -fr commons buildcontext/
 
-    - name: Build and push Docker image
+    # L'immagine viene costruita senza pubblicarla, scansionata, e pubblicata
+    # solo se supera il gate (vedi .github/actions/image-scan): un'immagine di
+    # release, una volta pubblicata, non viene piu' toccata.
+    - name: Build Docker image
       uses: docker/build-push-action@v6
       with:
         context: docker/buildcontext
         file: docker/govpay-aca/Dockerfile.github
-        push: true
+        push: false
+        load: true
+        pull: true
         build-args: |
           govpay_aca_fullversion=${{ steps.version.outputs.VERSION }}
+          govpay_aca_sha256=${{ steps.checksum.outputs.sha256 }}
+          govpay_aca_sql_sha256=${{ steps.checksum.outputs.sql_sha256 }}
         tags: |
           linkitaly/govpay-aca-batch:${{ steps.version.outputs.VERSION }}
           linkitaly/govpay-aca-batch:latest
+
+    - name: Scan Docker image
+      uses: ./.github/actions/image-scan
+      with:
+        image: linkitaly/govpay-aca-batch:${{ steps.version.outputs.VERSION }}
+        gate: ${{ vars.IMAGE_SCAN_GATE || 'block' }}
+        report-name: image-scan-report
+
+    # Anche con il gate fallito: i report spiegano perche' l'immagine non c'e'.
+    - name: Allega i report della scansione alla release
+      if: ${{ always() && hashFiles('image-scan-report/riepilogo.md') != '' }}
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        set -euo pipefail
+        ZIP="image-scan-report-${{ steps.version.outputs.VERSION }}.zip"
+        zip -r "${ZIP}" image-scan-report/
+        gh release upload "${{ steps.version.outputs.VERSION }}" "${ZIP}" --clobber
+
+    - name: Push Docker image
+      run: |
+        set -euo pipefail
+        docker push "linkitaly/govpay-aca-batch:${{ steps.version.outputs.VERSION }}"
+        docker push "linkitaly/govpay-aca-batch:latest"
+
+    # SBOM dell'immagine (sistema operativo, JRE e librerie) su
+    # Dependency-Track, accanto a quello Maven caricato dal job
+    # dependency-track-upload. Non blocca: l'immagine e' gia' pubblicata.
+    - name: Upload SBOM dell'immagine su Dependency-Track
+      if: ${{ vars.DISABLE_DTRACK_UPLOAD_JOB != 'true' }}
+      continue-on-error: true
+      env:
+        DTRACK_API_KEY: ${{ secrets.GOVPAY_DTRACK_API_KEY }}
+        DTRACK_PROJECT_NAME: govpay-aca-batch-image
+        DTRACK_VERSION: ${{ steps.version.outputs.VERSION }}
+        DTRACK_LATEST: 'true'
+      run: |
+        set -euo pipefail
+        if [ -z "${DTRACK_API_KEY}" ]; then
+          echo "::warning::secret GOVPAY_DTRACK_API_KEY non configurato: SBOM dell'immagine non caricato."
+          exit 0
+        fi
+        chmod +x script/sbom/upload-sbom-parent-required.sh
+        ./script/sbom/upload-sbom-parent-required.sh \
+          "${DTRACK_API_KEY}" \
+          image-scan-report/sbom-image.cdx.json \
+          "GovPay-Backend"
+
