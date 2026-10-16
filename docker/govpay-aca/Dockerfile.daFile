@@ -13,13 +13,18 @@ ENV GOVPAY_ACA_FULLVERSION=${govpay_aca_fullversion} \
 GOVPAY_ACA_LOGDIR=${govpay_aca_log} \
 GOVPAY_ACA_HOME=${govpay_aca_home} \
 HSQLDB_FULLVERSION=2.7.4 \
+HSQLDB_SHA256=9388a1d151c3f91575fa4cabc7f922594aa6ecfd2012957ae853e82a3a5008d5 \
 TZ=Europe/Rome
 
 
 RUN set -eux; \
 apk update; \
 apk upgrade; \
-apk add --no-cache bash curl tar unzip netcat-openbsd tzdata; \
+# Solo cio' che serve a runtime: bash per l'entrypoint, netcat per il
+# controllo del database all'avvio (nc -z), tzdata per il fuso orario. curl e
+# unzip servono solo al build e sono installati e rimossi nel passo che li usa;
+# tar non serve.
+apk add --no-cache bash netcat-openbsd tzdata; \
 rm -rf /var/cache/apk/*; \
 echo "${TZ}" > /etc/timezone; \
 addgroup -S govpay ; \
@@ -35,13 +40,20 @@ COPY govpay-aca-batch.jar ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar
 # Copy SQL scripts (buildcontext/)
 COPY sql /opt/sql
 
-# Download HSQLDB
+# HSQLDB (SqlTool per l'inizializzazione del database) da SourceForge, con
+# verifica dello sha256 fissato in HSQLDB_SHA256: SourceForge pubblica solo SHA1
+# e MD5, e lo sha256 e' stato verificato contro lo SHA1 pubblicato per
+# hsqldb-2.7.4.zip. Se cambia HSQLDB_FULLVERSION va aggiornato anche lui.
+# curl e unzip servono solo qui: installati e rimossi nello stesso passo.
 RUN set -eux; \
 chown govpay:govpay ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar; \
 chown -R govpay:govpay /opt/sql; \
-curl -kL -sS -q -o /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip https://sourceforge.net/projects/hsqldb/files/hsqldb/hsqldb_2_7/hsqldb-${HSQLDB_FULLVERSION}.zip/download; \
+apk add --no-cache --virtual .download curl unzip; \
+curl -fL -sS -o /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip https://sourceforge.net/projects/hsqldb/files/hsqldb/hsqldb_2_7/hsqldb-${HSQLDB_FULLVERSION}.zip/download; \
+echo "${HSQLDB_SHA256}  /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip" | sha256sum -c -; \
 unzip -q -d /opt /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip hsqldb-${HSQLDB_FULLVERSION}/hsqldb/lib/*; \
-rm -f /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip
+rm -f /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip; \
+apk del .download
 
 # Copy entrypoint and initialization scripts
 COPY commons/entrypoint.sh commons/init_aca_db.sh /usr/local/bin/

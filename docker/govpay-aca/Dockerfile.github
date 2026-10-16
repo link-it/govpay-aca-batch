@@ -1,6 +1,10 @@
 FROM eclipse-temurin:25-jre-alpine
 
 ARG govpay_aca_fullversion
+# sha256 di jar e sql.zip della release: la pipeline li calcola dall'artifact
+# della build, build_image.sh li legge dalle API delle release di GitHub.
+ARG govpay_aca_sha256
+ARG govpay_aca_sql_sha256
 ARG govpay_aca_home=/opt/govpay-aca
 ARG govpay_aca_log=/var/log/govpay-aca
 
@@ -13,13 +17,18 @@ ENV GOVPAY_ACA_FULLVERSION=${govpay_aca_fullversion} \
 GOVPAY_ACA_LOGDIR=${govpay_aca_log} \
 GOVPAY_ACA_HOME=${govpay_aca_home} \
 HSQLDB_FULLVERSION=2.7.4 \
+HSQLDB_SHA256=9388a1d151c3f91575fa4cabc7f922594aa6ecfd2012957ae853e82a3a5008d5 \
 TZ=Europe/Rome
 
 
 RUN set -eux; \
 apk update; \
 apk upgrade; \
-apk add --no-cache bash curl tar unzip netcat-openbsd tzdata; \
+# Solo cio' che serve a runtime: bash per l'entrypoint, netcat per il
+# controllo del database all'avvio (nc -z), tzdata per il fuso orario. curl e
+# unzip servono solo al build e sono installati e rimossi nel passo che li usa;
+# tar non serve.
+apk add --no-cache bash netcat-openbsd tzdata; \
 rm -rf /var/cache/apk/*; \
 echo "${TZ}" > /etc/timezone; \
 addgroup -S govpay ; \
@@ -29,15 +38,29 @@ chown -R govpay:govpay ${GOVPAY_ACA_HOME} ${GOVPAY_ACA_LOGDIR} /opt/sql
 
 WORKDIR ${GOVPAY_ACA_HOME}
 
-# Download ACA JAR from GitHub release
+# Download di jar e sql.zip dalla release GitHub, con verifica del
+# certificato e del checksum: senza checksum l'immagine conterrebbe qualunque
+# file venisse servito a quegli indirizzi. curl e unzip servono solo qui:
+# installati e rimossi nello stesso passo, non restano nell'immagine.
+# HSQLDB (SqlTool per l'inizializzazione del database) da SourceForge, con
+# verifica dello sha256 fissato in HSQLDB_SHA256: SourceForge pubblica solo SHA1
+# e MD5, e lo sha256 e' stato verificato contro lo SHA1 pubblicato per
+# hsqldb-2.7.4.zip. Se cambia HSQLDB_FULLVERSION va aggiornato anche lui.
 RUN set -eux; \
-curl -kL -sS -q -o ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/govpay-aca-batch-${GOVPAY_ACA_FULLVERSION}.jar";  \
-curl -fkL -sS -q -o /tmp/sql.zip "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/sql.zip"; \
+apk add --no-cache --virtual .download curl unzip; \
+test -n "${govpay_aca_sha256}" || { echo "Manca il build-arg govpay_aca_sha256 (sha256 del jar della release)"; exit 1; }; \
+test -n "${govpay_aca_sql_sha256}" || { echo "Manca il build-arg govpay_aca_sql_sha256 (sha256 di sql.zip della release)"; exit 1; }; \
+curl -fL -sS -o ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/govpay-aca-batch-${GOVPAY_ACA_FULLVERSION}.jar"; \
+echo "${govpay_aca_sha256}  ${GOVPAY_ACA_HOME}/govpay-aca-batch.jar" | sha256sum -c -; \
+curl -fL -sS -o /tmp/sql.zip "https://github.com/link-it/govpay-aca-batch/releases/download/${GOVPAY_ACA_FULLVERSION}/sql.zip"; \
+echo "${govpay_aca_sql_sha256}  /tmp/sql.zip" | sha256sum -c -; \
 unzip -q /tmp/sql.zip -d /opt && rm /tmp/sql.zip; \
 chown -R govpay:govpay /opt/sql; \
-curl -kL -sS -q -o /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip https://sourceforge.net/projects/hsqldb/files/hsqldb/hsqldb_2_7/hsqldb-${HSQLDB_FULLVERSION}.zip/download; \
+curl -fL -sS -o /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip https://sourceforge.net/projects/hsqldb/files/hsqldb/hsqldb_2_7/hsqldb-${HSQLDB_FULLVERSION}.zip/download; \
+echo "${HSQLDB_SHA256}  /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip" | sha256sum -c -; \
 unzip -q -d /opt /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip hsqldb-${HSQLDB_FULLVERSION}/hsqldb/lib/*; \
-rm -f  /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip
+rm -f /var/tmp/hsqldb-${HSQLDB_FULLVERSION}.zip; \
+apk del .download
 
 # Copy entrypoint and initialization scripts
 COPY commons/entrypoint.sh commons/init_aca_db.sh /usr/local/bin/
