@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS domini
 	cod_connettore_secim VARCHAR(255),
 	cod_connettore_gov_pay VARCHAR(255),
 	cod_connettore_hyper_sic_apk VARCHAR(255),
+	cod_connettore_send VARCHAR(255),
 	intermediato BOOLEAN NOT NULL,
 	tassonomia_pago_pa VARCHAR(35),
 	scarica_fr BOOLEAN NOT NULL DEFAULT false,

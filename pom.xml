@@ -25,6 +25,11 @@
 		<owasp.falsePositives.dir>src/main/resources/owasp/falsePositives</owasp.falsePositives.dir>
 
 		<sonar.coverage.exclusions>**/test/**,**/*Test*.java</sonar.coverage.exclusions>
+
+		<!-- Valori del profilo jar, usati anche quando si attiva solo un altro
+		     profilo (es. -Pdist) e il profilo jar non e' attivo -->
+		<packaging.type>jar</packaging.type>
+		<spring-boot.layout>ZIP</spring-boot.layout>
 	</properties>
 
 	<profiles>
@@ -35,6 +40,8 @@
 			</activation>
 			<properties>
 				<packaging.type>jar</packaging.type>
+				<!-- Fat jar con PropertiesLauncher: i driver JDBC si aggiungono a runtime con loader.path -->
+				<spring-boot.layout>ZIP</spring-boot.layout>
 			</properties>
 			<dependencies>
 				<dependency>
@@ -68,12 +75,21 @@
 			<id>war</id>
 			<properties>
 				<packaging.type>war</packaging.type>
+				<!-- War per application server (datasource JNDI): con il layout ZIP il war
+				     verrebbe riorganizzato come un jar e non sarebbe deployabile -->
+				<spring-boot.layout>WAR</spring-boot.layout>
 			</properties>
 			<dependencies>
 				<dependency>
 					<groupId>org.springframework.boot</groupId>
 					<artifactId>spring-boot-starter-tomcat</artifactId>
 					<scope>provided</scope>
+				</dependency>
+				<!-- Database dei test; a runtime il war usa il datasource dell'application server -->
+				<dependency>
+					<groupId>com.h2database</groupId>
+					<artifactId>h2</artifactId>
+					<scope>test</scope>
 				</dependency>
 			</dependencies>
 		</profile>
@@ -239,7 +255,7 @@
 					</execution>
 				</executions>
 				<configuration>
-					<layout>ZIP</layout>
+					<layout>${spring-boot.layout}</layout>
 					<excludes>
 						<exclude>
 							<groupId>org.postgresql</groupId>

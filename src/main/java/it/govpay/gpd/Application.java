@@ -19,6 +19,9 @@ import it.govpay.common.entity.DominioEntity;
 import it.govpay.common.entity.DominioLogoEntity;
 import it.govpay.common.entity.IntermediarioEntity;
 import it.govpay.common.entity.StazioneEntity;
+import it.govpay.common.entity.batch.BatchJobExecutionEntity;
+import it.govpay.common.entity.batch.BatchJobExecutionParamEntity;
+import it.govpay.common.entity.batch.BatchJobInstanceEntity;
 
 @SpringBootApplication(scanBasePackages = {"it.govpay.gpd", "it.govpay.common.client"})
 @EnableJpaRepositories(basePackages = {"it.govpay.gpd"})
@@ -40,7 +43,8 @@ public class Application extends SpringBootServletInitializer {
 	 * <p>
 	 * Qui sono registrate le sole entity di govpay-common che servono ai repository
 	 * che la libreria espone ({@code ApplicazioneRepository}, {@code DominioRepository},
-	 * {@code IntermediarioRepository} e affini). Stesso approccio di console-api e
+	 * {@code IntermediarioRepository} e affini) e le entity dei metadati Spring Batch
+	 * lette dall'API delle esecuzioni. Stesso approccio di console-api e
 	 * portal-api.
 	 */
 	@Bean
@@ -55,6 +59,11 @@ public class Application extends SpringBootServletInitializer {
 		classi.add(DominioLogoEntity.class.getName());
 		classi.add(IntermediarioEntity.class.getName());
 		classi.add(StazioneEntity.class.getName());
+		// Metadati Spring Batch letti dall'API REST del batch (/api/batch/executions):
+		// senza queste entity AbstractBatchController risponde 500.
+		classi.add(BatchJobExecutionEntity.class.getName());
+		classi.add(BatchJobExecutionParamEntity.class.getName());
+		classi.add(BatchJobInstanceEntity.class.getName());
 		return PersistenceManagedTypes.of(classi, scanned.getManagedPackages());
 	}
 }

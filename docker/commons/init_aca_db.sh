@@ -8,7 +8,8 @@
 # 3. Esecuzione script SQL se il database non è inizializzato
 #
 ##############################################################################
-set -x
+# Niente 'set -x': il tracing scriverebbe nei log comandi e variabili con la
+# password del database.
 set -e
 
 # Configurazione con valori di default
@@ -133,6 +134,9 @@ log_info "URL JDBC: ${JDBC_URL}"
 ##############################################################################
 
 SQLTOOL_RC_FILE="/tmp/sqltool_aca.rc"
+# Il file contiene la password del database: si rimuove comunque all'uscita
+trap 'rm -f "${SQLTOOL_RC_FILE}"; rm -rf /tmp/aca_sql' EXIT
+umask 077
 cat > ${SQLTOOL_RC_FILE} <<EOSQLTOOL
 urlid aca_db
 url ${JDBC_URL}
@@ -144,56 +148,67 @@ charset UTF-8
 EOSQLTOOL
 
 ##############################################################################
-# READINESS CHECK (Esistenza Tabella)
+# READINESS CHECK (oggetti gia' presenti)
 ##############################################################################
 
-if [ "${GOVPAY_ACA_READY_DB_CHECK_SKIP^^}" == "FALSE" ]; then
-    log_info "Esecuzione readiness check (tabella: ${GOVPAY_ACA_DB_CHECK_TABLE})..."
+# Le tabelle Spring Batch e le viste del batch si verificano separatamente: nel
+# database di GovPay le tabelle Spring Batch possono esistere gia' (create da un
+# altro batch GovPay) senza le viste v_versamenti_gpd e v_sng_versamenti_gpd.
+ACA_VIEW_CHECK=v_versamenti_gpd
 
-    # Costruzione query di verifica in base al tipo di database
-    # Costruzione query di verifica in base al tipo di database
+INVOCAZIONE_CLIENT="-Dfile.encoding=UTF-8 -cp ${GOVPAY_DS_JDBC_LIBS}/*:/opt/hsqldb-${HSQLDB_FULLVERSION}/hsqldb/lib/sqltool.jar org.hsqldb.cmdline.SqlTool --rcFile=${SQLTOOL_RC_FILE} "
+
+# Query che conta gli oggetti con il nome indicato ($1) di tipo tabella o vista ($2)
+query_conteggio() {
+    local nome="${1,,}" tipo="$2"
     case "${GOVPAY_DB_TYPE}" in
         postgresql)
-            CHECK_QUERY="SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${GOVPAY_ACA_DB_CHECK_TABLE,,}' AND LOWER(table_catalog)='${GOVPAY_DB_NAME,,}';"
+            echo "SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${nome}' AND LOWER(table_catalog)='${GOVPAY_DB_NAME,,}';"
             ;;
         mysql|mariadb)
-            CHECK_QUERY="SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${GOVPAY_ACA_DB_CHECK_TABLE,,}' AND LOWER(table_schema)='${GOVPAY_DB_NAME,,}';"
+            echo "SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${nome}' AND LOWER(table_schema)='${GOVPAY_DB_NAME,,}';"
             ;;
         oracle)
-            CHECK_QUERY="SELECT count(*) FROM all_tables WHERE LOWER(table_name)='${GOVPAY_ACA_DB_CHECK_TABLE,,}' AND LOWER(owner)='${GOVPAY_DB_USER^^}';"
+            if [ "${tipo}" == "vista" ]; then
+                echo "SELECT count(*) FROM all_views WHERE LOWER(view_name)='${nome}' AND UPPER(owner)='${GOVPAY_DB_USER^^}';"
+            else
+                echo "SELECT count(*) FROM all_tables WHERE LOWER(table_name)='${nome}' AND UPPER(owner)='${GOVPAY_DB_USER^^}';"
+            fi
             ;;
     esac
+}
 
-    RETRY=0
-    TABLE_EXISTS=-1
-
-    INVOCAZIONE_CLIENT="-Dfile.encoding=UTF-8 -cp ${GOVPAY_DS_JDBC_LIBS}/*:/opt/hsqldb-${HSQLDB_FULLVERSION}/hsqldb/lib/sqltool.jar org.hsqldb.cmdline.SqlTool --rcFile=${SQLTOOL_RC_FILE} "
-
-    while [ ${TABLE_EXISTS} -lt 0 ] && [ ${RETRY} -lt ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} ]; do
-        TABLE_COUNT=$(java ${INVOCAZIONE_CLIENT} \
-            --sql="${CHECK_QUERY}" \
-            aca_db 2>/dev/null | tail -1 | tr -d ' \n\r')
-
-        if [[ "${TABLE_COUNT}" =~ ^[0-9]+$ ]]; then
-            TABLE_EXISTS=${TABLE_COUNT}
-        else
-            RETRY=$((RETRY + 1))
-            if [ ${RETRY} -lt ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} ]; then
-                log_info "Readiness check fallito, tentativo ${RETRY}/${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY}..."
-                sleep ${GOVPAY_ACA_READY_DB_CHECK_SLEEP_TIME}
-            fi
+# Stampa il numero di oggetti trovati; esce con errore se il database non risponde
+conta_oggetti() {
+    local query retry=0 conteggio
+    query="$(query_conteggio "$1" "$2")"
+    while [ ${retry} -lt ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} ]; do
+        conteggio=$(java ${INVOCAZIONE_CLIENT} --sql="${query}" aca_db 2>/dev/null | tail -1 | tr -d ' \n\r')
+        if [[ "${conteggio}" =~ ^[0-9]+$ ]]; then
+            echo "${conteggio}"
+            return 0
+        fi
+        retry=$((retry + 1))
+        if [ ${retry} -lt ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} ]; then
+            log_info "Readiness check fallito, tentativo ${retry}/${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY}..." >&2
+            sleep ${GOVPAY_ACA_READY_DB_CHECK_SLEEP_TIME}
         fi
     done
+    log_error "FATALE: Readiness check fallito dopo ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} tentativi"
+    return 1
+}
 
-    if [ ${TABLE_EXISTS} -lt 0 ]; then
-        log_error "FATALE: Readiness check fallito dopo ${GOVPAY_ACA_READY_DB_CHECK_MAX_RETRY} tentativi"
-        exit 1
-    fi
-
-    log_info "Risultato readiness check: ${TABLE_EXISTS} tabella/e trovata/e"
-
-    if [ ${TABLE_EXISTS} -gt 0 ]; then
-        log_info "Database già inizializzato, esecuzione SQL saltata"
+CREA_SCHEMA_BATCH=1
+CREA_VISTE=1
+if [ "${GOVPAY_ACA_READY_DB_CHECK_SKIP^^}" == "FALSE" ]; then
+    log_info "Esecuzione readiness check (tabella: ${GOVPAY_ACA_DB_CHECK_TABLE}, vista: ${ACA_VIEW_CHECK})..."
+    N_TABELLE=$(conta_oggetti "${GOVPAY_ACA_DB_CHECK_TABLE}" tabella) || exit 1
+    N_VISTE=$(conta_oggetti "${ACA_VIEW_CHECK}" vista) || exit 1
+    log_info "Risultato readiness check: tabella ${N_TABELLE}, vista ${N_VISTE}"
+    [ "${N_TABELLE}" -gt 0 ] && CREA_SCHEMA_BATCH=0
+    [ "${N_VISTE}" -gt 0 ] && CREA_VISTE=0
+    if [ ${CREA_SCHEMA_BATCH} -eq 0 ] && [ ${CREA_VISTE} -eq 0 ]; then
+        log_info "Database gia' inizializzato, esecuzione SQL saltata"
         exit 0
     fi
 fi
@@ -257,21 +272,29 @@ esac
 # Esecuzione script SQL
 log_info "Esecuzione script SQL in corso..."
 
+INCLUDE_SQL=""
+if [ ${CREA_SCHEMA_BATCH} -eq 1 ]; then
+    log_info "Creazione delle tabelle Spring Batch"
+    INCLUDE_SQL="\\i /tmp/aca_sql/schema-${GOVPAY_DB_TYPE}.sql"
+fi
+if [ ${CREA_VISTE} -eq 1 ]; then
+    log_info "Creazione delle viste del batch"
+    INCLUDE_SQL="${INCLUDE_SQL}
+\\i /tmp/aca_sql/create-db.sql"
+fi
+
 java ${INVOCAZIONE_CLIENT} \
     --continueOnErr=false \
     aca_db <<EOSQL
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 ${START_TRANSACTION}
-\i /tmp/aca_sql/schema-${GOVPAY_DB_TYPE}.sql
-\i /tmp/aca_sql/create-db.sql
+${INCLUDE_SQL}
 COMMIT;
 EOSQL
 
 SQL_EXIT_CODE=$?
 
-# Pulizia
-#rm -rf /tmp/aca_sql
-#rm -f ${SQLTOOL_RC_FILE}
+# Pulizia: file rc e script temporanei sono rimossi dalla trap su EXIT
 
 if [ ${SQL_EXIT_CODE} -eq 0 ]; then
     log_info "========================================"
