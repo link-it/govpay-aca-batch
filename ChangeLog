@@ -1,3 +1,26 @@
+2026-11-02  Giuliano Pintori <pintori@link.it>
+
+	* [Configurazione] Proprieta' sulle pendenze rifiutate con 403 rinominata.
+	it.govpay.gpd.batch.policy.reinvio.403.enabled diceva l'opposto di quello
+	che fa: con true la pendenza veniva segnata come comunicata e non piu'
+	ritentata. Il nuovo nome e' it.govpay.gpd.batch.policy.scarta.403.enabled,
+	con lo stesso significato e lo stesso default (false = ritenta). Il vecchio
+	nome e' deprecato ma ancora letto se il nuovo non e' impostato, con un
+	avviso nel log all'avvio.
+
+	* [Docker] GOVPAY_ACA_BATCH_USA_CRON allineata agli altri batch GovPay.
+	Il significato era invertito: ora, se non impostata, il container resta
+	attivo con lo scheduler interno (porta 10001); con true esegue il job una
+	volta e termina (profilo cron), da pianificare con un cron esterno.
+	Chi usava l'esecuzione singola deve impostare GOVPAY_ACA_BATCH_USA_CRON=true;
+	chi impostava true per lo scheduler interno deve toglierla.
+
+	* [Docker] Supporto a SQL Server nell'immagine (GOVPAY_DB_TYPE=sqlserver).
+	Entrypoint e init_aca_db.sh costruiscono l'URL jdbc:sqlserver (porta 1433
+	di default, parametri di GOVPAY_DS_CONN_PARAM separati da ';') e
+	l'inizializzazione crea tabelle Spring Batch e viste del batch. Il driver
+	mssql-jdbc si monta in /opt/jdbc-drivers come gli altri.
+
 2026-09-28  Giuliano Pintori <pintori@link.it>
 
 	* [Logging] Transaction ID e Correlation ID nelle esecuzioni batch (BP-LOG-3).

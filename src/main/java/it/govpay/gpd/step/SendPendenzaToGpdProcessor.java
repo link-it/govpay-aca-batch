@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.infrastructure.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,7 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 
+import jakarta.annotation.PostConstruct;
 import tools.jackson.databind.ObjectMapper;
 
 import it.govpay.gpd.client.beans.PaymentPositionModel;
@@ -44,6 +46,11 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 	private static final String ERROR_MSG_GPD_NON_RAGGIUNGIBILE = "GPD non raggiungibile: {0}";
 
+	public static final String PROP_SCARTA_403 = "it.govpay.gpd.batch.policy.scarta.403.enabled";
+	/** Nome precedente di {@link #PROP_SCARTA_403}, accettato per compatibilita'. */
+	public static final String PROP_REINVIO_403_DEPRECATA = "it.govpay.gpd.batch.policy.reinvio.403.enabled";
+	public static final String PLACEHOLDER_SCARTA_403 = "${" + PROP_SCARTA_403 + ":${" + PROP_REINVIO_403_DEPRECATA + ":false}}";
+
 	private Logger logger = LoggerFactory.getLogger(SendPendenzaToGpdProcessor.class);
 
 	PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl;
@@ -52,17 +59,30 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 
 	GdeService gdeService;
 
-	@Value("${it.govpay.gpd.batch.policy.reinvio.403.enabled:false}")
-	private Boolean reinvioErrore403;
+	// true: la pendenza rifiutata con 403 viene segnata come comunicata e non piu' ritentata
+	@Value(PLACEHOLDER_SCARTA_403)
+	private Boolean scartaErrore403;
+
+	private final Environment environment;
 
 	public SendPendenzaToGpdProcessor(PaymentPositionModelRequestMapperImpl paymentPositionModelRequestMapperImpl,
 			GpdApiService gpdApiService, GdeService gdeService,
-			@Qualifier("gpdObjectMapper") ObjectMapper objectMapper, SingoloVersamentoGpdRepository singoloVersamentoGpdRepository) {
+			@Qualifier("gpdObjectMapper") ObjectMapper objectMapper, SingoloVersamentoGpdRepository singoloVersamentoGpdRepository,
+			Environment environment) {
 		this.paymentPositionModelRequestMapperImpl = paymentPositionModelRequestMapperImpl;
 		this.paymentPositionModelRequestMapperImpl.setObjectMapper(objectMapper);
 		this.paymentPositionModelRequestMapperImpl.setSingoloVersamentoGpdRepository(singoloVersamentoGpdRepository);
 		this.gpdApiService = gpdApiService;
 		this.gdeService = gdeService;
+		this.environment = environment;
+	}
+
+	@PostConstruct
+	void verificaProprietaDeprecate() {
+		if (this.environment.containsProperty(PROP_REINVIO_403_DEPRECATA)) {
+			logger.warn("La proprieta' {} e' deprecata: usare {} (stesso significato, true = la pendenza rifiutata con 403 non viene ritentata).",
+					PROP_REINVIO_403_DEPRECATA, PROP_SCARTA_403);
+		}
 	}
 
 	@Override
@@ -230,8 +250,8 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		// salva evento di creazione KO
 		this.gdeService.salvaCreatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
 
-		// ripeto se previsto dalla configurazione
-		return Boolean.TRUE.equals(this.reinvioErrore403) ? item : null;
+		// item: pendenza segnata come comunicata, non piu' ritentata; null: ripresa all'esecuzione successiva
+		return Boolean.TRUE.equals(this.scartaErrore403) ? item : null;
 	}
 
 	public VersamentoGpdEntity updatePosition(VersamentoGpdEntity item) {

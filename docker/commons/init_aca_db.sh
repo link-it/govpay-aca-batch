@@ -55,6 +55,7 @@ if [ -z "${DB_PORT}" ] || [ "${DB_PORT}" == "${DB_HOST}" ]; then
         postgresql) DB_PORT=5432 ;;
         mysql|mariadb) DB_PORT=3306 ;;
         oracle) DB_PORT=1521 ;;
+        sqlserver) DB_PORT=1433 ;;
         *) DB_PORT=5432 ;;
     esac
 fi
@@ -112,15 +113,21 @@ case "${GOVPAY_DB_TYPE}" in
         fi
         START_TRANSACTION=""
         ;;
+    sqlserver)
+        JDBC_URL="jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${GOVPAY_DB_NAME}"
+        START_TRANSACTION=""
+        ;;
     *)
         log_error "Tipo database non supportato: ${GOVPAY_DB_TYPE}"
         exit 1
         ;;
 esac
 
-# Aggiunta parametri di connessione se presenti
+# Aggiunta parametri di connessione se presenti (SQL Server li separa con ';')
 if [ -n "${GOVPAY_DS_CONN_PARAM}" ]; then
-    if [[ "${JDBC_URL}" == *"?"* ]]; then
+    if [ "${GOVPAY_DB_TYPE}" == "sqlserver" ]; then
+        JDBC_URL="${JDBC_URL};${GOVPAY_DS_CONN_PARAM}"
+    elif [[ "${JDBC_URL}" == *"?"* ]]; then
         JDBC_URL="${JDBC_URL}&${GOVPAY_DS_CONN_PARAM}"
     else
         JDBC_URL="${JDBC_URL}?${GOVPAY_DS_CONN_PARAM}"
@@ -167,6 +174,10 @@ query_conteggio() {
             ;;
         mysql|mariadb)
             echo "SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${nome}' AND LOWER(table_schema)='${GOVPAY_DB_NAME,,}';"
+            ;;
+        sqlserver)
+            # information_schema.tables comprende anche le viste (table_type VIEW)
+            echo "SELECT count(*) FROM information_schema.tables WHERE LOWER(table_name)='${nome}' AND LOWER(table_catalog)='${GOVPAY_DB_NAME,,}';"
             ;;
         oracle)
             if [ "${tipo}" == "vista" ]; then

@@ -73,7 +73,7 @@ Le proprietà si impostano in `application.properties`, da riga di comando (`-D<
 |-----------|----------------------|---------|-------------|
 | `it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni` | `IT_GOVPAY_GPD_BATCH_DBREADER_SOGLIATEMPORALERICERCAPENDENZE_NUMEROGIORNI` | `7` | Giorni, dalla data di ultima modifica, entro cui una pendenza viene considerata |
 | `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size` | `IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPENDENZASTEP_CHUNK_SIZE` | `10` | Pendenze elaborate per transazione e fetch size della lettura |
-| `it.govpay.gpd.batch.policy.reinvio.403.enabled` | `IT_GOVPAY_GPD_BATCH_POLICY_REINVIO_403_ENABLED` | `false` | Con `true` una pendenza rifiutata dal GPD con `403` (Ente non abilitato) viene segnata come comunicata e non ritentata; con `false` resta da inviare e viene ripresa all'esecuzione successiva |
+| `it.govpay.gpd.batch.policy.scarta.403.enabled` | `IT_GOVPAY_GPD_BATCH_POLICY_SCARTA_403_ENABLED` | `false` | Con `true` una pendenza rifiutata dal GPD con `403` (Ente non abilitato) viene segnata come comunicata e non ritentata; con `false` resta da inviare e viene ripresa all'esecuzione successiva. Sostituisce `it.govpay.gpd.batch.policy.reinvio.403.enabled`, deprecata ma ancora letta (stesso significato) se la nuova non è impostata |
 | `it.govpay.gpd.standIn.enabled` | `IT_GOVPAY_GPD_STANDIN_ENABLED` | `true` | Valore del campo `payStandIn` delle posizioni inviate al GPD (posizione pagabile in modalità stand-in) |
 | `it.govpay.gpd.time-zone` | `IT_GOVPAY_GPD_TIME_ZONE` | `Europe/Rome` | Fuso orario con cui si registra `data_ultima_comunicazione_aca` |
 | `scheduler.gpdSenderJob.fixedDelayString` | `SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING` | `600000` | Intervallo tra la fine di un'esecuzione e l'avvio della successiva, in ms (10 minuti); nel container si imposta in minuti con `GOVPAY_ACA_BATCH_INTERVALLO_CRON` |
@@ -218,7 +218,9 @@ Il war non è pubblicato nelle release né nell'immagine Docker: si produce con 
 
 L'immagine è pubblicata su Docker Hub come [linkitaly/govpay-aca-batch](https://hub.docker.com/r/linkitaly/govpay-aca-batch) (release) e `linkitaly/govpay-aca-batch-dev` (sviluppo, a ogni push su `main`). I driver JDBC si montano in `/opt/jdbc-drivers`.
 
-La modalità dipende da `GOVPAY_ACA_BATCH_USA_CRON`: **non impostata, il container esegue il job una volta e termina** (profilo `cron`, senza server HTTP), adatto a un cron esterno o a un CronJob Kubernetes; con `true` resta attivo con lo scheduler interno e risponde sulla porta `10001`.
+La modalità dipende da `GOVPAY_ACA_BATCH_USA_CRON`, come negli altri batch GovPay: **non impostata, il container resta attivo con lo scheduler interno** e risponde sulla porta `10001`; con `true` esegue il job una volta e termina (profilo `cron`, senza server HTTP), adatto a un cron esterno o a un CronJob Kubernetes.
+
+> Nelle immagini precedenti il significato era invertito: non impostata voleva dire esecuzione singola. Chi usa l'esecuzione singola deve ora impostare `GOVPAY_ACA_BATCH_USA_CRON=true`; chi impostava `true` per lo scheduler interno deve toglierla.
 
 Esecuzione singola:
 
@@ -230,6 +232,7 @@ docker run --rm \
   -e GOVPAY_DB_NAME=govpay \
   -e GOVPAY_DB_USER=govpay \
   -e GOVPAY_DB_PASSWORD=<password> \
+  -e GOVPAY_ACA_BATCH_USA_CRON=true \
   linkitaly/govpay-aca-batch
 ```
 
@@ -247,7 +250,6 @@ services:
       GOVPAY_DB_NAME: govpay
       GOVPAY_DB_USER: govpay
       GOVPAY_DB_PASSWORD: ${GOVPAY_DB_PASSWORD}
-      GOVPAY_ACA_BATCH_USA_CRON: "true"
       GOVPAY_ACA_BATCH_INTERVALLO_CRON: 10   # minuti
     ports:
       - "10001:10001"
@@ -270,6 +272,9 @@ spec:
           containers:
           - name: govpay-aca
             image: linkitaly/govpay-aca-batch
+            env:
+            - name: GOVPAY_ACA_BATCH_USA_CRON
+              value: "true"
             envFrom:
             - configMapRef:
                 name: govpay-aca-config
@@ -289,18 +294,18 @@ Variabili d'ambiente dell'immagine, oltre alle proprietà Spring Boot in forma d
 
 | Variabile | Obbligatoria | Default | Descrizione |
 |-----------|--------------|---------|-------------|
-| `GOVPAY_DB_TYPE` | sì | - | Tipo di database: `postgresql`, `mysql`, `mariadb`, `oracle` |
+| `GOVPAY_DB_TYPE` | sì | - | Tipo di database: `postgresql`, `mysql`, `mariadb`, `oracle`, `sqlserver` |
 | `GOVPAY_DB_SERVER` | sì | - | Server del database, `host` o `host:porta` (porta di default del database se omessa) |
 | `GOVPAY_DB_NAME` | sì | - | Nome del database (per Oracle, service name o SID) |
 | `GOVPAY_DB_USER` | sì | - | Utente del database |
 | `GOVPAY_DB_PASSWORD` | sì | - | Password del database (se manca l'avvio prosegue con un avviso) |
-| `GOVPAY_DS_CONN_PARAM` | no | - | Parametri aggiunti all'URL JDBC (es. `zeroDateTimeBehavior=convertToNull` per MySQL) |
+| `GOVPAY_DS_CONN_PARAM` | no | - | Parametri aggiunti all'URL JDBC (es. `zeroDateTimeBehavior=convertToNull` per MySQL). Con SQL Server sono separati da `;` (es. `encrypt=true;trustServerCertificate=true` per un certificato self-signed) |
 | `GOVPAY_DS_JDBC_LIBS` | no | `/opt/jdbc-drivers` | Directory dei driver JDBC |
 | `GOVPAY_ORACLE_JDBC_URL_TYPE` | no | `servicename` | Formato dell'URL Oracle: `servicename` o `sid` |
 | `ORACLE_TNS_ADMIN` | no | - | Directory dei file TNS di Oracle |
 | `GOVPAY_ACA_MIN_POOL` | no | `2` | Connessioni minime inattive del pool |
 | `GOVPAY_ACA_MAX_POOL` | no | `10` | Connessioni massime del pool |
-| `GOVPAY_ACA_BATCH_USA_CRON` | no | - | `true`, `si`, `yes` o `1`: scheduler interno, il container resta attivo. Altrimenti esecuzione singola con il profilo `cron`, senza server HTTP: il container termina a fine job |
+| `GOVPAY_ACA_BATCH_USA_CRON` | no | - | `true`, `si`, `yes` o `1`: esecuzione singola con il profilo `cron`, senza server HTTP: il container termina a fine job. Altrimenti scheduler interno, il container resta attivo |
 | `GOVPAY_ACA_BATCH_INTERVALLO_CRON` | no | `5` | Minuti tra un'esecuzione e l'altra con lo scheduler interno (imposta `scheduler.gpdSenderJob.fixedDelayString`) |
 | `SERVER_PORT` | no | `10001` | Porta HTTP con lo scheduler interno |
 | `MANAGEMENT_SERVER_PORT` | no | porta del servizio | Porta dedicata agli endpoint actuator |
@@ -371,7 +376,7 @@ Il job ha un solo step chunk-oriented (`spedizionePendenzaStep`):
   - pendenza `NON_ESEGUITO` già comunicata: `PUT` della posizione, con pubblicazione;
   - pendenza `ANNULLATO` già comunicata: `PUT` della posizione senza pubblicazione, che la riporta in `DRAFT`;
   - le pendenze senza IUV, con scadenza passata o con metadati non leggibili non vengono inviate e sono segnate come comunicate; un `404` o un `409` sull'aggiornamento chiudono la pendenza (posizione inesistente o già chiusa sul GPD).
-- **Writer** (`PendenzaWriter`): imposta `data_ultima_comunicazione_aca` all'avvio dell'esecuzione per le pendenze inviate o chiuse. Quelle fallite per errori di rete, `5xx` o `403` (con `it.govpay.gpd.batch.policy.reinvio.403.enabled=false`) restano da inviare e sono riprese all'esecuzione successiva.
+- **Writer** (`PendenzaWriter`): imposta `data_ultima_comunicazione_aca` all'avvio dell'esecuzione per le pendenze inviate o chiuse. Quelle fallite per errori di rete, `5xx` o `403` (con `it.govpay.gpd.batch.policy.scarta.403.enabled=false`) restano da inviare e sono riprese all'esecuzione successiva.
 
 Ogni chiamata al GPD produce un evento nel GDE con richiesta, risposta ed esito.
 

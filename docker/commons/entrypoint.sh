@@ -61,6 +61,7 @@ GOVPAY_ACA_MAX_POOL=${GOVPAY_ACA_MAX_POOL:-10}
         postgresql) DB_PORT=5432 ;;
         mysql|mariadb) DB_PORT=3306 ;;
         oracle) DB_PORT=1521 ;;
+        sqlserver) DB_PORT=1433 ;;
     esac
 
     # Costruzione URL JDBC
@@ -85,14 +86,25 @@ GOVPAY_ACA_MAX_POOL=${GOVPAY_ACA_MAX_POOL:-10}
             GOVPAY_HYBERNATE_DIALECT="org.hibernate.dialect.OracleDialect"
             [ -n "${ORACLE_TNS_ADMIN}" ] && JAVA_OPTS="${JAVA_OPTS} -Doracle.net.tns_admin=${ORACLE_TNS_ADMIN}"
             ;;
+        sqlserver)
+            SPRING_DATASOURCE_URL="jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${GOVPAY_DB_NAME}"
+            GOVPAY_DS_DRIVER_CLASS="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            GOVPAY_HYBERNATE_DIALECT="org.hibernate.dialect.SQLServerDialect"
+            ;;
         *)
             log_error "GOVPAY_DB_TYPE non supportato: ${GOVPAY_DB_TYPE}"
             exit 1
             ;;
     esac
 
-    # Aggiunta parametri di connessione
-    [ -n "${GOVPAY_DS_CONN_PARAM}" ] && SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}?${GOVPAY_DS_CONN_PARAM}"
+    # Aggiunta parametri di connessione (SQL Server li separa con ';' invece di '?')
+    if [ -n "${GOVPAY_DS_CONN_PARAM}" ]; then
+        if [ "${GOVPAY_DB_TYPE}" == "sqlserver" ]; then
+            SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL};${GOVPAY_DS_CONN_PARAM}"
+        else
+            SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}?${GOVPAY_DS_CONN_PARAM}"
+        fi
+    fi
 
     # Mappatura a variabili Spring
 
@@ -139,13 +151,19 @@ export IT_GOVPAY_GPD_BATCH_CLUSTERID
 ##############################################################################
 
 # Verifica se modalità CRON è abilitata tramite GOVPAY_ACA_BATCH_USA_CRON
-# Modalità CRON = batch si auto-schedula con intervallo (daemon con scheduler)
-# Modalità ONE-SHOT = batch esegue una volta ed esce (senza scheduler)
-# Valori ammessi: si, yes, 1, true (case insensitive)
- 
+# Modalità CRON (TRUE) = esecuzione singola, schedulata da cron esterno (OS), profilo 'cron' attivo
+# Modalità SCHEDULER INTERNO (default) = batch daemon con scheduler Spring interno
+# Valori ammessi per TRUE: si, yes, 1, true (case insensitive)
+
 case "${GOVPAY_ACA_BATCH_USA_CRON,,}" in
     si|yes|1|true)
-        log_info "Modalità deployment: CRON (auto-schedulato)"
+        log_info "Modalità deployment: CRON (schedulato da cron esterno/OS)"
+        SPRING_MAIN_WEB_APPLICATION_TYPE="none"
+        export SPRING_MAIN_WEB_APPLICATION_TYPE
+        JAVA_OPTS="-Dspring.profiles.active=cron $JAVA_OPTS"
+        ;;
+    *)
+        log_info "Modalità deployment: SCHEDULER INTERNO (auto-schedulato)"
         SERVER_PORT=${SERVER_PORT:-10001}
 
         # Conversione intervallo da minuti a millisecondi (default: 5 minuti = 300000 ms)
@@ -154,12 +172,6 @@ case "${GOVPAY_ACA_BATCH_USA_CRON,,}" in
 
         export SERVER_PORT SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING
         log_info "Porta Actuator: ${SERVER_PORT}, Intervallo scheduler: ${INTERVALLO_MINUTI} minuti (${SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING}ms)"
-        ;;
-    *) 
-        log_info "Modalità deployment: GESTITO (schedulato esternamente)"
-        SPRING_MAIN_WEB_APPLICATION_TYPE="none"
-        export SPRING_MAIN_WEB_APPLICATION_TYPE
-        JAVA_OPTS="-Dspring.profiles.active=cron $JAVA_OPTS"
         ;;
 esac
 
