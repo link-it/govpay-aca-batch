@@ -15,6 +15,12 @@
 	Chi usava l'esecuzione singola deve impostare GOVPAY_ACA_BATCH_USA_CRON=true;
 	chi impostava true per lo scheduler interno deve toglierla.
 
+	* [Docker] Supporto a SQL Server nell'immagine (GOVPAY_DB_TYPE=sqlserver).
+	Entrypoint e init_aca_db.sh costruiscono l'URL jdbc:sqlserver (porta 1433
+	di default, parametri di GOVPAY_DS_CONN_PARAM separati da ';') e
+	l'inizializzazione crea tabelle Spring Batch e viste del batch. Il driver
+	mssql-jdbc si monta in /opt/jdbc-drivers come gli altri.
+
 2026-09-28  Giuliano Pintori <pintori@link.it>
 
 	* [Logging] Transaction ID e Correlation ID nelle esecuzioni batch (BP-LOG-3).

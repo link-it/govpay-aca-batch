@@ -7,6 +7,7 @@ I driver JDBC non sono inclusi nell'immagine: si copiano in questa directory e s
 | `postgresql` | [postgresql-42.7.14.jar](https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.14/postgresql-42.7.14.jar) | BSD-2-Clause |
 | `mysql`, `mariadb` | [mysql-connector-j-26.10.0.jar](https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/26.10.0/mysql-connector-j-26.10.0.jar) | GPL-2.0 con Universal FOSS Exception |
 | `oracle` | [ojdbc11-23.26.3.0.0.jar](https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc11/23.26.3.0.0/ojdbc11-23.26.3.0.0.jar) | Oracle Free Use Terms and Conditions |
+| `sqlserver` | [mssql-jdbc-13.6.1.jre11.jar](https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/13.6.1.jre11/mssql-jdbc-13.6.1.jre11.jar) | MIT |
 
 Anche con MariaDB il container usa il driver MySQL (`com.mysql.cj.jdbc.Driver`): il driver `mariadb-java-client` non viene usato.
 

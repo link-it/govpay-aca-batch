@@ -16,7 +16,7 @@ GovPay A.C.A. Batch è un componente del progetto [GovPay](https://github.com/li
 ### Funzionalità principali
 
 - Sincronizzazione automatica delle posizioni debitorie verso pagoPA
-- Supporto multi-database: PostgreSQL, MySQL/MariaDB, Oracle
+- Supporto multi-database: PostgreSQL, MySQL/MariaDB, Oracle, SQL Server
 - Modalità di deployment flessibili (daemon o esecuzione singola)
 - Integrazione opzionale con GDE (Giornale degli Eventi)
 - Health check e monitoraggio tramite Spring Boot Actuator

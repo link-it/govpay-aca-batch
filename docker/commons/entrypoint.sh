@@ -61,6 +61,7 @@ GOVPAY_ACA_MAX_POOL=${GOVPAY_ACA_MAX_POOL:-10}
         postgresql) DB_PORT=5432 ;;
         mysql|mariadb) DB_PORT=3306 ;;
         oracle) DB_PORT=1521 ;;
+        sqlserver) DB_PORT=1433 ;;
     esac
 
     # Costruzione URL JDBC
@@ -85,14 +86,25 @@ GOVPAY_ACA_MAX_POOL=${GOVPAY_ACA_MAX_POOL:-10}
             GOVPAY_HYBERNATE_DIALECT="org.hibernate.dialect.OracleDialect"
             [ -n "${ORACLE_TNS_ADMIN}" ] && JAVA_OPTS="${JAVA_OPTS} -Doracle.net.tns_admin=${ORACLE_TNS_ADMIN}"
             ;;
+        sqlserver)
+            SPRING_DATASOURCE_URL="jdbc:sqlserver://${DB_HOST}:${DB_PORT};databaseName=${GOVPAY_DB_NAME}"
+            GOVPAY_DS_DRIVER_CLASS="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            GOVPAY_HYBERNATE_DIALECT="org.hibernate.dialect.SQLServerDialect"
+            ;;
         *)
             log_error "GOVPAY_DB_TYPE non supportato: ${GOVPAY_DB_TYPE}"
             exit 1
             ;;
     esac
 
-    # Aggiunta parametri di connessione
-    [ -n "${GOVPAY_DS_CONN_PARAM}" ] && SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}?${GOVPAY_DS_CONN_PARAM}"
+    # Aggiunta parametri di connessione (SQL Server li separa con ';' invece di '?')
+    if [ -n "${GOVPAY_DS_CONN_PARAM}" ]; then
+        if [ "${GOVPAY_DB_TYPE}" == "sqlserver" ]; then
+            SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL};${GOVPAY_DS_CONN_PARAM}"
+        else
+            SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}?${GOVPAY_DS_CONN_PARAM}"
+        fi
+    fi
 
     # Mappatura a variabili Spring
 

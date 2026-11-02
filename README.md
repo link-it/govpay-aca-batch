@@ -294,12 +294,12 @@ Variabili d'ambiente dell'immagine, oltre alle proprietà Spring Boot in forma d
 
 | Variabile | Obbligatoria | Default | Descrizione |
 |-----------|--------------|---------|-------------|
-| `GOVPAY_DB_TYPE` | sì | - | Tipo di database: `postgresql`, `mysql`, `mariadb`, `oracle` |
+| `GOVPAY_DB_TYPE` | sì | - | Tipo di database: `postgresql`, `mysql`, `mariadb`, `oracle`, `sqlserver` |
 | `GOVPAY_DB_SERVER` | sì | - | Server del database, `host` o `host:porta` (porta di default del database se omessa) |
 | `GOVPAY_DB_NAME` | sì | - | Nome del database (per Oracle, service name o SID) |
 | `GOVPAY_DB_USER` | sì | - | Utente del database |
 | `GOVPAY_DB_PASSWORD` | sì | - | Password del database (se manca l'avvio prosegue con un avviso) |
-| `GOVPAY_DS_CONN_PARAM` | no | - | Parametri aggiunti all'URL JDBC (es. `zeroDateTimeBehavior=convertToNull` per MySQL) |
+| `GOVPAY_DS_CONN_PARAM` | no | - | Parametri aggiunti all'URL JDBC (es. `zeroDateTimeBehavior=convertToNull` per MySQL). Con SQL Server sono separati da `;` (es. `encrypt=true;trustServerCertificate=true` per un certificato self-signed) |
 | `GOVPAY_DS_JDBC_LIBS` | no | `/opt/jdbc-drivers` | Directory dei driver JDBC |
 | `GOVPAY_ORACLE_JDBC_URL_TYPE` | no | `servicename` | Formato dell'URL Oracle: `servicename` o `sid` |
 | `ORACLE_TNS_ADMIN` | no | - | Directory dei file TNS di Oracle |
