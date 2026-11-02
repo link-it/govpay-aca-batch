@@ -73,7 +73,7 @@ Le proprietà si impostano in `application.properties`, da riga di comando (`-D<
 |-----------|----------------------|---------|-------------|
 | `it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni` | `IT_GOVPAY_GPD_BATCH_DBREADER_SOGLIATEMPORALERICERCAPENDENZE_NUMEROGIORNI` | `7` | Giorni, dalla data di ultima modifica, entro cui una pendenza viene considerata |
 | `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size` | `IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPENDENZASTEP_CHUNK_SIZE` | `10` | Pendenze elaborate per transazione e fetch size della lettura |
-| `it.govpay.gpd.batch.policy.reinvio.403.enabled` | `IT_GOVPAY_GPD_BATCH_POLICY_REINVIO_403_ENABLED` | `false` | Con `true` una pendenza rifiutata dal GPD con `403` (Ente non abilitato) viene segnata come comunicata e non ritentata; con `false` resta da inviare e viene ripresa all'esecuzione successiva |
+| `it.govpay.gpd.batch.policy.scarta.403.enabled` | `IT_GOVPAY_GPD_BATCH_POLICY_SCARTA_403_ENABLED` | `false` | Con `true` una pendenza rifiutata dal GPD con `403` (Ente non abilitato) viene segnata come comunicata e non ritentata; con `false` resta da inviare e viene ripresa all'esecuzione successiva. Sostituisce `it.govpay.gpd.batch.policy.reinvio.403.enabled`, deprecata ma ancora letta (stesso significato) se la nuova non è impostata |
 | `it.govpay.gpd.standIn.enabled` | `IT_GOVPAY_GPD_STANDIN_ENABLED` | `true` | Valore del campo `payStandIn` delle posizioni inviate al GPD (posizione pagabile in modalità stand-in) |
 | `it.govpay.gpd.time-zone` | `IT_GOVPAY_GPD_TIME_ZONE` | `Europe/Rome` | Fuso orario con cui si registra `data_ultima_comunicazione_aca` |
 | `scheduler.gpdSenderJob.fixedDelayString` | `SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING` | `600000` | Intervallo tra la fine di un'esecuzione e l'avvio della successiva, in ms (10 minuti); nel container si imposta in minuti con `GOVPAY_ACA_BATCH_INTERVALLO_CRON` |
@@ -371,7 +371,7 @@ Il job ha un solo step chunk-oriented (`spedizionePendenzaStep`):
   - pendenza `NON_ESEGUITO` già comunicata: `PUT` della posizione, con pubblicazione;
   - pendenza `ANNULLATO` già comunicata: `PUT` della posizione senza pubblicazione, che la riporta in `DRAFT`;
   - le pendenze senza IUV, con scadenza passata o con metadati non leggibili non vengono inviate e sono segnate come comunicate; un `404` o un `409` sull'aggiornamento chiudono la pendenza (posizione inesistente o già chiusa sul GPD).
-- **Writer** (`PendenzaWriter`): imposta `data_ultima_comunicazione_aca` all'avvio dell'esecuzione per le pendenze inviate o chiuse. Quelle fallite per errori di rete, `5xx` o `403` (con `it.govpay.gpd.batch.policy.reinvio.403.enabled=false`) restano da inviare e sono riprese all'esecuzione successiva.
+- **Writer** (`PendenzaWriter`): imposta `data_ultima_comunicazione_aca` all'avvio dell'esecuzione per le pendenze inviate o chiuse. Quelle fallite per errori di rete, `5xx` o `403` (con `it.govpay.gpd.batch.policy.scarta.403.enabled=false`) restano da inviare e sono riprese all'esecuzione successiva.
 
 Ogni chiamata al GPD produce un evento nel GDE con richiesta, risposta ed esito.
 

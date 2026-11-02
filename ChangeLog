@@ -1,3 +1,13 @@
+2026-11-02  Giuliano Pintori <pintori@link.it>
+
+	* [Configurazione] Proprieta' sulle pendenze rifiutate con 403 rinominata.
+	it.govpay.gpd.batch.policy.reinvio.403.enabled diceva l'opposto di quello
+	che fa: con true la pendenza veniva segnata come comunicata e non piu'
+	ritentata. Il nuovo nome e' it.govpay.gpd.batch.policy.scarta.403.enabled,
+	con lo stesso significato e lo stesso default (false = ritenta). Il vecchio
+	nome e' deprecato ma ancora letto se il nuovo non e' impostato, con un
+	avviso nel log all'avvio.
+
 2026-09-28  Giuliano Pintori <pintori@link.it>
 
 	* [Logging] Transaction ID e Correlation ID nelle esecuzioni batch (BP-LOG-3).
