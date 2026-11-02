@@ -139,13 +139,19 @@ export IT_GOVPAY_GPD_BATCH_CLUSTERID
 ##############################################################################
 
 # Verifica se modalità CRON è abilitata tramite GOVPAY_ACA_BATCH_USA_CRON
-# Modalità CRON = batch si auto-schedula con intervallo (daemon con scheduler)
-# Modalità ONE-SHOT = batch esegue una volta ed esce (senza scheduler)
-# Valori ammessi: si, yes, 1, true (case insensitive)
- 
+# Modalità CRON (TRUE) = esecuzione singola, schedulata da cron esterno (OS), profilo 'cron' attivo
+# Modalità SCHEDULER INTERNO (default) = batch daemon con scheduler Spring interno
+# Valori ammessi per TRUE: si, yes, 1, true (case insensitive)
+
 case "${GOVPAY_ACA_BATCH_USA_CRON,,}" in
     si|yes|1|true)
-        log_info "Modalità deployment: CRON (auto-schedulato)"
+        log_info "Modalità deployment: CRON (schedulato da cron esterno/OS)"
+        SPRING_MAIN_WEB_APPLICATION_TYPE="none"
+        export SPRING_MAIN_WEB_APPLICATION_TYPE
+        JAVA_OPTS="-Dspring.profiles.active=cron $JAVA_OPTS"
+        ;;
+    *)
+        log_info "Modalità deployment: SCHEDULER INTERNO (auto-schedulato)"
         SERVER_PORT=${SERVER_PORT:-10001}
 
         # Conversione intervallo da minuti a millisecondi (default: 5 minuti = 300000 ms)
@@ -154,12 +160,6 @@ case "${GOVPAY_ACA_BATCH_USA_CRON,,}" in
 
         export SERVER_PORT SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING
         log_info "Porta Actuator: ${SERVER_PORT}, Intervallo scheduler: ${INTERVALLO_MINUTI} minuti (${SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING}ms)"
-        ;;
-    *) 
-        log_info "Modalità deployment: GESTITO (schedulato esternamente)"
-        SPRING_MAIN_WEB_APPLICATION_TYPE="none"
-        export SPRING_MAIN_WEB_APPLICATION_TYPE
-        JAVA_OPTS="-Dspring.profiles.active=cron $JAVA_OPTS"
         ;;
 esac
 

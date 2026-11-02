@@ -8,6 +8,13 @@
 	nome e' deprecato ma ancora letto se il nuovo non e' impostato, con un
 	avviso nel log all'avvio.
 
+	* [Docker] GOVPAY_ACA_BATCH_USA_CRON allineata agli altri batch GovPay.
+	Il significato era invertito: ora, se non impostata, il container resta
+	attivo con lo scheduler interno (porta 10001); con true esegue il job una
+	volta e termina (profilo cron), da pianificare con un cron esterno.
+	Chi usava l'esecuzione singola deve impostare GOVPAY_ACA_BATCH_USA_CRON=true;
+	chi impostava true per lo scheduler interno deve toglierla.
+
 2026-09-28  Giuliano Pintori <pintori@link.it>
 
 	* [Logging] Transaction ID e Correlation ID nelle esecuzioni batch (BP-LOG-3).

@@ -218,7 +218,9 @@ Il war non è pubblicato nelle release né nell'immagine Docker: si produce con 
 
 L'immagine è pubblicata su Docker Hub come [linkitaly/govpay-aca-batch](https://hub.docker.com/r/linkitaly/govpay-aca-batch) (release) e `linkitaly/govpay-aca-batch-dev` (sviluppo, a ogni push su `main`). I driver JDBC si montano in `/opt/jdbc-drivers`.
 
-La modalità dipende da `GOVPAY_ACA_BATCH_USA_CRON`: **non impostata, il container esegue il job una volta e termina** (profilo `cron`, senza server HTTP), adatto a un cron esterno o a un CronJob Kubernetes; con `true` resta attivo con lo scheduler interno e risponde sulla porta `10001`.
+La modalità dipende da `GOVPAY_ACA_BATCH_USA_CRON`, come negli altri batch GovPay: **non impostata, il container resta attivo con lo scheduler interno** e risponde sulla porta `10001`; con `true` esegue il job una volta e termina (profilo `cron`, senza server HTTP), adatto a un cron esterno o a un CronJob Kubernetes.
+
+> Nelle immagini precedenti il significato era invertito: non impostata voleva dire esecuzione singola. Chi usa l'esecuzione singola deve ora impostare `GOVPAY_ACA_BATCH_USA_CRON=true`; chi impostava `true` per lo scheduler interno deve toglierla.
 
 Esecuzione singola:
 
@@ -230,6 +232,7 @@ docker run --rm \
   -e GOVPAY_DB_NAME=govpay \
   -e GOVPAY_DB_USER=govpay \
   -e GOVPAY_DB_PASSWORD=<password> \
+  -e GOVPAY_ACA_BATCH_USA_CRON=true \
   linkitaly/govpay-aca-batch
 ```
 
@@ -247,7 +250,6 @@ services:
       GOVPAY_DB_NAME: govpay
       GOVPAY_DB_USER: govpay
       GOVPAY_DB_PASSWORD: ${GOVPAY_DB_PASSWORD}
-      GOVPAY_ACA_BATCH_USA_CRON: "true"
       GOVPAY_ACA_BATCH_INTERVALLO_CRON: 10   # minuti
     ports:
       - "10001:10001"
@@ -270,6 +272,9 @@ spec:
           containers:
           - name: govpay-aca
             image: linkitaly/govpay-aca-batch
+            env:
+            - name: GOVPAY_ACA_BATCH_USA_CRON
+              value: "true"
             envFrom:
             - configMapRef:
                 name: govpay-aca-config
@@ -300,7 +305,7 @@ Variabili d'ambiente dell'immagine, oltre alle proprietà Spring Boot in forma d
 | `ORACLE_TNS_ADMIN` | no | - | Directory dei file TNS di Oracle |
 | `GOVPAY_ACA_MIN_POOL` | no | `2` | Connessioni minime inattive del pool |
 | `GOVPAY_ACA_MAX_POOL` | no | `10` | Connessioni massime del pool |
-| `GOVPAY_ACA_BATCH_USA_CRON` | no | - | `true`, `si`, `yes` o `1`: scheduler interno, il container resta attivo. Altrimenti esecuzione singola con il profilo `cron`, senza server HTTP: il container termina a fine job |
+| `GOVPAY_ACA_BATCH_USA_CRON` | no | - | `true`, `si`, `yes` o `1`: esecuzione singola con il profilo `cron`, senza server HTTP: il container termina a fine job. Altrimenti scheduler interno, il container resta attivo |
 | `GOVPAY_ACA_BATCH_INTERVALLO_CRON` | no | `5` | Minuti tra un'esecuzione e l'altra con lo scheduler interno (imposta `scheduler.gpdSenderJob.fixedDelayString`) |
 | `SERVER_PORT` | no | `10001` | Porta HTTP con lo scheduler interno |
 | `MANAGEMENT_SERVER_PORT` | no | porta del servizio | Porta dedicata agli endpoint actuator |
