@@ -1,5 +1,12 @@
 2026-11-02  Giuliano Pintori <pintori@link.it>
 
+	* [Docker] Su SQL Server le tabelle Spring Batch si creano in minuscolo,
+	come quelle di GovPay e come negli altri batch: la validazione di Hibernate
+	(usata da govpay-maggioli-jppa) confronta i nomi rispettando maiuscole e
+	minuscole e tutti i batch condividono le stesse tabelle.
+
+2026-11-02  Giuliano Pintori <pintori@link.it>
+
 	* [Configurazione] Proprieta' sulle pendenze rifiutate con 403 rinominata.
 	it.govpay.gpd.batch.policy.reinvio.403.enabled diceva l'opposto di quello
 	che fa: con true la pendenza veniva segnata come comunicata e non piu'
