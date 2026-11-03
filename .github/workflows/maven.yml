@@ -101,7 +101,7 @@ jobs:
     # della stessa giornata e, nel caso del bom, "-Pdist" resterebbe inerte con
     # un solo warning, producendo un'immagine senza schemi.
     - name: Build with Maven
-      run: mvn clean install -U -Pjar,dist -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data -Dowasp.format=ALL -Dowasp.output.dir=./dependency-check-report $NOUPDATE_FLAG
+      run: mvn clean install -U -Pjar,dist -Dspring.profiles.active=test -Duser.timezone=Europe/Rome -DnvdApiKey=$NVD_API_KEY -DossIndexUsername=$OSS_INDEX_USER -DossIndexPassword=$OSS_INDEX_PASSWORD -DdataDirectory=.dependency-check/data $NOUPDATE_FLAG
       env:
         NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         OSS_INDEX_USER: ${{ vars.OSS_INDEX_USER }}
