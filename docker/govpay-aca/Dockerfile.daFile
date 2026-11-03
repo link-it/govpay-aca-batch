@@ -65,6 +65,7 @@ RUN chown -R govpay:0 /usr/local/bin/entrypoint.sh /usr/local/bin/init_aca_db.sh
 USER govpay
 
 ENV SPRING_BATCH_JOB_ENABLED=false \
+    GOVPAY_BATCH_ENABLED=true \
     IT_GOVPAY_GPD_TIME_ZONE=Europe/Rome \
     MANAGEMENT_ENDPOINTS_WEB_BASE_PATH=/actuator \
     SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=20000 \
