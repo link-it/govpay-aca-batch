@@ -27,6 +27,7 @@ import it.govpay.gde.client.beans.Header;
 import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
 import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
+import it.govpay.gpd.config.BatchInfraConfig;
 import it.govpay.gpd.costanti.Costanti;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 import it.govpay.gpd.gde.mapper.EventoGdpMapperImpl;
@@ -41,7 +42,7 @@ public class GdeService extends AbstractGdeService {
 
 	private final GpdApiService gpdApiService;
 
-	@Value("${it.govpay.gpd.batch.clusterId:GovPay-ACA-Batch}")
+	@Value(BatchInfraConfig.CLUSTER_ID)
 	private String clusterId;
 
 	private final EventoGdpMapperImpl eventoGdpMapper;
