@@ -1,3 +1,10 @@
+2026-11-03  Giuliano Pintori <pintori@link.it>
+
+	* [Config] Aggiunta govpay.batch.enabled (default true, nel container
+	GOVPAY_BATCH_ENABLED): con false lo scheduler interno non avvia il job,
+	mentre /run e il profilo cron restano disponibili
+	(link-it/govpay-common#44, che legge la proprieta').
+
 2026-11-02  Giuliano Pintori <pintori@link.it>
 
 	* [Docker] Su SQL Server le tabelle Spring Batch si creano in minuscolo,

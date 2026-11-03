@@ -84,6 +84,7 @@ Le proprietà si impostano in `application.properties`, da riga di comando (`-D<
 | Proprietà | Variabile d'ambiente | Default | Descrizione |
 |-----------|----------------------|---------|-------------|
 | `it.govpay.gpd.batch.clusterId` | `IT_GOVPAY_GPD_BATCH_CLUSTERID` | `GovPay-ACA-Batch` | Identificativo del nodo, registrato nelle esecuzioni e negli eventi del GDE; nel container è l'indirizzo IP |
+| `govpay.batch.enabled` | `GOVPAY_BATCH_ENABLED` | `true` | Con `false` lo scheduler interno non avvia il job (all'avvio il log lo segnala); `/run` e il profilo `cron` restano disponibili. Nel profilo `cron` non ha effetto |
 | `govpay.batch.stale-threshold-minutes` | `GOVPAY_BATCH_STALETHRESHOLDMINUTES` | `120` | Minuti senza aggiornamenti dopo cui un'esecuzione in corso è considerata bloccata e può essere superata |
 | `govpay.batch.job-repository.jdbc.enabled` | `GOVPAY_BATCH_JOBREPOSITORY_JDBC_ENABLED` | `true` | Metadati Spring Batch su database (da `govpay-common`); senza, il coordinamento tra nodi non funziona |
 | `spring.batch.job.enabled` | `SPRING_BATCH_JOB_ENABLED` | `false` | Avvio automatico dei job da parte di Spring Boot: resta `false`, il job è avviato dallo scheduler o dal profilo `cron` |
