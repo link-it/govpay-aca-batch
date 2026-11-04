@@ -23,6 +23,10 @@ import it.govpay.common.batch.service.JobConcurrencyService;
 @Configuration
 public class BatchInfraConfig {
 
+    /** Cluster-id del nodo: la property se impostata, altrimenti l'identificativo dell'host (govpay-common#35) */
+    public static final String CLUSTER_ID =
+            "${it.govpay.gpd.batch.clusterId:#{T(it.govpay.common.batch.config.ClusterIdPredefinito).valore()}}";
+
     @Bean
     public JobConcurrencyService jobConcurrencyService(
             JobRepository jobRepository,
@@ -34,7 +38,7 @@ public class BatchInfraConfig {
     public JobExecutionHelper jobExecutionHelper(
             JobOperator jobOperator,
             JobConcurrencyService jobConcurrencyService,
-            @Value("${it.govpay.gpd.batch.clusterId:GovPay-ACA-Batch}") String clusterId,
+            @Value(CLUSTER_ID) String clusterId,
             ZoneId applicationZoneId) {
         return new JobExecutionHelper(jobOperator, jobConcurrencyService, clusterId, applicationZoneId);
     }

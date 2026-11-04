@@ -83,7 +83,7 @@ Le proprietà si impostano in `application.properties`, da riga di comando (`-D<
 
 | Proprietà | Variabile d'ambiente | Default | Descrizione |
 |-----------|----------------------|---------|-------------|
-| `it.govpay.gpd.batch.clusterId` | `IT_GOVPAY_GPD_BATCH_CLUSTERID` | `GovPay-ACA-Batch` | Identificativo del nodo, registrato nelle esecuzioni e negli eventi del GDE; nel container è l'indirizzo IP |
+| `it.govpay.gpd.batch.clusterId` | `IT_GOVPAY_GPD_BATCH_CLUSTERID` | nome dell'host (nel container l'indirizzo IP) | Identificativo del nodo, registrato nelle esecuzioni, negli eventi del GDE e nel tag `nodo` delle metriche: deve essere diverso su ogni nodo (vedi [Più nodi](#più-nodi)) |
 | `govpay.batch.enabled` | `GOVPAY_BATCH_ENABLED` | `true` | Con `false` lo scheduler interno non avvia il job (all'avvio il log lo segnala); `/run` e il profilo `cron` restano disponibili. Nel profilo `cron` non ha effetto |
 | `govpay.batch.stale-threshold-minutes` | `GOVPAY_BATCH_STALETHRESHOLDMINUTES` | `120` | Minuti senza aggiornamenti dopo cui un'esecuzione in corso è considerata bloccata e può essere superata |
 | `govpay.batch.job-repository.jdbc.enabled` | `GOVPAY_BATCH_JOBREPOSITORY_JDBC_ENABLED` | `true` | Metadati Spring Batch su database (da `govpay-common`); senza, il coordinamento tra nodi non funziona |
@@ -151,6 +151,8 @@ I driver JDBC non sono inclusi nel jar: vedi [Esecuzione](#esecuzione).
 | `management.endpoints.web.exposure.include` | `MANAGEMENT_ENDPOINTS` | `health,info,metrics,prometheus` | Endpoint actuator esposti |
 | `management.endpoint.health.show-details` | `MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS` | `when_authorized` | Dettagli dell'health: il servizio non ha autenticazione, quindi restituisce solo lo stato |
 | `management.metrics.tags.application` | `MANAGEMENT_METRICS_TAGS_APPLICATION` | `govpay-aca-batch` | Tag che identifica il servizio nelle metriche |
+| `govpay.metrics.batch.enabled` | `GOVPAY_METRICS_BATCH_ENABLED` | `true` | Metriche di esecuzione del job `govpay_batch_*` (vedi [Metriche del batch](#metriche-del-batch)) |
+| `govpay.metrics.batch.nodo` | `GOVPAY_METRICS_BATCH_NODO` | `${it.govpay.gpd.batch.clusterId:}` | Valore del tag `nodo`: per default il cluster-id del nodo, da non cambiare |
 
 ## Esecuzione
 
@@ -209,11 +211,23 @@ Esempio di crontab per un'esecuzione ogni 10 minuti, con le altre proprietà in 
 */10 * * * * /usr/bin/java -Dloader.path=/opt/jdbc-drivers -jar /opt/govpay-aca-batch/govpay-aca-batch.jar --spring.profiles.active=cron --spring.main.web-application-type=none --spring.config.additional-location=/etc/govpay-aca/application.properties
 ```
 
+### Più nodi
+
+Il batch può girare su più nodi collegati allo stesso database: i metadati Spring Batch impediscono che `gpdSenderJob` parta su un nodo mentre è in esecuzione su un altro. Ogni nodo deve avere un `it.govpay.gpd.batch.clusterId` diverso, altrimenti un'esecuzione in corso altrove è attribuita al nodo corrente e log, API e metriche non indicano il nodo reale.
+
+Se la proprietà non è impostata, il valore è il nome dell'host: la variabile d'ambiente `HOSTNAME` se è passata alla JVM, altrimenti il nome restituito dal sistema operativo, e solo se nessuno dei due è disponibile `GovPay-Batch`, uguale su tutti i nodi. Sulle VM con un nome host distinto non serve configurare nulla; altrimenti va impostato un valore per nodo, con la variabile `IT_GOVPAY_GPD_BATCH_CLUSTERID` o con la proprietà:
+
+```bash
+java ... -Dit.govpay.gpd.batch.clusterId=aca-batch-nodo1 -jar govpay-aca-batch.jar
+```
+
+Nel container il valore è impostato dall'entrypoint (vedi [Esecuzione con Docker](#esecuzione-con-docker)).
+
 ### War su application server
 
 Con il profilo `war` si ottiene `target/govpay-aca-batch.war`, da installare su un application server (es. Tomcat 11). Il war non contiene i driver JDBC e usa il datasource dell'application server, indicato con `spring.datasource.jndi-name` (es. `java:comp/env/jdbc/govpay`); le altre proprietà si passano come proprietà di sistema della JVM o variabili d'ambiente. Il batch gira con lo scheduler interno e l'API REST è sotto il context path del war (es. `/govpay-aca-batch/api/batch`).
 
-Il war non è pubblicato nelle release né nell'immagine Docker: si produce con la build locale.
+Il war non è pubblicato nelle release né nell'immagine Docker: si produce con la build locale. Il cluster-id predefinito è il nome dell'host, condiviso dagli altri batch installati sullo stesso server: va bene, perché ogni batch ha i propri job, ma tra server diversi i nomi devono essere distinti (vedi [Più nodi](#più-nodi)).
 
 ## Esecuzione con Docker
 
@@ -341,9 +355,35 @@ curl http://localhost:10001/actuator/health       # stato, compresa la connessio
 curl http://localhost:10001/actuator/prometheus   # metriche in formato Prometheus
 ```
 
-Per spostarli su una porta dedicata impostare `management.server.port` (nel container `MANAGEMENT_SERVER_PORT`). L'endpoint `loggers`, che permette di cambiare i livelli di log a caldo, non è esposto di default perché il servizio non ha autenticazione: abilitarlo solo insieme a una porta dedicata e non raggiungibile dall'esterno, per esempio `MANAGEMENT_SERVER_PORT=9090` e `MANAGEMENT_ENDPOINTS=health,info,metrics,prometheus,loggers`. In alternativa i livelli si cambiano dalla console, tramite la tabella `configurazione`.
+Il servizio non ha autenticazione, quindi anche `/actuator/prometheus` risponde a chiunque raggiunga la porta. In produzione conviene spostare gli endpoint actuator su una porta dedicata con `management.server.port` (nel container `MANAGEMENT_SERVER_PORT`), raggiungibile solo dalla rete di monitoraggio. L'endpoint `loggers`, che permette di cambiare i livelli di log a caldo, non è esposto di default perché il servizio non ha autenticazione: abilitarlo solo insieme a una porta dedicata e non raggiungibile dall'esterno, per esempio `MANAGEMENT_SERVER_PORT=9090` e `MANAGEMENT_ENDPOINTS=health,info,metrics,prometheus,loggers`. In alternativa i livelli si cambiano dalla console, tramite la tabella `configurazione`.
 
-In esecuzione singola non c'è server HTTP: l'esito si ricava dall'exit code del processo e dai log.
+### Metriche del batch
+
+Oltre alle metriche standard di Spring Boot e Spring Batch (`spring_batch_*`), `govpay-common` pubblica le metriche di esecuzione dei job, senza configurazione nel progetto:
+
+| Serie | Cosa indica |
+|-------|-------------|
+| `govpay_batch_job_seconds_*` | Durata ed esito (`esito`) delle esecuzioni concluse, per provenienza (`trigger`: `SCHEDULED`, `MANUAL`) |
+| `govpay_batch_job_active_seconds_*` | Esecuzioni in corso e da quanto |
+| `govpay_batch_job_last_success_timestamp_seconds`, `govpay_batch_job_last_failure_timestamp_seconds` | Istante dell'ultimo successo e dell'ultimo fallimento |
+| `govpay_batch_schedule_ticks_total` | Tentativi di avvio, per esito del controllo (`esito_tick`, es. `RUNNING_ON_OTHER_NODE`) |
+| `govpay_batch_schedule_interval_seconds` | Intervallo previsto tra due esecuzioni (`tipo="fixedDelay"`: `600` secondi con il jar, `GOVPAY_ACA_BATCH_INTERVALLO_CRON` minuti nel container) |
+| `govpay_batch_stale_threshold_seconds` | Soglia oltre la quale un'esecuzione è considerata bloccata |
+
+Il job è nel tag `job_name` (`gpdSenderJob`). Tutte le metriche dell'applicazione hanno il tag `nodo`, uguale al cluster-id del nodo (vedi [Più nodi](#più-nodi)), oltre ad `application="govpay-aca-batch"`. Il cluster-id dell'ACA è `it.govpay.gpd.batch.clusterId` e non `govpay.batch.cluster-id`, la proprietà che `govpay-common` legge per il tag: per questo `application.properties` imposta `govpay.metrics.batch.nodo` allo stesso valore. Nel container il cluster-id è l'indirizzo IP, quindi dopo un riavvio le serie hanno un `nodo` nuovo: le query che non riguardano un nodo specifico vanno aggregate (es. `sum without (nodo, instance)`). Elenco completo dei tag, proprietà e query PromQL per gli allarmi: [metriche di esecuzione dei batch](https://github.com/link-it/govpay-common#metriche-di-esecuzione-dei-batch) nel README di govpay-common.
+
+Esempio di configurazione di Prometheus, con la porta dedicata `9090`:
+
+```yaml
+scrape_configs:
+  - job_name: govpay-aca-batch
+    metrics_path: /actuator/prometheus
+    honor_labels: false   # default: le etichette job e instance del target prevalgono
+    static_configs:
+      - targets: ["aca-batch-nodo1:9090", "aca-batch-nodo2:9090"]
+```
+
+In esecuzione singola non c'è server HTTP e il processo termina a fine job, prima di qualsiasi scrape: le metriche non sono disponibili, e l'esito si ricava dall'exit code del processo, dai log e dalle tabelle Spring Batch.
 
 ## Avvio manuale via REST
 
