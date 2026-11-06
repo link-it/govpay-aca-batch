@@ -73,8 +73,14 @@ Le proprietà si impostano in `application.properties`, da riga di comando (`-D<
 |-----------|----------------------|---------|-------------|
 | `it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni` | `IT_GOVPAY_GPD_BATCH_DBREADER_SOGLIATEMPORALERICERCAPENDENZE_NUMEROGIORNI` | `7` | Giorni, dalla data di ultima modifica, entro cui una pendenza viene considerata |
 | `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.chunk-size` | `IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPENDENZASTEP_CHUNK_SIZE` | `10` | Pendenze elaborate per transazione e fetch size della lettura |
-| `it.govpay.gpd.batch.policy.scarta.403.enabled` | `IT_GOVPAY_GPD_BATCH_POLICY_SCARTA_403_ENABLED` | `false` | Con `true` una pendenza rifiutata dal GPD con `403` (Ente non abilitato) viene segnata come comunicata e non ritentata; con `false` resta da inviare e viene ripresa all'esecuzione successiva. Sostituisce `it.govpay.gpd.batch.policy.reinvio.403.enabled`, deprecata ma ancora letta (stesso significato) se la nuova non è impostata |
+| `it.govpay.gpd.batch.policy.scarta.403.enabled` | `IT_GOVPAY_GPD_BATCH_POLICY_SCARTA_403_ENABLED` | `false` | Con `true` una pendenza rifiutata dal GPD con `403` (Ente non abilitato) viene segnata come comunicata e non ritentata; con `false` resta da inviare e viene ripresa all'esecuzione successiva. Sostituisce `it.govpay.gpd.batch.policy.reinvio.403.enabled`, deprecata ma ancora letta (stesso significato) se la nuova non è impostata. Vale per entrambi gli step (pendenze legacy e posizioni debitorie v3) |
 | `it.govpay.gpd.standIn.enabled` | `IT_GOVPAY_GPD_STANDIN_ENABLED` | `true` | Valore del campo `payStandIn` delle posizioni inviate al GPD (posizione pagabile in modalità stand-in) |
+| `it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPosizioni.numeroGiorni` | `IT_GOVPAY_GPD_BATCH_DBREADER_SOGLIATEMPORALERICERCAPOSIZIONI_NUMEROGIORNI` | `7` | Come la proprietà omonima per le pendenze legacy, ma per le posizioni debitorie del modello v3 |
+| `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePosizioneDebitoriaStep.chunk-size` | `IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPOSIZIONEDEBITORIASTEP_CHUNK_SIZE` | `10` | Posizioni debitorie elaborate per transazione e fetch size della lettura |
+| `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.enabled` | `IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPENDENZASTEP_ENABLED` | `true` | Disattiva lo step legacy (pendenze senza opzione di pagamento) quando non ne restano più da spedire |
+| `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePosizioneDebitoriaStep.enabled` | `IT_GOVPAY_GPD_BATCH_JOBS_GPDSENDERJOB_STEPS_SPEDIZIONEPOSIZIONEDEBITORIASTEP_ENABLED` | `true` | Disattiva lo step delle posizioni debitorie del modello v3 |
+| `it.govpay.gpd.batch.client.v3.baseUrl` | `IT_GOVPAY_GPD_BATCH_CLIENT_V3_BASEURL` | *(vuoto, usa l'URL del connettore ACA)* | URL del servizio GPD v3 (`/debt-positions-service/v3`), se diverso da quello configurato sul connettore ACA usato per il v1 — da verificare in produzione se il prodotto APIM è lo stesso |
+| `it.govpay.gpd.batch.client.v3.codConnettore` | `IT_GOVPAY_GPD_BATCH_CLIENT_V3_CODCONNETTORE` | *(vuoto, usa il connettore ACA dell'intermediario)* | Codice di un connettore alternativo per tutte le chiamate v3 (CRUD, recupero, pubblicazione), a prescindere dal dominio — da impostare solo se il prodotto APIM v3 richiede credenziali diverse da quelle del v1 |
 | `it.govpay.gpd.time-zone` | `IT_GOVPAY_GPD_TIME_ZONE` | `Europe/Rome` | Fuso orario con cui si registra `data_ultima_comunicazione_aca` |
 | `scheduler.gpdSenderJob.fixedDelayString` | `SCHEDULER_GPDSENDERJOB_FIXEDDELAYSTRING` | `600000` | Intervallo tra la fine di un'esecuzione e l'avvio della successiva, in ms (10 minuti); nel container si imposta in minuti con `GOVPAY_ACA_BATCH_INTERVALLO_CRON` |
 | `scheduler.initialDelayString` | `SCHEDULER_INITIALDELAYSTRING` | `1` | Ritardo della prima esecuzione dopo l'avvio, in ms |
@@ -420,6 +426,39 @@ Il job ha un solo step chunk-oriented (`spedizionePendenzaStep`):
 - **Writer** (`PendenzaWriter`): imposta `data_ultima_comunicazione_aca` all'avvio dell'esecuzione per le pendenze inviate o chiuse. Quelle fallite per errori di rete, `5xx` o `403` (con `it.govpay.gpd.batch.policy.scarta.403.enabled=false`) restano da inviare e sono riprese all'esecuzione successiva.
 
 Ogni chiamata al GPD produce un evento nel GDE con richiesta, risposta ed esito.
+
+### Posizioni debitorie (modello v3)
+
+Secondo step dello stesso job (`spedizionePosizioneDebitoriaStep`), per le posizioni
+debitorie create con il nuovo modello v3 di `govpay-common-pendenze` (tabelle
+`documenti`/`opzioni_pagamento`/`soggetti_debitori`, `versamenti` con
+`id_opzione_pagamento` valorizzato) — a differenza dello step legacy, che lavora a grana
+di singola pendenza, qui l'unità di invio è l'intera posizione (una `PaymentPositionModelV3`
+per documento, contratto GPD v3 `/debt-positions-service/v3`). Le due popolazioni sono
+disgiunte per costruzione (`v_versamenti_gpd` esclude le pendenze con
+`id_opzione_pagamento` valorizzato): nessuna pendenza viene mai spedita due volte.
+
+- **Reader**: legge da `v_posizioni_debitorie_gpd` le posizioni con `data_ultima_modifica_aca`
+  negli ultimi `numeroGiorniPosizioni` giorni e successiva a `data_ultima_comunicazione_aca`
+  (o mai comunicate).
+- **Processor** (`SendPosizioneDebitoriaToGpdProcessor`): se la posizione ha almeno
+  un'opzione `ATTIVATA`, nessun invio (GPD la rende immutabile tramite la ricevuta, qui si
+  marca solo come comunicata); altrimenti, se c'è almeno un'opzione `DISPONIBILE`, carica
+  (`POST`, prima comunicazione) o aggiorna (`PUT ?toPublish=true`, con le sole opzioni
+  `DISPONIBILE`) la posizione; se sono tutte `ANNULLATA`, la annulla con
+  `PUT ?toPublish=false` (se già comunicata) o marca comunicata senza inviare (se non lo
+  era mai stata). Una rata senza IUV blocca l'intera posizione; un'opzione con tutte le rate
+  scadute, o con una data di scadenza anteriore alla propria validity date, viene esclusa
+  dal payload.
+- **Writer** (`PosizioneDebitoriaGpdWriter`): imposta `data_ultima_comunicazione_aca` su
+  `documenti` e su **tutte** le `versamenti` (rate) della posizione con il valore di
+  `data_ultima_modifica_aca` letto dal reader (non l'istante di scrittura): una modifica
+  arrivata durante l'elaborazione non viene così persa, e al run successivo la posizione
+  viene ripresa.
+
+Entrambi gli step si possono disattivare singolarmente con
+`it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.enabled` e
+`...spedizionePosizioneDebitoriaStep.enabled` (default `true`).
 
 ## Licenza
 

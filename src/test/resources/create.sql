@@ -185,6 +185,77 @@ CREATE TABLE IF NOT EXISTS uo
 CREATE UNIQUE INDEX IF NOT EXISTS index_uo_1 ON uo (cod_uo,id_dominio);
 
 
+-- Tabelle del modello v3 di govpay-common-pendenze (posizione debitoria), stesse
+-- colonne/vincoli delle migrazioni 01_documenti.sql/02_opzioni_pagamento.sql/
+-- 03_soggetti_debitori.sql (ridotte ai soli campi che le viste di questo progetto usano).
+CREATE TABLE IF NOT EXISTS documenti
+(
+	cod_documento VARCHAR(35) NOT NULL,
+	descrizione VARCHAR(256),
+	data_pubblicazione DATE,
+	data_creazione TIMESTAMP NOT NULL,
+	data_ultimo_aggiornamento TIMESTAMP NOT NULL,
+	versione BIGINT NOT NULL DEFAULT 0,
+	notifica_send BOOLEAN NOT NULL DEFAULT FALSE,
+	data_ultima_modifica_aca TIMESTAMP,
+	data_ultima_comunicazione_aca TIMESTAMP,
+	-- fk/pk columns
+	id BIGINT,
+	id_dominio BIGINT NOT NULL,
+	id_applicazione BIGINT NOT NULL,
+	id_unita_operativa BIGINT,
+	-- unique constraints
+	CONSTRAINT unique_documenti_1 UNIQUE (cod_documento,id_applicazione,id_dominio),
+	-- fk/pk keys constraints
+	CONSTRAINT fk_doc_id_dominio FOREIGN KEY (id_dominio) REFERENCES domini(id),
+	CONSTRAINT fk_doc_id_applicazione FOREIGN KEY (id_applicazione) REFERENCES applicazioni(id),
+	CONSTRAINT fk_doc_id_unita_operativa FOREIGN KEY (id_unita_operativa) REFERENCES uo(id),
+	CONSTRAINT pk_documenti PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS opzioni_pagamento
+(
+	tipologia VARCHAR(35) NOT NULL,
+	giorni INT,
+	stato VARCHAR(35) NOT NULL,
+	versione BIGINT NOT NULL DEFAULT 0,
+	data_inizio_validita DATE,
+	data_scadenza DATE,
+	data_creazione TIMESTAMP NOT NULL,
+	data_ultimo_aggiornamento TIMESTAMP NOT NULL,
+	-- fk/pk columns
+	id BIGINT,
+	id_documento BIGINT NOT NULL,
+	-- fk/pk keys constraints
+	CONSTRAINT fk_opz_id_documento FOREIGN KEY (id_documento) REFERENCES documenti(id),
+	CONSTRAINT pk_opzioni_pagamento PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS soggetti_debitori
+(
+	ordine INT NOT NULL,
+	tipo VARCHAR(1) NOT NULL,
+	identificativo VARCHAR(35) NOT NULL,
+	anagrafica VARCHAR(70),
+	indirizzo VARCHAR(70),
+	civico VARCHAR(16),
+	cap VARCHAR(16),
+	localita VARCHAR(35),
+	provincia VARCHAR(35),
+	nazione VARCHAR(2),
+	email VARCHAR(256),
+	cellulare VARCHAR(35),
+	-- fk/pk columns
+	id BIGINT,
+	id_documento BIGINT NOT NULL,
+	-- unique constraints
+	CONSTRAINT unique_soggetti_debitori_1 UNIQUE (id_documento,ordine),
+	-- fk/pk keys constraints
+	CONSTRAINT fk_sgd_id_documento FOREIGN KEY (id_documento) REFERENCES documenti(id),
+	CONSTRAINT pk_soggetti_debitori PRIMARY KEY (id)
+);
+
+
 CREATE TABLE IF NOT EXISTS versamenti
 (
 	cod_versamento_ente VARCHAR(35) NOT NULL,
@@ -210,6 +281,8 @@ CREATE TABLE IF NOT EXISTS versamenti
 	iuv_versamento VARCHAR(35),
 	numero_avviso VARCHAR(35),
 	cod_rata VARCHAR(35),
+	-- Rata di un'opzione del modello v3 (id_opzione_pagamento valorizzato)
+	numero_rata INT NOT NULL DEFAULT -1,
 	data_ultima_modifica_aca TIMESTAMP,
 	data_ultima_comunicazione_aca TIMESTAMP,
 	-- fk/pk columns
@@ -217,11 +290,13 @@ CREATE TABLE IF NOT EXISTS versamenti
 	id_dominio BIGINT NOT NULL,
 	id_applicazione BIGINT NOT NULL,
 	id_uo BIGINT,
+	id_opzione_pagamento BIGINT,
 	-- unique constraints
 	CONSTRAINT unique_versamenti_1 UNIQUE (cod_versamento_ente,id_applicazione),
 	-- fk/pk keys constraints
 	CONSTRAINT fk_vrs_id_dominio FOREIGN KEY (id_dominio) REFERENCES domini(id),
 	CONSTRAINT fk_vrs_id_applicazione FOREIGN KEY (id_applicazione) REFERENCES applicazioni(id),
+	CONSTRAINT fk_vrs_id_opzione_pagamento FOREIGN KEY (id_opzione_pagamento) REFERENCES opzioni_pagamento(id),
 	CONSTRAINT pk_versamenti PRIMARY KEY (id)
 );
 
@@ -298,12 +373,13 @@ SELECT versamenti.id,
     uo.uo_denominazione AS uo_denominazione,
     versamenti.data_ultima_modifica_aca,
     versamenti.data_ultima_comunicazione_aca
-    FROM versamenti 
-	JOIN domini ON versamenti.id_dominio = domini.id 
+    FROM versamenti
+	JOIN domini ON versamenti.id_dominio = domini.id
 	JOIN applicazioni ON versamenti.id_applicazione = applicazioni.id
-	LEFT JOIN uo ON versamenti.id_uo = uo.id;
-    
-    
+	LEFT JOIN uo ON versamenti.id_uo = uo.id
+    WHERE versamenti.id_opzione_pagamento IS NULL;
+
+
 CREATE VIEW IF NOT EXISTS v_sng_versamenti_gpd AS
 SELECT
     sv.id AS sv_id,
@@ -341,6 +417,71 @@ FROM
     LEFT JOIN iban_accredito ia_tr ON t.id_iban_accredito = ia_tr.id
     LEFT JOIN iban_accredito ia_tr_ap ON t.id_iban_appoggio = ia_tr_ap.id
     LEFT JOIN domini d ON sv.id_dominio = d.id;
+
+
+-- Posizione debitoria (documenti) gestita col modello v3 - una riga per posizione.
+-- Debitore = soggetto di ordine 0 (GPD v3 ammette un solo debitore per opzione).
+CREATE VIEW IF NOT EXISTS v_posizioni_debitorie_gpd AS
+SELECT documenti.id,
+    documenti.cod_documento,
+    documenti.descrizione,
+    documenti.data_pubblicazione,
+    applicazioni.cod_applicazione AS cod_applicazione,
+    domini.cod_dominio AS cod_dominio,
+    domini.ragione_sociale AS ragione_sociale_dominio,
+    uo.cod_uo AS cod_uo,
+    uo.uo_denominazione AS uo_denominazione,
+    sd.tipo AS debitore_tipo,
+    sd.identificativo AS debitore_identificativo,
+    sd.anagrafica AS debitore_anagrafica,
+    sd.indirizzo AS debitore_indirizzo,
+    sd.civico AS debitore_civico,
+    sd.cap AS debitore_cap,
+    sd.localita AS debitore_localita,
+    sd.provincia AS debitore_provincia,
+    sd.nazione AS debitore_nazione,
+    sd.email AS debitore_email,
+    (SELECT COUNT(*) FROM opzioni_pagamento op WHERE op.id_documento = documenti.id AND op.stato = 'DISPONIBILE') AS num_opzioni_disponibili,
+    (SELECT COUNT(*) FROM opzioni_pagamento op WHERE op.id_documento = documenti.id AND op.stato = 'ATTIVATA') AS num_opzioni_attivate,
+    (SELECT COUNT(*) FROM opzioni_pagamento op WHERE op.id_documento = documenti.id AND op.stato = 'ANNULLATA') AS num_opzioni_annullate,
+    documenti.data_ultima_modifica_aca,
+    documenti.data_ultima_comunicazione_aca
+    FROM documenti
+	JOIN domini ON documenti.id_dominio = domini.id
+	JOIN applicazioni ON documenti.id_applicazione = applicazioni.id
+	LEFT JOIN uo ON documenti.id_unita_operativa = uo.id
+	LEFT JOIN soggetti_debitori sd ON sd.id_documento = documenti.id AND sd.ordine = 0
+    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op WHERE op.id_documento = documenti.id);
+
+
+CREATE VIEW IF NOT EXISTS v_opzioni_pagamento_gpd AS
+SELECT op.id,
+    op.id_documento,
+    op.tipologia,
+    op.giorni,
+    op.stato,
+    op.data_inizio_validita,
+    op.data_scadenza
+    FROM opzioni_pagamento op;
+
+
+CREATE VIEW IF NOT EXISTS v_pendenze_gpd AS
+SELECT versamenti.id,
+    versamenti.id_opzione_pagamento,
+    opzioni_pagamento.id_documento,
+    versamenti.cod_versamento_ente,
+    versamenti.numero_rata,
+    versamenti.importo_totale,
+    versamenti.stato_versamento,
+    versamenti.data_validita,
+    versamenti.data_scadenza,
+    versamenti.iuv_versamento,
+    versamenti.numero_avviso,
+    versamenti.causale_versamento,
+    versamenti.data_ultima_modifica_aca,
+    versamenti.data_ultima_comunicazione_aca
+    FROM versamenti
+	JOIN opzioni_pagamento ON versamenti.id_opzione_pagamento = opzioni_pagamento.id;
     
     
     

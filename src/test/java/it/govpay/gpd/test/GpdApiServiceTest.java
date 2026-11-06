@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
 import it.govpay.common.client.model.Connettore;
@@ -145,6 +147,60 @@ class GpdApiServiceTest {
 		String result = gpdApiService.getGpdBasePath(COD_DOMINIO);
 
 		assertEquals(BASE_URL, result);
+	}
+
+	@Test
+	@DisplayName("getGpdApiV3 - senza override: risolve il connettore dell'intermediario come il v1")
+	void getGpdApiV3_SenzaOverride_UsaConnettoreIntermediario() {
+		setupHappyPath(COD_DOMINIO);
+
+		assertNotNull(gpdApiService.getGpdApiV3(COD_DOMINIO));
+
+		verify(connettoreService, times(1)).getRestTemplate(COD_CONNETTORE_ACA);
+	}
+
+	@Test
+	@DisplayName("getGpdApiV3 - con override: usa il connettore indicato invece di quello dell'intermediario")
+	void getGpdApiV3_ConOverride_UsaConnettoreIndicato() {
+		String codConnettoreV3 = "PAGOPA_ACA_V3";
+		ReflectionTestUtils.setField(gpdApiService, "codConnettoreV3", codConnettoreV3);
+
+		when(connettoreService.getRestTemplate(codConnettoreV3)).thenReturn(new RestTemplate());
+		when(connettoreService.getConnettore(codConnettoreV3)).thenReturn(Connettore.builder().url(BASE_URL).build());
+
+		assertNotNull(gpdApiService.getGpdApiV3(COD_DOMINIO));
+
+		verify(intermediarioRepository, never()).findByCodDominio(COD_DOMINIO);
+		verify(connettoreService, times(1)).getRestTemplate(codConnettoreV3);
+	}
+
+	@Test
+	@DisplayName("getGpdActionsApiV3 - con override: usa il connettore indicato invece di quello dell'intermediario")
+	void getGpdActionsApiV3_ConOverride_UsaConnettoreIndicato() {
+		String codConnettoreV3 = "PAGOPA_ACA_V3";
+		ReflectionTestUtils.setField(gpdApiService, "codConnettoreV3", codConnettoreV3);
+
+		when(connettoreService.getRestTemplate(codConnettoreV3)).thenReturn(new RestTemplate());
+		when(connettoreService.getConnettore(codConnettoreV3)).thenReturn(Connettore.builder().url(BASE_URL).build());
+
+		assertNotNull(gpdApiService.getGpdActionsApiV3(COD_DOMINIO));
+
+		verify(intermediarioRepository, never()).findByCodDominio(COD_DOMINIO);
+		verify(connettoreService, times(1)).getRestTemplate(codConnettoreV3);
+	}
+
+	@Test
+	@DisplayName("getGpdBasePathV3 - con override: risolve l'URL del connettore indicato")
+	void getGpdBasePathV3_ConOverride_UsaConnettoreIndicato() {
+		String codConnettoreV3 = "PAGOPA_ACA_V3";
+		ReflectionTestUtils.setField(gpdApiService, "codConnettoreV3", codConnettoreV3);
+
+		when(connettoreService.getConnettore(codConnettoreV3)).thenReturn(Connettore.builder().url(BASE_URL).build());
+
+		String result = gpdApiService.getGpdBasePathV3(COD_DOMINIO);
+
+		assertEquals(BASE_URL, result);
+		verify(intermediarioRepository, never()).findByCodDominio(COD_DOMINIO);
 	}
 
 	@Test

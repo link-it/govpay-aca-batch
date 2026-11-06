@@ -11,7 +11,7 @@
 	</parent>
 	<groupId>it.govpay.gpd</groupId>
 	<artifactId>batch-caricamento-posizioni-debitorie</artifactId>
-	<version>2.0.1-SNAPSHOT</version>
+	<version>3.0.0-SNAPSHOT</version>
 	<packaging>${packaging.type}</packaging>
 	<name>GovPay - Batch - Caricamento Posizioni Debitorie</name>
 	<description>GovPay Modulo per il caricamento delle Posizioni Debitorie su PagoPA</description>
@@ -23,6 +23,9 @@
 		<wagon-ssh-external.version>3.5.3</wagon-ssh-external.version>
 
 		<owasp.falsePositives.dir>src/main/resources/owasp/falsePositives</owasp.falsePositives.dir>
+
+		<!-- Non gestita da govpay-bom: versione esplicita qui (issue #55) -->
+		<govpay-common-pendenze.version>1.0.0-SNAPSHOT</govpay-common-pendenze.version>
 
 		<sonar.coverage.exclusions>**/test/**,**/*Test*.java</sonar.coverage.exclusions>
 
@@ -101,6 +104,14 @@
 			<groupId>org.gov4j.govpay</groupId>
 			<artifactId>govpay-common</artifactId>
 			<version>2.0.4-SNAPSHOT</version>
+		</dependency>
+
+		<!-- Issue #55: enum reali del modello v3 (StatoOpzionePagamento, TipologiaOpzionePagamento,
+		     StatoPendenza) sulle nuove entity, invece di duplicarli -->
+		<dependency>
+			<groupId>org.gov4j.govpay</groupId>
+			<artifactId>govpay-common-pendenze</artifactId>
+			<version>${govpay-common-pendenze.version}</version>
 		</dependency>
 
 		<dependency>
@@ -328,6 +339,38 @@
 								<apiPackage>it.govpay.gpd.client.api</apiPackage>
 								<invokerPackage>it.govpay.gpd.client.api.impl</invokerPackage>
 								<modelPackage>it.govpay.gpd.client.beans</modelPackage>
+								<useAnnotatedBasePath>true</useAnnotatedBasePath>
+								<useBeanValidation>false</useBeanValidation>
+								<useJakartaEe>true</useJakartaEe>
+								<useSpringBoot4>true</useSpringBoot4>
+								<useJackson3>true</useJackson3>
+								<openApiNullable>false</openApiNullable>
+							</configOptions>
+							<output>${project.basedir}/target</output>
+							<generateApiTests>false</generateApiTests>
+							<generateModelTests>false</generateModelTests>
+						</configuration>
+					</execution>
+					<!-- Issue #55: client GPD v3 (openapi_external_v3.json di pagopa-debt-position),
+					     package distinto dal client v1 sopra: mai in conflitto. -->
+					<execution>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<id>generate-sources-client-gpd-v3</id>
+						<phase>generate-sources</phase>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/gpd-v3.json</inputSpec>
+							<generatorName>java</generatorName>
+							<configOptions>
+								<booleanGetterPrefix>is</booleanGetterPrefix>
+								<dateLibrary>java8</dateLibrary>
+								<library>resttemplate</library>
+								<serializationLibrary>jackson</serializationLibrary>
+								<sourceFolder>generated-sources/java/</sourceFolder>
+								<apiPackage>it.govpay.gpd.client.v3.api</apiPackage>
+								<invokerPackage>it.govpay.gpd.client.v3.api.impl</invokerPackage>
+								<modelPackage>it.govpay.gpd.client.v3.beans</modelPackage>
 								<useAnnotatedBasePath>true</useAnnotatedBasePath>
 								<useBeanValidation>false</useBeanValidation>
 								<useJakartaEe>true</useJakartaEe>

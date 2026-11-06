@@ -46,10 +46,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import it.govpay.common.logging.MdcTaskDecorator;
 import it.govpay.gpd.costanti.Costanti;
+import it.govpay.gpd.entity.PosizioneDebitoriaGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 import it.govpay.gpd.step.JobCompletionNotificationListener;
 import it.govpay.gpd.step.PendenzaWriter;
+import it.govpay.gpd.step.PosizioneDebitoriaGpdWriter;
 import it.govpay.gpd.step.SendPendenzaToGpdProcessor;
+import it.govpay.gpd.step.SendPosizioneDebitoriaToGpdProcessor;
 
 @Configuration
 public class PendenzeGpdSenderJobConfig {
@@ -64,6 +67,22 @@ public class PendenzeGpdSenderJobConfig {
 	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPendenze.numeroGiorni:7}")
 	private Integer numeroGiorni;
 
+	// Step delle posizioni debitorie v3, stesso job del legacy sopra.
+	@Value("${it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePosizioneDebitoriaStep.chunk-size:10}")
+	private Integer spedizionePosizioneDebitoriaStepChunkSize;
+
+	@Value("${it.govpay.gpd.batch.dbreader.sogliaTemporaleRicercaPosizioni.numeroGiorni:7}")
+	private Integer numeroGiorniPosizioni;
+
+	// Entrambi abilitati di default: le due popolazioni sono disgiunte per costruzione
+	// (v_versamenti_gpd esclude le pendenze con id_opzione_pagamento valorizzato), nessuna
+	// pendenza viene mai spedita due volte a prescindere da questi flag.
+	@Value("${it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.enabled:true}")
+	private boolean spedizionePendenzaStepEnabled;
+
+	@Value("${it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePosizioneDebitoriaStep.enabled:true}")
+	private boolean spedizionePosizioneDebitoriaStepEnabled;
+
 	protected TaskExecutor taskExecutor() {
 		SimpleAsyncTaskExecutor simpleAsyncTaskExecutor = new SimpleAsyncTaskExecutor(Costanti.MSG_SENDER_TASK_EXECUTOR_NAME);
 		simpleAsyncTaskExecutor.setConcurrencyLimit(1); // numero massimo di thread
@@ -75,11 +94,21 @@ public class PendenzeGpdSenderJobConfig {
 	}
 
 	@Bean(name = Costanti.SEND_PENDENZE_GPD_JOBNAME)
-	public Job spedizionePendenzeGPD(@Qualifier("spedizionePendenzaStep") Step spedizionePendenzaStep, JobRepository jobRepository, JobCompletionNotificationListener listener){
-		return new JobBuilder(Costanti.SEND_PENDENZE_GPD_JOBNAME, jobRepository)
-				.listener(listener)
-				.start(spedizionePendenzaStep)
-				.build();
+	public Job spedizionePendenzeGPD(@Qualifier("spedizionePendenzaStep") Step spedizionePendenzaStep,
+			@Qualifier(Costanti.SEND_POSIZIONI_DEBITORIE_GPD_STEPNAME) Step spedizionePosizioneDebitoriaStep,
+			JobRepository jobRepository, JobCompletionNotificationListener listener){
+		JobBuilder jobBuilder = new JobBuilder(Costanti.SEND_PENDENZE_GPD_JOBNAME, jobRepository).listener(listener);
+
+		if (this.spedizionePendenzaStepEnabled && this.spedizionePosizioneDebitoriaStepEnabled) {
+			return jobBuilder.start(spedizionePendenzaStep).next(spedizionePosizioneDebitoriaStep).build();
+		}
+		if (this.spedizionePendenzaStepEnabled) {
+			return jobBuilder.start(spedizionePendenzaStep).build();
+		}
+		if (this.spedizionePosizioneDebitoriaStepEnabled) {
+			return jobBuilder.start(spedizionePosizioneDebitoriaStep).build();
+		}
+		throw new IllegalStateException("Almeno uno tra spedizionePendenzaStep e spedizionePosizioneDebitoriaStep deve essere abilitato.");
 	}
 
 	protected AsyncItemProcessor<VersamentoGpdEntity,VersamentoGpdEntity> asyncProcessor(SendPendenzaToGpdProcessor itemProcessor) {
@@ -90,6 +119,17 @@ public class PendenzeGpdSenderJobConfig {
 
 	protected AsyncItemWriter<VersamentoGpdEntity> asyncMessageWriter(PendenzaWriter pendenzaItemWriter){
 		AsyncItemWriter<VersamentoGpdEntity> asyncItemWriter = new AsyncItemWriter<>(pendenzaItemWriter);
+		return asyncItemWriter;
+	}
+
+	protected AsyncItemProcessor<PosizioneDebitoriaGpdEntity, PosizioneDebitoriaGpdEntity> asyncProcessor(SendPosizioneDebitoriaToGpdProcessor itemProcessor) {
+		AsyncItemProcessor<PosizioneDebitoriaGpdEntity, PosizioneDebitoriaGpdEntity> asyncItemProcessor = new AsyncItemProcessor<>(itemProcessor);
+		asyncItemProcessor.setTaskExecutor(taskExecutor());
+		return asyncItemProcessor;
+	}
+
+	protected AsyncItemWriter<PosizioneDebitoriaGpdEntity> asyncMessageWriter(PosizioneDebitoriaGpdWriter posizioneDebitoriaItemWriter){
+		AsyncItemWriter<PosizioneDebitoriaGpdEntity> asyncItemWriter = new AsyncItemWriter<>(posizioneDebitoriaItemWriter);
 		return asyncItemWriter;
 	}
 
@@ -145,6 +185,64 @@ public class PendenzeGpdSenderJobConfig {
 				.reader(pendenzaItemReader)
 				.processor(asyncProcessor(pendenzaSendProcessor))
 				.writer(asyncMessageWriter(pendenzaItemWriter))
+				.faultTolerant()
+				.listener(new ChunkListener())
+				.listener(new StepListener())
+				.listener(new MyItemReadListener<>())
+				.listener(new MyItemProcessListener<>())
+				.listener(new MyItemWriteListener<>())
+				.taskExecutor(taskExecutor())
+				.build();
+	}
+
+	// Reader/step delle posizioni debitorie v3, stesso pattern di quelli sopra.
+	@Bean
+	@StepScope
+	public JdbcCursorItemReader<PosizioneDebitoriaGpdEntity> jdbcCursorItemReaderPosizioniDebitorie(DataSource dataSource) {
+
+		logger.debug("Le posizioni debitorie da spedire verranno scelte con la seguente query: {}", Costanti.QUERY_RICERCA_POSIZIONI_DEBITORIE_DA_CARICARE_ACA);
+
+		GenericConversionService cs = new DefaultConversionService();
+		cs.addConverter(Timestamp.class, OffsetDateTime.class, ts -> {
+		    if (ts == null) {
+		        return null;
+		    }
+		    return ts.toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime();
+		});
+
+		BeanPropertyRowMapper<PosizioneDebitoriaGpdEntity> rowMapper = new BeanPropertyRowMapper<>(PosizioneDebitoriaGpdEntity.class);
+		rowMapper.setConversionService(cs);
+
+		JdbcCursorItemReader<PosizioneDebitoriaGpdEntity> reader = new JdbcCursorItemReader<>(dataSource,
+				Costanti.QUERY_RICERCA_POSIZIONI_DEBITORIE_DA_CARICARE_ACA, rowMapper);
+
+		reader.setPreparedStatementSetter(new PreparedStatementSetter() {
+			@Override
+			public void setValues(PreparedStatement ps) throws SQLException {
+				Calendar cal = Calendar.getInstance();
+				cal.add(Calendar.DAY_OF_MONTH, -numeroGiorniPosizioni);
+				Date dateLimit = new Date(cal.getTimeInMillis());
+				logger.debug("Verranno ricercate le posizioni debitorie a partire dal: {}", sdf.format(dateLimit));
+				ps.setDate(1, dateLimit);
+			}
+		});
+
+		reader.setFetchSize(this.spedizionePosizioneDebitoriaStepChunkSize);
+
+		return reader;
+	}
+
+	@Bean(name = Costanti.SEND_POSIZIONI_DEBITORIE_GPD_STEPNAME)
+	public Step spedizionePosizioneDebitoriaStep(
+			JobRepository jobRepository, PlatformTransactionManager transactionManager,
+			JdbcCursorItemReader<PosizioneDebitoriaGpdEntity> posizioneDebitoriaItemReader,
+			SendPosizioneDebitoriaToGpdProcessor posizioneDebitoriaSendProcessor,
+			PosizioneDebitoriaGpdWriter posizioneDebitoriaItemWriter)  {
+		return new StepBuilder(Costanti.SEND_POSIZIONI_DEBITORIE_GPD_STEPNAME, jobRepository)
+				.<PosizioneDebitoriaGpdEntity, Future<PosizioneDebitoriaGpdEntity>>chunk(this.spedizionePosizioneDebitoriaStepChunkSize, transactionManager)
+				.reader(posizioneDebitoriaItemReader)
+				.processor(asyncProcessor(posizioneDebitoriaSendProcessor))
+				.writer(asyncMessageWriter(posizioneDebitoriaItemWriter))
 				.faultTolerant()
 				.listener(new ChunkListener())
 				.listener(new StepListener())

@@ -16,6 +16,9 @@ public class Costanti {
 	public static final String SEND_PENDENZE_GPD_STEPNAME = "spedizionePendenzeStep";
 	public static final String SEND_PENDENZE_GPD_JOBNAME= "gpdSenderJob";
 
+	// Step per le posizioni debitorie del modello v3, nello stesso job.
+	public static final String SEND_POSIZIONI_DEBITORIE_GPD_STEPNAME = "spedizionePosizioneDebitoriaStep";
+
 	public static final String MSG_SENDER_TASK_EXECUTOR_NAME = "spring_batch_msgsender";
 
 	public static final String DEFAULT_TIME_ZONE = "Europe/Rome";
@@ -63,8 +66,16 @@ public class Costanti {
 	public static final String EC= "EC";
 	
 	public static final String QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA = "SELECT * FROM v_versamenti_gpd " +
-            "WHERE stato_versamento IN ('NON_ESEGUITO','ANNULLATO') " + 
+            "WHERE stato_versamento IN ('NON_ESEGUITO','ANNULLATO') " +
             "AND data_ultima_modifica_aca >= ? " +
             "AND (data_ultima_modifica_aca > data_ultima_comunicazione_aca OR data_ultima_comunicazione_aca IS NULL) " +
             "ORDER BY data_ultima_comunicazione_aca DESC";
+
+	// Nessun filtro su uno stato specifico (a differenza della query legacy sopra) -
+	// la decisione crea/aggiorna/annulla/scarta e' presa dal processor sulla base
+	// dei conteggi delle opzioni, gia' nella vista (num_opzioni_disponibili/attivate/annullate).
+	public static final String QUERY_RICERCA_POSIZIONI_DEBITORIE_DA_CARICARE_ACA = "SELECT * FROM v_posizioni_debitorie_gpd " +
+            "WHERE data_ultima_modifica_aca >= ? " +
+            "AND (data_ultima_modifica_aca > data_ultima_comunicazione_aca OR data_ultima_comunicazione_aca IS NULL) " +
+            "ORDER BY data_ultima_modifica_aca ASC";
 }

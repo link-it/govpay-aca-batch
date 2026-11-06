@@ -31,6 +31,8 @@ import it.govpay.common.configurazione.service.ConfigurazioneService;
 import it.govpay.gde.client.beans.ComponenteEvento;
 import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gpd.client.beans.PaymentPositionModel;
+import it.govpay.gpd.client.v3.beans.PaymentPositionModelV3;
+import it.govpay.gpd.entity.PosizioneDebitoriaGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 import it.govpay.gpd.gde.mapper.EventoGdpMapperImpl;
 import it.govpay.gpd.gde.service.GdeService;
@@ -67,7 +69,7 @@ class GdeServiceTest {
 
 		NuovoEvento nuovoEvento = new NuovoEvento();
 		nuovoEvento.setTipoEvento(it.govpay.gpd.costanti.Costanti.CREATE_POSITION);
-		when(eventoGdpMapper.mapEventoOk(any(), any(), any(), any(), any()))
+		when(eventoGdpMapper.mapEventoOk(any(VersamentoGpdEntity.class), any(), any(), any(), any()))
 				.thenReturn(nuovoEvento);
 
 		VersamentoGpdEntity versamento = new VersamentoGpdEntity();
@@ -90,6 +92,64 @@ class GdeServiceTest {
 		org.junit.jupiter.api.Assertions.assertTrue(
 				capturedUrl != null && !capturedUrl.contains("fakehost"),
 				"La URL non deve contenere un basePath reale quando getGpdBasePath fallisce");
+	}
+
+	@Test
+	@DisplayName("salvaUpdatePositionOk (v3) - la URL registrata riflette il toPublish realmente usato (annullamento)")
+	void salvaUpdatePositionOk_V3_PropagaToPublishAnnullamento() {
+		when(gpdApiService.getGpdBasePathV3(any())).thenReturn("http://fakehost:8080/");
+
+		NuovoEvento nuovoEvento = new NuovoEvento();
+		nuovoEvento.setTipoEvento(it.govpay.gpd.costanti.Costanti.UPDATE_POSITION);
+		when(eventoGdpMapper.mapEventoOk(any(PosizioneDebitoriaGpdEntity.class), any(), any(), any(), any()))
+				.thenReturn(nuovoEvento);
+
+		PosizioneDebitoriaGpdEntity posizione = new PosizioneDebitoriaGpdEntity();
+		posizione.setCodDominio("12345678901");
+		posizione.setCodApplicazione("APP_01");
+		posizione.setCodDocumento("DOC_01");
+
+		PaymentPositionModelV3 request = new PaymentPositionModelV3();
+		ResponseEntity<PaymentPositionModelV3> response = new ResponseEntity<>(new PaymentPositionModelV3(), HttpStatus.OK);
+		OffsetDateTime now = OffsetDateTime.now();
+
+		assertDoesNotThrow(() -> gdeService.salvaUpdatePositionOk(
+				request, "x-req-id", now, now.plusSeconds(1), posizione, response, false));
+
+		ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+		verify(eventoGdpMapper).creaParametriRichiesta(any(), urlCaptor.capture(), any(), any());
+
+		org.junit.jupiter.api.Assertions.assertTrue(urlCaptor.getValue().contains("toPublish=false"),
+				"La URL registrata deve riflettere il toPublish=false realmente usato per l'annullamento, non un valore fisso");
+	}
+
+	@Test
+	@DisplayName("salvaUpdatePositionKo (v3) - la URL registrata riflette il toPublish realmente usato (aggiornamento)")
+	void salvaUpdatePositionKo_V3_PropagaToPublishAggiornamento() {
+		when(gpdApiService.getGpdBasePathV3(any())).thenReturn("http://fakehost:8080/");
+
+		NuovoEvento nuovoEvento = new NuovoEvento();
+		nuovoEvento.setTipoEvento(it.govpay.gpd.costanti.Costanti.UPDATE_POSITION);
+		when(eventoGdpMapper.mapEventoKo(any(PosizioneDebitoriaGpdEntity.class), any(), any(), any(), any(), any(), any()))
+				.thenReturn(nuovoEvento);
+
+		PosizioneDebitoriaGpdEntity posizione = new PosizioneDebitoriaGpdEntity();
+		posizione.setCodDominio("12345678901");
+		posizione.setCodApplicazione("APP_01");
+		posizione.setCodDocumento("DOC_01");
+
+		PaymentPositionModelV3 request = new PaymentPositionModelV3();
+		ResponseEntity<PaymentPositionModelV3> response = new ResponseEntity<>(new PaymentPositionModelV3(), HttpStatus.NOT_FOUND);
+		OffsetDateTime now = OffsetDateTime.now();
+
+		assertDoesNotThrow(() -> gdeService.salvaUpdatePositionKo(
+				request, "x-req-id", now, now.plusSeconds(1), posizione, response, null, true));
+
+		ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+		verify(eventoGdpMapper).creaParametriRichiesta(any(), urlCaptor.capture(), any(), any());
+
+		org.junit.jupiter.api.Assertions.assertTrue(urlCaptor.getValue().contains("toPublish=true"),
+				"La URL registrata deve riflettere il toPublish=true realmente usato per l'aggiornamento, non un valore fisso");
 	}
 
 	@Test
