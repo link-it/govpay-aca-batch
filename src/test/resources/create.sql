@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS documenti
 	notifica_send BOOLEAN NOT NULL DEFAULT FALSE,
 	data_ultima_modifica_aca TIMESTAMP,
 	data_ultima_comunicazione_aca TIMESTAMP,
+	aca_legacy BOOLEAN NOT NULL DEFAULT FALSE,
 	-- fk/pk columns
 	id BIGINT,
 	id_dominio BIGINT NOT NULL,
@@ -377,7 +378,11 @@ SELECT versamenti.id,
 	JOIN domini ON versamenti.id_dominio = domini.id
 	JOIN applicazioni ON versamenti.id_applicazione = applicazioni.id
 	LEFT JOIN uo ON versamenti.id_uo = uo.id
-    WHERE versamenti.id_opzione_pagamento IS NULL;
+    WHERE versamenti.id_opzione_pagamento IS NULL
+       OR EXISTS (SELECT 1 FROM opzioni_pagamento op
+                   JOIN documenti d ON d.id = op.id_documento
+                  WHERE op.id = versamenti.id_opzione_pagamento
+                    AND d.aca_legacy = true);
 
 
 CREATE VIEW IF NOT EXISTS v_sng_versamenti_gpd AS
@@ -451,7 +456,8 @@ SELECT documenti.id,
 	JOIN applicazioni ON documenti.id_applicazione = applicazioni.id
 	LEFT JOIN uo ON documenti.id_unita_operativa = uo.id
 	LEFT JOIN soggetti_debitori sd ON sd.id_documento = documenti.id AND sd.ordine = 0
-    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op WHERE op.id_documento = documenti.id);
+    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op WHERE op.id_documento = documenti.id)
+      AND documenti.aca_legacy = false;
 
 
 CREATE VIEW IF NOT EXISTS v_opzioni_pagamento_gpd AS

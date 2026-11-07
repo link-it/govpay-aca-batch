@@ -38,6 +38,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpClientErrorException;
 
 import it.govpay.gpd.Application;
+import it.govpay.gpd.client.api.DebtPositionsApiApi;
+import it.govpay.gpd.client.beans.PaymentPositionModel;
+import it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse;
 import it.govpay.gpd.client.v3.api.DebtPositionActionsApiApi;
 import it.govpay.gpd.client.v3.api.DebtPositionsApiInstallmentsAndPaymentOptionsManagerApi;
 import it.govpay.gpd.client.v3.beans.PaymentPositionModelResponseV3;
@@ -54,6 +57,7 @@ import it.govpay.gpd.test.repository.DocumentoFullRepository;
 import it.govpay.gpd.test.repository.OpzionePagamentoFullRepository;
 import it.govpay.gpd.test.repository.SoggettoDebitoreFullRepository;
 import it.govpay.gpd.test.repository.VersamentoFullRepository;
+import it.govpay.gpd.test.utils.PaymentPositionModelUtils;
 import it.govpay.gpd.test.utils.PaymentPositionModelV3Utils;
 import it.govpay.gpd.test.utils.PosizioneDebitoriaUtils;
 import it.govpay.pendenze.model.StatoOpzionePagamento;
@@ -193,8 +197,13 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
 		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
 				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
-		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+		VersamentoFullEntity rata = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
 				opzione.getId(), "DOC-003", 1, 10.00, StatoVersamento.ANNULLATO);
+		// come il vero writer v3 dopo un invio riuscito: marca anche la rata, non solo il
+		// documento - deve restare distinguibile da una comunicazione legacy pre-migrazione
+		// (qui avviene dopo la creazione dell'opzione, non prima, come nel caso legacy).
+		rata.setDataUltimaComunicazioneAca(OffsetDateTime.now());
+		versamentoFullRepository.save(rata);
 
 		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
 				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelV3>>) PaymentPositionModelV3Utils::creaResponseUpdateOk);
@@ -216,8 +225,11 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
 		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
 				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
-		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+		VersamentoFullEntity rata = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
 				opzione.getId(), "DOC-004", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		// come il vero writer v3 dopo un invio riuscito: marca anche la rata, non solo il documento.
+		rata.setDataUltimaComunicazioneAca(OffsetDateTime.now());
+		versamentoFullRepository.save(rata);
 
 		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
 				.thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found"));
@@ -244,8 +256,11 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
 		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
 				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
-		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+		VersamentoFullEntity rata = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
 				opzione.getId(), "DOC-005", 1, 10.00, StatoVersamento.ANNULLATO);
+		// come il vero writer v3 dopo un invio riuscito: marca anche la rata, non solo il documento.
+		rata.setDataUltimaComunicazioneAca(OffsetDateTime.now());
+		versamentoFullRepository.save(rata);
 
 		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
 				.thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found"));
@@ -335,5 +350,191 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 
 		assertEquals("Causale specifica della rata",
 				modelCaptor.getValue().getPaymentOption().get(0).getInstallments().get(0).getDescription());
+	}
+
+	@Test
+	@DisplayName("Piano rateale con una rata gia' comunicata a v1 prima della migrazione: la posizione resta fuori da v3, la rata non comunicata resta nel legacy")
+	void UC_6_09_RataGiaComunicataAV1_RestaNelLegacy() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-009", null);
+		// flag scritto dalla migrazione (06_opzioni_pagamento_documenti_esistenti.sql):
+		// questo documento resta nel legacy indipendentemente da cosa scrivono i due writer.
+		documento.setAcaLegacy(true);
+		documentoFullRepository.save(documento);
+		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
+				TipologiaOpzionePagamento.PIANO_RATEALE, StatoOpzionePagamento.DISPONIBILE);
+
+		OffsetDateTime comunicataDieciGiorniFa = OffsetDateTime.now().minusDays(10);
+		VersamentoFullEntity rata1 = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-009-R1", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		// gia' comunicata a v1 e nulla e' cambiato da allora: stessa data su modifica e
+		// comunicazione, non deve risultare "da rispedire" al legacy in questo giro.
+		rata1.setDataUltimaComunicazioneAca(comunicataDieciGiorniFa);
+		rata1.setDataUltimaModificaAca(comunicataDieciGiorniFa);
+		versamentoFullRepository.save(rata1);
+
+		VersamentoFullEntity rata2 = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-009-R2", 2, 10.00, StatoVersamento.NON_ESEGUITO);
+
+		DebtPositionsApiApi gpdApiLegacy = Mockito.mock(DebtPositionsApiApi.class);
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApiLegacy);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any()))
+				.thenReturn(Mockito.mock(it.govpay.gpd.client.api.DebtPositionActionsApiApi.class));
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
+		Mockito.lenient().when(gpdApiLegacy.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModel>>) PaymentPositionModelUtils::creaResponseCreatePaymentPositionModelOk);
+		Mockito.lenient().when(gpdApiLegacy.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelBaseResponse>>) invocation ->
+						PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, PaymentPositionModelBaseResponse.StatusEnum.VALID));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		// la posizione v3 non viene mai toccata: resta fuori dal reader del nuovo step
+		verify(gpdApiService, never()).getGpdApiV3(any());
+		verify(gpdApiService, never()).getGpdActionsApiV3(any());
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertEquals(null, documentoAggiornato.getDataUltimaComunicazioneAca());
+
+		// la rata non ancora comunicata viene gestita (di nuovo) dal legacy, come prima della migrazione
+		verify(gpdApiLegacy).createPositionWithHttpInfo(any(), any(), any(), any());
+		VersamentoFullEntity rata2Aggiornata = versamentoFullRepository.findById(rata2.getId()).orElseThrow();
+		assertNotNull(rata2Aggiornata.getDataUltimaComunicazioneAca());
+
+		// rata1 non e' cambiata da quando e' stata comunicata: nessun rinvio inutile
+		verify(gpdApiLegacy, never()).updatePositionWithHttpInfo(any(), any(), any(), any(), any());
+	}
+
+	@Test
+	@DisplayName("Rata migrata gia' comunicata a v1 che cambia in seguito: il legacy deve poterla ancora annullare, non solo escluderla")
+	void UC_6_10_RataGiaComunicataAV1_AnnullamentoSuccessivoRestaNelLegacy() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-010", null);
+		documento.setAcaLegacy(true);
+		documentoFullRepository.save(documento);
+		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
+				TipologiaOpzionePagamento.PIANO_RATEALE, StatoOpzionePagamento.DISPONIBILE);
+
+		VersamentoFullEntity rata = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-010-R1", 1, 10.00, StatoVersamento.ANNULLATO);
+		// comunicata a v1 10 giorni fa, poi annullata oggi: deve ancora passare per il
+		// legacy (stesso IUPD con cui era stata creata), non per v3.
+		rata.setDataUltimaComunicazioneAca(OffsetDateTime.now().minusDays(10));
+		rata.setDataUltimaModificaAca(OffsetDateTime.now());
+		versamentoFullRepository.save(rata);
+
+		DebtPositionsApiApi gpdApiLegacy = Mockito.mock(DebtPositionsApiApi.class);
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApiLegacy);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any()))
+				.thenReturn(Mockito.mock(it.govpay.gpd.client.api.DebtPositionActionsApiApi.class));
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
+		Mockito.lenient().when(gpdApiLegacy.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModel>>) PaymentPositionModelUtils::creaResponseUpdatePaymentPositionModelOk);
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiService, never()).getGpdApiV3(any());
+		verify(gpdApiLegacy).updatePositionWithHttpInfo(any(), any(), any(), any(), org.mockito.ArgumentMatchers.eq(false));
+	}
+
+	@Test
+	@DisplayName("Documento con due opzioni, aca_legacy=true: entrambe restano nel legacy, anche l'opzione mai comunicata individualmente")
+	void UC_6_11_DocumentoConOpzioneLegacyEOpzioneNativa_EntrambeNelLegacy() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-011", null);
+		// basta il flag sul documento: non serve piu' che ciascuna opzione porti il
+		// proprio segnale di storia legacy, risolve esattamente il caso del documento
+		// con due opzioni di cui una sola con una rata gia' comunicata a v1.
+		documento.setAcaLegacy(true);
+		documentoFullRepository.save(documento);
+		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
+
+		OffsetDateTime comunicataDieciGiorniFa = OffsetDateTime.now().minusDays(10);
+		OpzionePagamentoFullEntity opzioneLegacy = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA_ENTRO, StatoOpzionePagamento.DISPONIBILE);
+		VersamentoFullEntity rataLegacy = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzioneLegacy.getId(), "DOC-011-ENTRO", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		rataLegacy.setDataUltimaComunicazioneAca(comunicataDieciGiorniFa);
+		rataLegacy.setDataUltimaModificaAca(comunicataDieciGiorniFa);
+		versamentoFullRepository.save(rataLegacy);
+
+		OpzionePagamentoFullEntity opzioneSenzaSegnale = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA_OLTRE, StatoOpzionePagamento.DISPONIBILE);
+		VersamentoFullEntity rataSenzaSegnale = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzioneSenzaSegnale.getId(), "DOC-011-OLTRE", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+
+		DebtPositionsApiApi gpdApiLegacy = Mockito.mock(DebtPositionsApiApi.class);
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApiLegacy);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any()))
+				.thenReturn(Mockito.mock(it.govpay.gpd.client.api.DebtPositionActionsApiApi.class));
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
+		Mockito.lenient().when(gpdApiLegacy.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModel>>) PaymentPositionModelUtils::creaResponseCreatePaymentPositionModelOk);
+		Mockito.lenient().when(gpdApiLegacy.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelBaseResponse>>) invocation ->
+						PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, PaymentPositionModelBaseResponse.StatusEnum.VALID));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		// l'intero documento resta fuori da v3, comprese le opzioni senza segnale proprio
+		verify(gpdApiService, never()).getGpdApiV3(any());
+		verify(gpdApiService, never()).getGpdActionsApiV3(any());
+
+		// la rata dell'opzione senza segnale proprio non resta orfana: la gestisce il legacy
+		verify(gpdApiLegacy).createPositionWithHttpInfo(any(), any(), any(), any());
+		VersamentoFullEntity rataSenzaSegnaleAggiornata = versamentoFullRepository.findById(rataSenzaSegnale.getId()).orElseThrow();
+		assertNotNull(rataSenzaSegnaleAggiornata.getDataUltimaComunicazioneAca());
+	}
+
+	@Test
+	@DisplayName("Due esecuzioni successive del batch su un documento aca_legacy, con un annullamento tra le due: il legacy gestisce anche il secondo invio, v3 resta escluso in entrambe")
+	void UC_6_12_DueEsecuzioniSuccessive_RoutingInvariato() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-012", null);
+		documento.setAcaLegacy(true);
+		documentoFullRepository.save(documento);
+		PosizioneDebitoriaUtils.creaSoggettoDebitoreOrdineZero(soggettoDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, documento.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		VersamentoFullEntity rata = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-012-R1", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+
+		DebtPositionsApiApi gpdApiLegacy = Mockito.mock(DebtPositionsApiApi.class);
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApiLegacy);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any()))
+				.thenReturn(Mockito.mock(it.govpay.gpd.client.api.DebtPositionActionsApiApi.class));
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
+		Mockito.lenient().when(gpdApiLegacy.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModel>>) PaymentPositionModelUtils::creaResponseCreatePaymentPositionModelOk);
+		Mockito.lenient().when(gpdApiLegacy.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelBaseResponse>>) invocation ->
+						PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, PaymentPositionModelBaseResponse.StatusEnum.VALID));
+
+		JobExecution primaEsecuzione = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", primaEsecuzione.getExitStatus().getExitCode());
+		verify(gpdApiService, never()).getGpdApiV3(any());
+		verify(gpdApiLegacy).createPositionWithHttpInfo(any(), any(), any(), any());
+		VersamentoFullEntity rataDopoPrimaEsecuzione = versamentoFullRepository.findById(rata.getId()).orElseThrow();
+		assertNotNull(rataDopoPrimaEsecuzione.getDataUltimaComunicazioneAca());
+
+		// modifica reale tra le due esecuzioni: la rata viene annullata dopo essere stata
+		// comunicata dalla prima run - non solo una riesecuzione senza nulla da fare.
+		rataDopoPrimaEsecuzione.setStatoVersamento(StatoVersamento.ANNULLATO);
+		rataDopoPrimaEsecuzione.setDataUltimaModificaAca(OffsetDateTime.now().plusMinutes(1));
+		versamentoFullRepository.save(rataDopoPrimaEsecuzione);
+		Mockito.lenient().when(gpdApiLegacy.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModel>>) PaymentPositionModelUtils::creaResponseUpdatePaymentPositionModelOk);
+
+		JobExecution secondaEsecuzione = jobLauncherTestUtils.launchJob(
+				new org.springframework.batch.core.job.parameters.JobParametersBuilder().addLong("run", 2L).toJobParameters());
+		assertEquals("COMPLETED", secondaEsecuzione.getExitStatus().getExitCode());
+
+		// il legacy gestisce davvero un secondo invio (l'annullamento), non solo una
+		// riconferma senza effetti - e il documento resta comunque fuori da v3: aca_legacy
+		// non viene mai ricalcolato dagli invii, dei due writer o nel tempo.
+		verify(gpdApiLegacy).updatePositionWithHttpInfo(any(), any(), any(), any(), org.mockito.ArgumentMatchers.eq(false));
+		verify(gpdApiService, never()).getGpdApiV3(any());
+		DocumentoFullEntity documentoDopoSecondaEsecuzione = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertEquals(Boolean.TRUE, documentoDopoSecondaEsecuzione.getAcaLegacy());
 	}
 }

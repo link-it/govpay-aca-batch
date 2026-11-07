@@ -68,4 +68,8 @@ public class DocumentoFullEntity {
 
 	@Column(name = "data_ultima_comunicazione_aca")
 	private OffsetDateTime dataUltimaComunicazioneAca;
+
+	@Builder.Default
+	@Column(name = "aca_legacy", nullable = false)
+	private Boolean acaLegacy = false;
 }
