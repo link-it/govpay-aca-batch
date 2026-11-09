@@ -1,3 +1,12 @@
+2026-11-09  Giuliano Pintori <pintori@link.it>
+
+	* [Release] Ramo 3.11.x: versione 2.1.0-SNAPSHOT
+	Gli sviluppi di GovPay 3.10 e 3.11 non sono compatibili e proseguono su
+	rami separati: 3.10.x resta a 2.0.1-SNAPSHOT, 3.11.x passa a
+	2.1.0-SNAPSHOT con il parent govpay-bom 2.1.0-SNAPSHOT e le librerie GovPay
+	della linea 3.11, cosi' le SNAPSHOT e le immagini -dev delle due linee
+	non si sovrascrivono.
+
 2026-11-03  Giuliano Pintori <pintori@link.it>
 
 	* [Batch] Cluster-id del nodo come default (govpay-common#35, #36).
