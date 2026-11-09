@@ -2,11 +2,11 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "3.10.x", "3.11.x" ]
     tags:
       - '*'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "3.10.x", "3.11.x" ]
 
 permissions:
   contents: write
@@ -168,7 +168,7 @@ jobs:
 
   # ── OSV Scan (reusable workflow) ──────────────────────────────────────
   osv-scan:
-    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_type == 'tag' || vars.FORCE_OSV_JOB == 'true') }}
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == '3.10.x' || github.ref_name == '3.11.x' || github.ref_type == 'tag' || vars.FORCE_OSV_JOB == 'true') }}
     permissions:
       actions: read
       contents: read
@@ -176,7 +176,7 @@ jobs:
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.5"
     with:
       matrix-property: ''
-      fail-on-vuln: ${{ github.ref_name == 'main' || github.ref_type == 'tag' }}
+      fail-on-vuln: ${{ github.ref_name == 'main' || github.ref_name == '3.10.x' || github.ref_name == '3.11.x' || github.ref_type == 'tag' }}
       results-file-name: osv-report.sarif
       scan-args: |-
         -r
@@ -191,8 +191,8 @@ jobs:
     if: >-
       vars.DISABLE_SBOM_JOB != 'true' &&
       (github.event_name == 'push' &&
-       (github.ref_name == 'main' || github.ref_type == 'tag' || vars.FORCE_SBOM_JOB == 'true'))
-    continue-on-error: ${{ vars.FORCE_SBOM_JOB == 'true' && github.ref_type != 'tag' && github.ref_name != 'main' }}
+       (github.ref_name == 'main' || github.ref_name == '3.10.x' || github.ref_name == '3.11.x' || github.ref_type == 'tag' || vars.FORCE_SBOM_JOB == 'true'))
+    continue-on-error: ${{ vars.FORCE_SBOM_JOB == 'true' && github.ref_type != 'tag' && github.ref_name != 'main' && github.ref_name != '3.10.x' && github.ref_name != '3.11.x' }}
     env:
       SBOM_CYCLONEDX_PLUGIN_VERSION: '2.9.1'   # ← adegua al valore reale
       SBOM_CYCLONEDX_SCHEMA_VERSION: '1.6'     # ← adegua al valore reale
@@ -241,7 +241,7 @@ jobs:
     if: >-
       vars.DISABLE_DTRACK_UPLOAD_JOB != 'true' &&
       (github.ref_type == 'tag' ||
-       github.ref_name == 'main' || github.ref_name == 'master' || github.ref_name == 'staging' ||
+       github.ref_name == 'main' || github.ref_name == '3.10.x' || github.ref_name == '3.11.x' || github.ref_name == 'master' || github.ref_name == 'staging' ||
        vars.FORCE_DTRACK_UPLOAD_JOB == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -249,7 +249,7 @@ jobs:
       contents: read
     # Come su GitLab, il fallimento blocca solo le esecuzioni su tag e sui
     # branch protetti; le esecuzioni forzate sono tolleranti.
-    continue-on-error: ${{ github.ref_type != 'tag' && github.ref_name != 'main' && github.ref_name != 'master' && github.ref_name != 'staging' }}
+    continue-on-error: ${{ github.ref_type != 'tag' && github.ref_name != 'main' && github.ref_name != '3.10.x' && github.ref_name != '3.11.x' && github.ref_name != 'master' && github.ref_name != 'staging' }}
 
     steps:
       - uses: actions/checkout@v6
@@ -290,7 +290,7 @@ jobs:
           if [ "${{ github.ref_type }}" = "tag" ]; then
             echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
             echo "latest=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.ref_name }}" = "master" ] || [ "${{ github.ref_name }}" = "staging" ]; then
+          elif [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.ref_name }}" = "3.10.x" ] || [ "${{ github.ref_name }}" = "3.11.x" ] || [ "${{ github.ref_name }}" = "master" ] || [ "${{ github.ref_name }}" = "staging" ]; then
             echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
             echo "latest=false" >> "$GITHUB_OUTPUT"
           else
@@ -313,7 +313,7 @@ jobs:
             "GovPay-Backend"
 
   # ── GitHub Release (solo tag) ────────────────────────────────────────
-  # ── Immagine Docker di sviluppo (solo push su main, solo SNAPSHOT) ────
+  # ── Immagine Docker di sviluppo (solo push su main e sui rami di linea, solo SNAPSHOT) ────
   # Serve a eseguire i test di integrazione prima di un rilascio: pubblica su
   # un repo separato (linkitaly/govpay-aca-batch-dev) cosi' una SNAPSHOT non finisce mai
   # nel repo delle immagini di produzione.
@@ -324,7 +324,7 @@ jobs:
   docker-dev:
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || github.event_name == 'pull_request' }}
+    if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == '3.10.x' || github.ref_name == '3.11.x')) || github.event_name == 'pull_request' }}
     # security-events: report SARIF della scansione dell'immagine.
     permissions:
       contents: read
