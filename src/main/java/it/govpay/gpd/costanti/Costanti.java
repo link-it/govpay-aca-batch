@@ -62,9 +62,12 @@ public class Costanti {
 
 	public static final String EC= "EC";
 	
+	// data_ultima_modifica_aca <= adesso: una pendenza con data di pubblicazione futura ha la data di ultima
+	// modifica posticipata a quella data dal core (link-it/govpay#914) e viene inviata solo allora (Issue #65)
 	public static final String QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA = "SELECT * FROM v_versamenti_gpd " +
             "WHERE stato_versamento IN ('NON_ESEGUITO','ANNULLATO') " + 
             "AND data_ultima_modifica_aca >= ? " +
+            "AND data_ultima_modifica_aca <= ? " +
             "AND (data_ultima_modifica_aca > data_ultima_comunicazione_aca OR data_ultima_comunicazione_aca IS NULL) " +
             "ORDER BY data_ultima_comunicazione_aca DESC";
 }
