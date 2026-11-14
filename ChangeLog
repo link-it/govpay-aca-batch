@@ -1,3 +1,19 @@
+2026-11-14  Giuliano Pintori <pintori@link.it>
+
+	* [Batch] Pendenze con data di pubblicazione futura inviate a GPD solo
+	dalla data (#65, link-it/govpay#914). Il core 3.10.0 posticipa
+	data_ultima_modifica_aca alla data di pubblicazione della pendenza: la
+	selezione delle pendenze da inviare esclude ora quelle con
+	data_ultima_modifica_aca futura (AND data_ultima_modifica_aca <= adesso in
+	Costanti.QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA e in VersamentoFilters).
+	Alla data la pendenza viene inviata senza bisogno di altre modifiche. Le
+	pendenze senza data di pubblicazione non cambiano comportamento. Da
+	installare insieme al core 3.10.0 o prima: con il batch precedente le
+	pendenze con data futura verrebbero inviate subito.
+	Verifica: nuovo test UC_6_DataPubblicazioneTest (pendenza non inviata
+	prima della data, inviata alla data senza modifiche); suite completa,
+	127 test passati.
+
 2026-11-03  Giuliano Pintori <pintori@link.it>
 
 	* [Batch] Cluster-id del nodo come default (govpay-common#35, #36).
