@@ -125,6 +125,8 @@ public class PendenzeGpdSenderJobConfig {
 				Date dateLimit = new Date(cal.getTimeInMillis());
 				logger.debug("Verranno ricercate le pendenze a partire dal: {}", sdf.format(dateLimit));
 				ps.setDate(1, dateLimit);
+				// pendenze non ancora pubblicate escluse fino alla data di pubblicazione (Issue #65)
+				ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
 			}
 		});
 
