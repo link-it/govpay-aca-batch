@@ -27,6 +27,11 @@ public class VersamentoFilters {
 		cb.greaterThanOrEqualTo(root.get(VersamentoGpdEntity_.DATA_ULTIMA_MODIFICA_ACA),dataDa);
 	}
 	
+	public static Specification<VersamentoGpdEntity> byDataUltimaModificaAcaFinoA(OffsetDateTime dataA) {
+		return (Root<VersamentoGpdEntity> root, CriteriaQuery<?> query, CriteriaBuilder cb) ->
+		cb.lessThanOrEqualTo(root.get(VersamentoGpdEntity_.DATA_ULTIMA_MODIFICA_ACA),dataA);
+	}
+	
 	public static Specification<VersamentoGpdEntity> byDataUltimaModificaAcaGreaterThanDataUltimaComunicazioneAca() {
 		return (Root<VersamentoGpdEntity> root, CriteriaQuery<?> query, CriteriaBuilder cb) ->
 		cb.greaterThanOrEqualTo(root.get(VersamentoGpdEntity_.DATA_ULTIMA_MODIFICA_ACA), root.get(VersamentoGpdEntity_.DATA_ULTIMA_COMUNICAZIONE_ACA));
@@ -53,6 +58,9 @@ public class VersamentoFilters {
     		OffsetDateTime sogliaTemporale = OffsetDateTime.now().minusDays(numeroGiorni);
 			spec = spec.and(VersamentoFilters.byDataUltimaModificaAcaDa(sogliaTemporale));
     	}
+    	
+    	// pendenze non ancora pubblicate: data ultima modifica Aca posticipata alla data di pubblicazione (Issue #65)
+    	spec = spec.and(VersamentoFilters.byDataUltimaModificaAcaFinoA(OffsetDateTime.now()));
     	
     	// data ultima modifica Aca > data ultima spedizione
     	Specification<VersamentoGpdEntity> spec2 = VersamentoFilters.byDataUltimaModificaAcaGreaterThanDataUltimaComunicazioneAca();
