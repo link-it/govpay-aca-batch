@@ -444,14 +444,15 @@ SELECT documenti.id,
     (SELECT COUNT(*) FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id AND op.stato = 'DISPONIBILE') AS num_opzioni_disponibili,
     (SELECT COUNT(*) FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id AND op.stato = 'ATTIVATA') AS num_opzioni_attivate,
     (SELECT COUNT(*) FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id AND op.stato = 'ANNULLATA') AS num_opzioni_annullate,
-    (SELECT COUNT(*) FROM pd_debitori pdd WHERE pdd.id_documento = documenti.id AND pdd.data_rimozione IS NOT NULL AND documenti.data_ultima_comunicazione_aca IS NOT NULL AND pdd.data_rimozione > documenti.data_ultima_comunicazione_aca) AS num_debitori_rimossi_da_comunicare,
+    (SELECT COUNT(*) FROM pd_debitori pdd WHERE pdd.id_documento = documenti.id AND pdd.data_rimozione IS NOT NULL AND documenti.data_ultima_comunicazione_aca IS NOT NULL AND pdd.data_rimozione > documenti.data_ultima_comunicazione_aca) AS num_debitori_da_ritirare,
     documenti.data_ultima_modifica_aca,
     documenti.data_ultima_comunicazione_aca
     FROM documenti
 	JOIN domini ON documenti.id_dominio = domini.id
 	JOIN applicazioni ON documenti.id_applicazione = applicazioni.id
 	LEFT JOIN uo ON documenti.id_unita_operativa = uo.id
-    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id);
+    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id)
+      AND (documenti.data_pubblicazione IS NULL OR documenti.data_pubblicazione <= CURRENT_DATE);
 
 
 CREATE VIEW IF NOT EXISTS v_opzioni_pagamento_gpd AS

@@ -64,8 +64,8 @@ public class PosizioneDebitoriaGpdEntity {
 
 	// Debitori rimossi (pd_debitori.data_rimozione) dopo l'ultima comunicazione a GPD: la
 	// posizione e' gia' nota a GPD con le loro opzioni, che vanno fatte sparire.
-	@Column(name = "num_debitori_rimossi_da_comunicare", nullable = false)
-	private Long numDebitoriRimossiDaComunicare;
+	@Column(name = "num_debitori_da_ritirare", nullable = false)
+	private Long numDebitoriDaRitirare;
 
 	@Column(name = "data_ultima_modifica_aca")
 	private OffsetDateTime dataUltimaModificaAca;

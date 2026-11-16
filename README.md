@@ -445,9 +445,10 @@ porta il proprio debitore (`v_opzioni_pagamento_gpd`). L'identificativo della po
 
 - **Reader**: legge da `v_posizioni_debitorie_gpd` le posizioni con `data_ultima_modifica_aca`
   negli ultimi `numeroGiorniPosizioni` giorni, non successiva all'istante corrente, e
-  successiva a `data_ultima_comunicazione_aca` (o mai comunicate). Una posizione con data
-  di pubblicazione futura ha la data di ultima modifica posticipata a quel giorno: resta
-  quindi fuori finché la data non è raggiunta.
+  successiva a `data_ultima_comunicazione_aca` (o mai comunicate). La vista non seleziona le
+  posizioni con data di pubblicazione futura, a prescindere dalla marcatura ACA (che per i
+  dati migrati non è allineata alla pubblicazione); la libreria posticipa inoltre la data di
+  ultima modifica al giorno di pubblicazione.
 - **Processor** (`SendPosizioneDebitoriaToGpdProcessor`): se la posizione ha almeno
   un'opzione `ATTIVATA`, nessun invio (GPD la rende immutabile tramite la ricevuta, qui si
   marca solo come comunicata); altrimenti, se c'è almeno un'opzione `DISPONIBILE`, carica

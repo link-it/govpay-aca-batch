@@ -8,7 +8,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -40,6 +43,7 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import it.govpay.gpd.Application;
 import it.govpay.gpd.client.v3.api.DebtPositionActionsApiApi;
@@ -55,6 +59,8 @@ import it.govpay.gpd.service.GpdApiService;
 import it.govpay.gpd.test.entity.DocumentoFullEntity;
 import it.govpay.gpd.test.entity.OpzionePagamentoFullEntity;
 import it.govpay.gpd.test.entity.PdDebitoreFullEntity;
+import it.govpay.gpd.test.entity.SingoloVersamentoFullEntity;
+import it.govpay.gpd.test.entity.SingoloVersamentoFullEntity.StatoSingoloVersamento;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.repository.DocumentoFullRepository;
 import it.govpay.gpd.test.repository.OpzionePagamentoFullRepository;
@@ -63,6 +69,8 @@ import it.govpay.gpd.test.repository.PdDebitoreFullRepository;
 import it.govpay.gpd.test.repository.VersamentoFullRepository;
 import it.govpay.gpd.test.utils.PaymentPositionModelV3Utils;
 import it.govpay.gpd.test.utils.PosizioneDebitoriaUtils;
+import it.govpay.gpd.test.utils.VersamentoUtils;
+import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.pendenze.model.StatoOpzionePagamento;
 import it.govpay.pendenze.model.TipologiaOpzionePagamento;
 import it.govpay.pendenze.service.CausaleVersamentoCodec;
@@ -482,5 +490,141 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 		verify(gpdApiService, never()).getGpdApiV3(any());
 		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
 		assertEquals(null, documentoAggiornato.getDataUltimaComunicazioneAca());
+	}
+
+	@Test
+	@DisplayName("Pubblicazione futura con marcatura ACA precedente (dato migrato): la posizione non viene inviata")
+	void UC_6_13_PubblicazioneFuturaConMarcaturaPrecedente_NonInviata() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-013", null);
+		// la marcatura ACA e' gia' nel passato (come dopo la migrazione dei dati): conta la data
+		documento.setDataUltimaModificaAca(OffsetDateTime.now().minusHours(1));
+		documento.setDataPubblicazione(LocalDateTime.now().plusDays(2));
+		documentoFullRepository.save(documento);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-013", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiService, never()).getGpdApiV3(any());
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertEquals(null, documentoAggiornato.getDataUltimaComunicazioneAca());
+	}
+
+	@Test
+	@DisplayName("Pubblicazione raggiunta: la posizione viene inviata e la validityDate dell'opzione e' la data di pubblicazione")
+	void UC_6_14_PubblicazioneRaggiunta_InviataConValidityDate() throws Exception {
+		LocalDate ieri = LocalDate.now(ZoneId.of("Europe/Rome")).minusDays(1);
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-014", null);
+		documento.setDataPubblicazione(ieri.atStartOfDay());
+		documentoFullRepository.save(documento);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-014", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+
+		Mockito.lenient().when(gpdApiV3.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelV3>>) PaymentPositionModelV3Utils::creaResponseCreateOk);
+		Mockito.lenient().when(gpdApiV3.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelResponseV3>>) invocation -> PaymentPositionModelV3Utils.creaResponseGetPositionOk(invocation, StatusEnum.VALID));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		ArgumentCaptor<PaymentPositionModelV3> modelCaptor = ArgumentCaptor.forClass(PaymentPositionModelV3.class);
+		verify(gpdApiV3).createPositionWithHttpInfo(any(), modelCaptor.capture(), any(), any());
+		assertEquals(ieri, modelCaptor.getValue().getPaymentOption().get(0).getValidityDate().toLocalDate());
+	}
+
+	/** Posizione con due debitori, il secondo rimosso dopo l'ultima comunicazione. */
+	private DocumentoFullEntity creaPosizioneConDebitoreRimosso(String codDocumento, OffsetDateTime comunicata) {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, codDocumento, comunicata);
+		PdDebitoreFullEntity debitoreA = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 0, "RSSMRA80A01H501U", "Mario Rossi");
+		PdDebitoreFullEntity debitoreB = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 1, "VRDLGI85B41F205Z", "Luigia Verdi");
+		debitoreB.setDataRimozione(OffsetDateTime.now());
+		pdDebitoreFullRepository.save(debitoreB);
+
+		OpzionePagamentoFullEntity opzioneA = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitoreA.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		OpzionePagamentoFullEntity opzioneB = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitoreB.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzioneA.getId(), codDocumento + "-A", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		VersamentoFullEntity rataB = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzioneB.getId(), codDocumento + "-B", 1, 20.00, StatoVersamento.ANNULLATO);
+		rataB.setNumeroRata(1);
+		versamentoFullRepository.save(rataB);
+		return documento;
+	}
+
+	@Test
+	@DisplayName("Ritiro fallito per errore del GPD (500): nessuna ripubblicazione e nessuna marcatura come comunicata")
+	void UC_6_15_RitiroFallito_NonRipubblica() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		DocumentoFullEntity documento = creaPosizioneConDebitoreRimosso("DOC-015", comunicataIeri);
+
+		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), org.mockito.ArgumentMatchers.eq(false), any()))
+				.thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error"));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, times(1)).updatePositionWithHttpInfo(any(), any(), any(), org.mockito.ArgumentMatchers.eq(false), any());
+		verify(gpdApiV3, never()).updatePositionWithHttpInfo(any(), any(), any(), org.mockito.ArgumentMatchers.eq(true), any());
+
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertTrue(documentoAggiornato.getDataUltimaComunicazioneAca().isBefore(OffsetDateTime.now().minusHours(1)));
+	}
+
+	@Test
+	@DisplayName("Ritiro con 404 (posizione non presente sul GPD): nulla da ritirare, si prosegue e la posizione viene creata")
+	void UC_6_16_Ritiro404_ProseguiConCreazione() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		DocumentoFullEntity documento = creaPosizioneConDebitoreRimosso("DOC-016", comunicataIeri);
+
+		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
+				.thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found"));
+		Mockito.lenient().when(gpdApiV3.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelV3>>) PaymentPositionModelV3Utils::creaResponseCreateOk);
+		Mockito.lenient().when(gpdApiV3.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelResponseV3>>) invocation -> PaymentPositionModelV3Utils.creaResponseGetPositionOk(invocation, StatusEnum.VALID));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, times(1)).updatePositionWithHttpInfo(any(), any(), any(), org.mockito.ArgumentMatchers.eq(false), any());
+		verify(gpdApiV3, times(1)).updatePositionWithHttpInfo(any(), any(), any(), org.mockito.ArgumentMatchers.eq(true), any());
+		verify(gpdApiV3, times(1)).createPositionWithHttpInfo(any(), any(), any(), any());
+
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertTrue(documentoAggiornato.getDataUltimaComunicazioneAca().isAfter(comunicataIeri));
+	}
+
+	@Test
+	@DisplayName("Ritiro con dati non leggibili (metadata di una rata dell'opzione rimossa): nessuna chiamata al GPD e nessuna marcatura come comunicata")
+	void UC_6_17_RitiroConMetadataNonLeggibili_NonRipubblica() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		DocumentoFullEntity documento = creaPosizioneConDebitoreRimosso("DOC-017", comunicataIeri);
+
+		VersamentoFullEntity rataRimossa = versamentoFullRepository.findAll().stream()
+				.filter(v -> "DOC-017-B".equals(v.getCodVersamentoEnte())).findFirst().orElseThrow();
+		SingoloVersamentoFullEntity voce = VersamentoUtils.creaSingoloVersamentoDefinito(
+				VersamentoUtils.getNextSingoloVersamentoId(singoloVersamentoFullRepository), Costanti.CODDOMINIO, 1, 20.00,
+				StatoSingoloVersamento.NON_ESEGUITO, "metadata non json", dominioRepository,
+				Costanti.TIPO_CONTABILITA_ALTRO, Costanti.COD_CONTABILITA_GEN, Costanti.CODIBAN_ACCREDITO_DOM_1, null, ibanAccreditoRepository);
+		voce.setIdVersamento(rataRimossa.getId());
+		singoloVersamentoFullRepository.save(voce);
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, never()).updatePositionWithHttpInfo(any(), any(), any(), any(), any());
+
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertTrue(documentoAggiornato.getDataUltimaComunicazioneAca().isBefore(OffsetDateTime.now().minusHours(1)));
 	}
 }

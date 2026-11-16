@@ -128,7 +128,7 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 			if (item.getDataUltimaComunicazioneAca() == null) {
 				return this.createPosition(item);
 			}
-			if (item.getNumDebitoriRimossiDaComunicare() > 0) {
+			if (item.getNumDebitoriDaRitirare() > 0) {
 				return this.updatePositionDopoRimozioneDebitore(item);
 			}
 			return this.updatePosition(item);
@@ -343,17 +343,71 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 	 * e l'omissione non e' quindi una garanzia: si porta prima la posizione in DRAFT con
 	 * il payload completo (tutte le opzioni, rimosse comprese, come per l'annullamento) e
 	 * poi la si ripubblica con le sole opzioni disponibili.
-	 * <p>Il secondo passo e' l'ordinario {@link #updatePosition}: se fallisce, la posizione
-	 * non avanza {@code data_ultima_comunicazione_aca} e il run successivo ripete il ciclo.
+	 * <p>La ripubblicazione parte solo se il ritiro e' stato eseguito o se non c'era nulla da
+	 * ritirare (404, posizione non presente sul GPD). In ogni altro caso, errori di dati
+	 * compresi, la posizione non avanza {@code data_ultima_comunicazione_aca} e il run
+	 * successivo ripete il ciclo: avanzare senza il ritiro lascerebbe pagabili le opzioni del
+	 * debitore rimosso. Il secondo passo e' l'ordinario {@link #updatePosition}.
 	 */
 	public PosizioneDebitoriaGpdEntity updatePositionDopoRimozioneDebitore(PosizioneDebitoriaGpdEntity item) {
 		logger.info("Posizione debitoria [IdA2A:{}, CodDocumento:{}] con debitori rimossi: ritiro dal GPD (DRAFT) e ripubblicazione con le sole opzioni disponibili.",
 				item.getCodApplicazione(), item.getCodDocumento());
 
-		if (this.cancelPosition(item) == null) {
+		if (this.ritiraPosizione(item) == Esito.RINVIATA) {
 			return esito(Esito.RINVIATA, item);
 		}
 		return this.updatePosition(item);
+	}
+
+	/**
+	 * Porta la posizione in DRAFT sul GPD con il payload completo. Restituisce l'esito del
+	 * ritiro, non la decisione di avanzare la marcatura: {@code INVIATA} se il GPD ha accettato
+	 * la richiesta, {@code NESSUN_INVIO_NECESSARIO} se la posizione non esiste sul GPD (404),
+	 * {@code RINVIATA} per qualunque altro caso, compresi i dati non leggibili.
+	 */
+	private Esito ritiraPosizione(PosizioneDebitoriaGpdEntity item) {
+		OffsetDateTime dataStart = OffsetDateTime.now();
+		String xRequestId = Utils.creaXRequestId();
+
+		PaymentPositionModelV3 paymentPositionModel;
+		try {
+			paymentPositionModel = this.posizioneDebitoriaGpdMapper.posizioneDebitoriaGpdToPaymentPositionModelV3PerAnnullamento(item);
+		} catch (IOException e) {
+			logger.warn("Errore nella deserializzazione dei metadata della Posizione debitoria [IdA2A:{}, CodDocumento:{}], ritiro non effettuato.",
+					item.getCodApplicazione(), item.getCodDocumento());
+			HttpServerErrorException e1 = new HttpServerErrorException(HttpStatusCode.valueOf(502), "Errore nella deserializzazione dei metadata", new byte[0], Charset.defaultCharset());
+			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e1, false);
+			return Esito.RINVIATA;
+		}
+
+		ResponseEntity<PaymentPositionModelV3> responseEntity = null;
+		try {
+			responseEntity = this.gpdApiService.getGpdApiV3(item.getCodDominio()).updatePositionWithHttpInfo(
+					item.getCodDominio(), Utils.generaIupdPosizione(item), paymentPositionModel, false, xRequestId);
+
+			logger.info("Ritiro Posizione debitoria [IdA2A:{}, CodDocumento:{}] dal GPD completato con esito [{}].",
+					item.getCodApplicazione(), item.getCodDocumento(), responseEntity.getStatusCode().value());
+
+			if (responseEntity.getStatusCode().value() == 200) {
+				this.gdeService.salvaUpdatePositionOk(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, false);
+				return Esito.INVIATA;
+			}
+
+			this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, null, false);
+			return Esito.RINVIATA;
+		} catch (HttpClientErrorException e) {
+			this.logErrorResponse(e);
+			this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e, false);
+			return e.getStatusCode().value() == 404 ? Esito.NESSUN_INVIO_NECESSARIO : Esito.RINVIATA;
+		} catch (HttpServerErrorException e) {
+			this.logErrorResponse(e);
+			this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e, false);
+			return Esito.RINVIATA;
+		} catch (ResourceAccessException e) {
+			logger.error(MessageFormat.format(ERROR_MSG_GPD_NON_RAGGIUNGIBILE, e.getMessage()), e);
+			this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e, false);
+			return Esito.RINVIATA;
+		}
 	}
 
 	public PosizioneDebitoriaGpdEntity cancelPosition(PosizioneDebitoriaGpdEntity item) {
