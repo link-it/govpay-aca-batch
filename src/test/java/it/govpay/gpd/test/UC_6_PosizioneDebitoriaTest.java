@@ -627,4 +627,136 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
 		assertTrue(documentoAggiornato.getDataUltimaComunicazioneAca().isBefore(OffsetDateTime.now().minusHours(1)));
 	}
+
+	private void mockCreazioneV3() throws Exception {
+		Mockito.lenient().when(gpdApiV3.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelV3>>) PaymentPositionModelV3Utils::creaResponseCreateOk);
+		Mockito.lenient().when(gpdApiV3.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer((Answer<ResponseEntity<PaymentPositionModelResponseV3>>) invocation -> PaymentPositionModelV3Utils.creaResponseGetPositionOk(invocation, StatusEnum.VALID));
+	}
+
+	private PaymentPositionModelV3 eseguiEOttieniPayloadCreate() throws Exception {
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		ArgumentCaptor<PaymentPositionModelV3> modelCaptor = ArgumentCaptor.forClass(PaymentPositionModelV3.class);
+		verify(gpdApiV3).createPositionWithHttpInfo(any(), modelCaptor.capture(), any(), any());
+		return modelCaptor.getValue();
+	}
+
+	@Test
+	@DisplayName("Piano rateale: una sola opzione con tutte le rate, ordinate per numero rata, con il suffisso della rata nella descrizione")
+	void UC_6_18_PianoRateale_RateOrdinatePerNumeroRata() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-018", null);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.PIANO_RATEALE, StatoOpzionePagamento.DISPONIBILE);
+		// create fuori ordine: l'ordine nel payload deve seguire numero_rata, non l'id
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-018-R3", 3, 30.00, StatoVersamento.NON_ESEGUITO);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-018-R1", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-018-R2", 2, 20.00, StatoVersamento.NON_ESEGUITO);
+		mockCreazioneV3();
+
+		PaymentPositionModelV3 payload = eseguiEOttieniPayloadCreate();
+
+		assertEquals(1, payload.getPaymentOption().size());
+		List<it.govpay.gpd.client.v3.beans.InstallmentModel> rate = payload.getPaymentOption().get(0).getInstallments();
+		assertEquals(3, rate.size());
+		for (int i = 0; i < 3; i++) {
+			assertTrue(rate.get(i).getDescription().endsWith(" - rata " + (i + 1)), rate.get(i).getDescription());
+			assertEquals((i + 1) * 1000L, rate.get(i).getAmount());
+		}
+	}
+
+	@Test
+	@DisplayName("Opzioni alternative ENTRO/OLTRE: una paymentOption per soglia, ciascuna con switchToExpired")
+	void UC_6_19_EntroOltre_UnaOpzionePerSoglia() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-019", null);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity entro = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA_ENTRO, StatoOpzionePagamento.DISPONIBILE);
+		entro.setDataScadenza(LocalDateTime.now().plusDays(10));
+		opzionePagamentoFullRepository.save(entro);
+		OpzionePagamentoFullEntity oltre = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA_OLTRE, StatoOpzionePagamento.DISPONIBILE);
+		oltre.setDataScadenza(LocalDateTime.now().plusDays(40));
+		opzionePagamentoFullRepository.save(oltre);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				entro.getId(), "DOC-019-E", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				oltre.getId(), "DOC-019-O", 1, 25.00, StatoVersamento.NON_ESEGUITO);
+		mockCreazioneV3();
+
+		PaymentPositionModelV3 payload = eseguiEOttieniPayloadCreate();
+
+		List<PaymentOptionModelV3> opzioni = payload.getPaymentOption();
+		assertEquals(2, opzioni.size());
+		assertTrue(opzioni.stream().allMatch(o -> Boolean.TRUE.equals(o.isSwitchToExpired())));
+		assertEquals(Set.of(1000L, 2500L),
+				opzioni.stream().map(o -> o.getInstallments().get(0).getAmount()).collect(Collectors.toSet()));
+	}
+
+	@Test
+	@DisplayName("Opzione ENTRO scaduta: esclusa dal payload, resta solo l'opzione OLTRE ancora valida")
+	void UC_6_20_EntroScaduta_EsclusaDalPayload() throws Exception {
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-020", null);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity entro = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA_ENTRO, StatoOpzionePagamento.DISPONIBILE);
+		entro.setDataScadenza(LocalDateTime.now().minusDays(5));
+		opzionePagamentoFullRepository.save(entro);
+		OpzionePagamentoFullEntity oltre = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA_OLTRE, StatoOpzionePagamento.DISPONIBILE);
+		oltre.setDataScadenza(LocalDateTime.now().plusDays(40));
+		opzionePagamentoFullRepository.save(oltre);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				entro.getId(), "DOC-020-E", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				oltre.getId(), "DOC-020-O", 1, 25.00, StatoVersamento.NON_ESEGUITO);
+		mockCreazioneV3();
+
+		PaymentPositionModelV3 payload = eseguiEOttieniPayloadCreate();
+
+		assertEquals(1, payload.getPaymentOption().size());
+		assertEquals(2500L, payload.getPaymentOption().get(0).getInstallments().get(0).getAmount());
+	}
+
+	@Test
+	@DisplayName("Coesistenza: una pendenza legacy e una posizione v3 nello stesso giro, ciascuna spedita una sola volta dal proprio step")
+	void UC_6_21_PendenzaLegacyEPosizioneV3_Disgiunte() throws Exception {
+		it.govpay.gpd.client.api.DebtPositionsApiApi gpdApiLegacy = Mockito.mock(it.govpay.gpd.client.api.DebtPositionsApiApi.class);
+		Mockito.lenient().when(gpdApiService.getGpdApi(any())).thenReturn(gpdApiLegacy);
+		Mockito.lenient().when(gpdApiService.getGpdActionsApi(any())).thenReturn(Mockito.mock(it.govpay.gpd.client.api.DebtPositionActionsApiApi.class));
+		Mockito.lenient().when(gpdApiService.getGpdBasePath(any())).thenReturn("http://fakehost:8080/");
+		Mockito.lenient().when(gpdApiLegacy.createPositionWithHttpInfo(any(), any(), any(), any()))
+				.thenAnswer(invocation -> it.govpay.gpd.test.utils.PaymentPositionModelUtils.creaResponseCreatePaymentPositionModelOk(invocation));
+		Mockito.lenient().when(gpdApiLegacy.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()))
+				.thenAnswer(invocation -> it.govpay.gpd.test.utils.PaymentPositionModelUtils.creaResponseGetPositionOk(invocation,
+						it.govpay.gpd.client.beans.PaymentPositionModelBaseResponse.StatusEnum.VALID));
+
+		VersamentoUtils.creaVersamentoNonEseguitoMonovoceDefinito(versamentoFullRepository, singoloVersamentoFullRepository,
+				applicazioneRepository, dominioRepository, ibanAccreditoRepository, objectMapper, true);
+
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-021", null);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				opzione.getId(), "DOC-021", 1, 10.00, StatoVersamento.NON_ESEGUITO);
+		mockCreazioneV3();
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		ArgumentCaptor<it.govpay.gpd.client.beans.PaymentPositionModel> legacyCaptor = ArgumentCaptor.forClass(it.govpay.gpd.client.beans.PaymentPositionModel.class);
+		verify(gpdApiLegacy, times(1)).createPositionWithHttpInfo(any(), legacyCaptor.capture(), any(), any());
+		assertTrue(!legacyCaptor.getValue().getIupd().contains("DOC-021"), "la rata della posizione v3 non deve passare dallo step legacy");
+
+		ArgumentCaptor<PaymentPositionModelV3> v3Captor = ArgumentCaptor.forClass(PaymentPositionModelV3.class);
+		verify(gpdApiV3, times(1)).createPositionWithHttpInfo(any(), v3Captor.capture(), any(), any());
+		assertTrue(v3Captor.getValue().getIupd().contains("DOC-021"));
+	}
 }

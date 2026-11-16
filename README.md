@@ -485,6 +485,25 @@ posizioni duplicate su GPD, prima della migrazione si esegue il batch un'ultima 
 servizi spenti, in modo che tutto ciò che è da comunicare sia già allineato, e solo dopo si
 migra.
 
+Una collisione si ha quando il codice di un documento coincide con il codice di una pendenza
+già comunicata dello stesso dominio e della stessa applicazione: i due IUPD sono uguali e la
+posizione verrebbe confusa con la posizione legacy già presente su GPD. I documenti
+sintetizzati dalla migrazione (`MIGR-<id>`) non collidono per costruzione. La verifica non
+dipende dalle opzioni, quindi si può eseguire prima o dopo la migrazione; il risultato atteso
+è vuoto:
+
+```sql
+SELECT dm.cod_dominio, a.cod_applicazione, d.cod_documento
+  FROM documenti d
+  JOIN domini dm ON d.id_dominio = dm.id
+  JOIN applicazioni a ON d.id_applicazione = a.id
+ WHERE EXISTS (SELECT 1 FROM versamenti v
+                WHERE v.id_dominio = d.id_dominio
+                  AND v.id_applicazione = d.id_applicazione
+                  AND v.cod_versamento_ente = d.cod_documento
+                  AND v.data_ultima_comunicazione_aca IS NOT NULL);
+```
+
 #### Limiti noti
 
 - Le spese di notifica SEND non sono rappresentate nel payload: un avviso presente nella
