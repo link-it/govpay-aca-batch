@@ -7,12 +7,18 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 
+import it.govpay.gpd.entity.OpzionePagamentoGpdEntity;
+import it.govpay.gpd.entity.PendenzaGpdEntity;
+import it.govpay.gpd.entity.PosizioneDebitoriaGpdEntity;
+import it.govpay.gpd.entity.SingoloVersamentoGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
+import it.govpay.pendenze.identificativo.IdentificatorePosizioneDebitoria;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -28,7 +34,15 @@ public class Utils {
 	public static String generaIupd(VersamentoGpdEntity versamentoGpdEntity) {
 		return versamentoGpdEntity.getCodDominio() + versamentoGpdEntity.getCodApplicazione() + versamentoGpdEntity.getCodVersamentoEnte();
 	}
-	
+
+	// IUPD a grana di posizione debitoria (modello v3): stessa composizione usata da
+	// govpay-common-pendenze (IdentificatorePosizioneDebitoria), non la convenzione di
+	// generaIupd (a grana di pendenza legacy, ordine diverso).
+	public static String generaIupdPosizione(PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity) {
+		return IdentificatorePosizioneDebitoria.comporre(posizioneDebitoriaGpdEntity.getCodApplicazione(),
+				posizioneDebitoriaGpdEntity.getCodDominio(), posizioneDebitoriaGpdEntity.getCodDocumento());
+	}
+
 	public static String creaXRequestId() {
 		return UUID.randomUUID().toString();
 	}
@@ -112,7 +126,109 @@ public class Utils {
 		ZoneId zoneId = ZoneId.of(timeZone);
 		return date.atZone(zoneId).toOffsetDateTime();
 	}
-	
+
+	// Stesso offset usato da PaymentPositionModelRequestMapper#leggiDueDate (CET),
+	// qui esposto come utility riusabile anche dal mapper v3.
+	public static OffsetDateTime toOffsetDateTimeCet(LocalDateTime localDateTime) {
+		if (localDateTime == null) {
+			return null;
+		}
+		ZoneOffset offset = ZoneOffset.ofHoursMinutes(1, 0);
+		return OffsetDateTime.of(localDateTime, offset);
+	}
+
+	// ==================== Modello v3 (posizione/opzione/rata) ====================
+
+	public static boolean isValidIuv(PendenzaGpdEntity rata) {
+		return rata.getIuvVersamento() != null;
+	}
+
+	public static boolean isValidDueDate(PendenzaGpdEntity rata, OpzionePagamentoGpdEntity opzione) {
+		return !calcolaDueDateRata(rata, opzione).isBefore(LocalDateTime.now());
+	}
+
+	/**
+	 * Due date di una rata (modello v3): {@code versamenti.data_scadenza}, altrimenti
+	 * {@code opzioni_pagamento.data_scadenza}, altrimenti il sentinella 31/12/2999 —
+	 * stesso fallback a 3 livelli di {@link #calcolaDueDate(VersamentoGpdEntity, boolean)}
+	 * con un livello aggiuntivo (la scadenza dell'opzione), inesistente a grana di
+	 * pendenza legacy.
+	 */
+	public static LocalDateTime calcolaDueDateRata(PendenzaGpdEntity rata, OpzionePagamentoGpdEntity opzione) {
+		LocalDateTime toReturn;
+		if (rata.getDataScadenza() != null) {
+			toReturn = rata.getDataScadenza();
+		} else if (opzione.getDataScadenza() != null) {
+			toReturn = opzione.getDataScadenza();
+		} else {
+			return LocalDateTime.parse("2999-12-31T23:59:59.999"); //31.12.2999
+		}
+		return estendiDueDate(toReturn);
+	}
+
+	/**
+	 * {@code validityDate} di un'opzione (modello v3): la data piu' recente tra
+	 * {@code documenti.data_pubblicazione} e {@code opzioni_pagamento.data_inizio_validita};
+	 * {@code null} se entrambe sono nulle (pubblicazione immediata).
+	 */
+	public static LocalDateTime calcolaValidityDatePosizione(PosizioneDebitoriaGpdEntity posizione, OpzionePagamentoGpdEntity opzione) {
+		LocalDateTime pubblicazione = posizione.getDataPubblicazione();
+		LocalDateTime inizioValidita = opzione.getDataInizioValidita();
+		if (pubblicazione == null) {
+			return inizioValidita;
+		}
+		if (inizioValidita == null) {
+			return pubblicazione;
+		}
+		return pubblicazione.isAfter(inizioValidita) ? pubblicazione : inizioValidita;
+	}
+
+	/**
+	 * Categoria di un transfer (es. {@code "9/0101108TS/"}): stessa logica di
+	 * {@code PaymentPositionModelRequestMapper#getCategory}, estratta qui per essere
+	 * riusata anche dal mapper v3 — {@code v_sng_versamenti_gpd} e' invariata tra i due
+	 * modelli.
+	 */
+	public static String getCategory(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity) {
+		String tipoContabilita = singoloVersamentoGdpEntity.getTipoContabilita();
+
+		if (tipoContabilita == null) {
+			if (singoloVersamentoGdpEntity.getTributoTipoContabilita() != null) {
+				tipoContabilita = singoloVersamentoGdpEntity.getTributoTipoContabilita();
+			} else {
+				tipoContabilita = singoloVersamentoGdpEntity.getTipoTributoTipoContabilita();
+			}
+		}
+
+		String codContabilita = singoloVersamentoGdpEntity.getCodContabilita();
+
+		if (codContabilita == null) {
+			if (singoloVersamentoGdpEntity.getTributoCodContabilita() != null) {
+				codContabilita = singoloVersamentoGdpEntity.getTributoCodContabilita();
+			} else {
+				codContabilita = singoloVersamentoGdpEntity.getTipoTributoCodContabilita();
+			}
+		}
+
+		return tipoContabilita + "/" + codContabilita;
+	}
+
+	/**
+	 * Dominio fiscale del transfer, con fallback su quello della posizione/pendenza
+	 * contenitrice: stessa logica di
+	 * {@code PaymentPositionModelRequestMapper#getCodDominioSingoloVersamento}, estratta
+	 * qui con il fallback passato come stringa invece che come l'intera entity
+	 * contenitrice, cosi' funziona sia per {@code VersamentoGpdEntity} (legacy)
+	 * sia per {@code PosizioneDebitoriaGpdEntity} (v3).
+	 */
+	public static String getCodDominioSingoloVersamento(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, String codDominioFallback) {
+		if (singoloVersamentoGdpEntity.getCodDominio() != null) {
+			return singoloVersamentoGdpEntity.getCodDominio();
+		}
+
+		return codDominioFallback;
+	}
+
 	public static String formattaCausaleRFS(String iuv) {
 		return iuv.replaceAll("(.{4})", "$1 ");
 	}

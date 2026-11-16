@@ -42,7 +42,6 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 	public static final String AGGIORNAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE = "Aggiornamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore {}.";
 	public static final String ANNULLAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ESITO = "Annullamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con esito [{}].";
 	public static final String ANNULLAMENTO_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE = "Annullamento Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore {}.";
-	public static final String LETTURA_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE = "Lettura Pendenza [IdA2A:{}, ID:{}] sul GPD completato con errore {}.";
 
 	private static final String ERROR_MSG_GPD_NON_RAGGIUNGIBILE = "GPD non raggiungibile: {0}";
 
@@ -172,7 +171,11 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 				return item;
 			}
 
-			return item;
+			// la creazione e' confermata (201), ma la verifica dello stato e' fallita: non
+			// si puo' escludere che la pendenza sia rimasta DRAFT e necessiti ancora di
+			// una publish, si ritenta al prossimo run (che la trovera' in conflitto, 409,
+			// e ripetera' la verifica).
+			return null;
 		}
 
 		// EC non autorizzato
@@ -321,6 +324,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 			logger.info(logMsg, item.getCodApplicazione(), item.getCodVersamentoEnte(), statusCode.value());
 			// in questo caso sto provando ad aggiornare una posizione che non esiste
 			// non devo piu' spedire il messaggio faccio in modo che venga escluso dal prossimo run del batch
+			this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, null);
 			return item;
 		}
 
@@ -328,6 +332,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 			logger.info(logMsg, item.getCodApplicazione(), item.getCodVersamentoEnte(), statusCode.value());
 			// in questo caso sto provando ad aggiornare una posizione gia' chiusa (pagata o meno)
 			// non devo piu' spedire il messaggio faccio in modo che venga escluso dal prossimo run del batch
+			this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, null);
 			return item;
 		}
 
@@ -345,6 +350,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 				logger.info(logMsg, item.getCodApplicazione(), item.getCodVersamentoEnte(), httpClientError.getStatusCode().value());
 				// in questo caso sto provando ad aggiornare una posizione gia' chiusa (pagata o meno)
 				// non devo piu' spedire il messaggio faccio in modo che venga escluso dal prossimo run del batch
+				this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
 				return item;
 			}
 
@@ -352,6 +358,7 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 				logger.info(logMsg, item.getCodApplicazione(), item.getCodVersamentoEnte(), httpClientError.getStatusCode().value());
 				// in questo caso sto provando ad aggiornare una posizione che non esiste
 				// non devo piu' spedire il messaggio faccio in modo che venga escluso dal prossimo run del batch
+				this.gdeService.salvaUpdatePositionKo(paymentPositionModel, xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
 				return item;
 			}
 		} else if (e instanceof HttpServerErrorException httpServerError) {
@@ -390,14 +397,6 @@ public class SendPendenzaToGpdProcessor implements ItemProcessor<VersamentoGpdEn
 		} catch (HttpClientErrorException | HttpServerErrorException e) {
 			this.logErrorResponse(e);
 			ex = e;
-			if (e instanceof HttpClientErrorException httpClientError && httpClientError.getStatusCode().value() == 404) {
-				logger.info(LETTURA_PENDENZA_ID_A2A_ID_SUL_GPD_COMPLETATO_CON_ERRORE, item.getCodApplicazione(), item.getCodVersamentoEnte(), httpClientError.getStatusCode().value());
-				// in questo caso sto provando ad aggiornare una posizione che non esiste
-				// non devo piu' spedire il messaggio faccio in modo che venga escluso dal prossimo run del batch
-				PaymentPositionModelBaseResponse positionModelBaseResponse = new PaymentPositionModelBaseResponse();
-				positionModelBaseResponse.setStatus(StatusEnum.EXPIRED);
-				return positionModelBaseResponse;
-			}
 		} catch (ResourceAccessException e) {
 			logger.error(MessageFormat.format(ERROR_MSG_GPD_NON_RAGGIUNGIBILE, e.getMessage()), e);
 			ex = e;

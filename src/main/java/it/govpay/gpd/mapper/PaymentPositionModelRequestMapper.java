@@ -301,10 +301,7 @@ public abstract class PaymentPositionModelRequestMapper {
 	}
 
 	public String getCodDominioSingoloVersamento(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, VersamentoGpdEntity versamentoGpdEntity) {
-		if(singoloVersamentoGdpEntity.getCodDominio() != null)
-			return singoloVersamentoGdpEntity.getCodDominio();
-
-		return versamentoGpdEntity.getCodDominio();
+		return Utils.getCodDominioSingoloVersamento(singoloVersamentoGdpEntity, versamentoGpdEntity.getCodDominio());
 	}
 
 	public String getRemittanceInformation(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity, String iuv) {
@@ -312,27 +309,7 @@ public abstract class PaymentPositionModelRequestMapper {
 	}
 
 	public String getCategory(SingoloVersamentoGpdEntity singoloVersamentoGdpEntity) {
-		String tipoContabilita = singoloVersamentoGdpEntity.getTipoContabilita();
-
-		if(tipoContabilita == null) {
-			if(singoloVersamentoGdpEntity.getTributoTipoContabilita() != null) {
-				tipoContabilita = singoloVersamentoGdpEntity.getTributoTipoContabilita(); 
-			} else {
-				tipoContabilita = singoloVersamentoGdpEntity.getTipoTributoTipoContabilita();
-			}
-		}
-
-		String codContabilita = singoloVersamentoGdpEntity.getCodContabilita();
-
-		if(codContabilita == null) {
-			if(singoloVersamentoGdpEntity.getTributoCodContabilita() != null) {
-				codContabilita = singoloVersamentoGdpEntity.getTributoCodContabilita(); 
-			} else {
-				codContabilita = singoloVersamentoGdpEntity.getTipoTributoCodContabilita();
-			}
-		}
-
-		return tipoContabilita + "/" + codContabilita;
+		return Utils.getCategory(singoloVersamentoGdpEntity);
 	}
 
 	public List<TransferMetadataModel> getTransferMetadata(String metadataString) throws IOException {

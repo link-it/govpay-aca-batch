@@ -1128,6 +1128,13 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
+			// la creazione e' confermata (201), ma la verifica dello stato remoto fallisce
+			// (404): non si puo' escludere che la pendenza sia rimasta DRAFT, si ritenta
+			// al prossimo run invece di marcare come comunicata.
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
 		} finally {
 			this.cleanDB();
 		}
@@ -1193,7 +1200,7 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 
 			Mockito.lenient()
 			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
-					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")), 
+					)).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(GpdUtils.getHeadersProblem("TransationID")),
 							objectMapper.writeValueAsBytes(GpdUtils.createProblem404()), Charset.defaultCharset()));
 
 			assertEquals(1, this.versamentoFullRepository.count());
@@ -1204,8 +1211,10 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
 
+			// la lettura di verifica fallisce (404): non si puo' confermare lo stato
+			// remoto, si ritenta al prossimo run invece di marcare come comunicata.
 			assertEquals(1, this.versamentoFullRepository.count());
-			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
 			assertEquals(1, this.versamentoRepository.count());
 
 		} finally {
@@ -1383,6 +1392,61 @@ class UC_2_AggiornamentiTest extends UC_00_BaseTest {
 			initailizeJobLauncherTestUtils();
 			jobExecution = jobLauncherTestUtils.launchJob();
 			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+		} finally {
+			this.cleanDB();
+		}
+	}
+
+	@Test
+	void TC_23_SendTest_Create_Conflict_GetDraft_Publish() throws Exception {
+		try {
+
+			this.creaVersamentoNonEseguito();
+
+			// caricamento presso GPD versamento gia' caricato, ma rimasto in DRAFT
+			Mockito.lenient()
+			.when(gpdApi.createPositionWithHttpInfo(any(), any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<ProblemJson>>() {
+						@Override
+						public ResponseEntity<ProblemJson> answer(InvocationOnMock invocation) throws Throwable {
+							return GpdUtils.creaResponseKo(invocation, HttpStatus.CONFLICT);
+						}
+					});
+
+			Mockito.lenient()
+			.when(gpdApi.getOrganizationDebtPositionByIUPDWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModelBaseResponse>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModelBaseResponse> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponseGetPositionOk(invocation, StatusEnum.DRAFT);
+						}
+					});
+
+			Mockito.lenient()
+			.when(gpdActionsApi.publishPositionWithHttpInfo(any(), any(), any()
+					)).thenAnswer(new Answer<ResponseEntity<PaymentPositionModel>>() {
+						@Override
+						public ResponseEntity<PaymentPositionModel> answer(InvocationOnMock invocation) throws Throwable {
+							return PaymentPositionModelUtils.creaResponsePublishPositionOk(invocation);
+						}
+					});
+
+			assertEquals(1, this.versamentoFullRepository.count());
+			assertEquals(1, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));
+			assertEquals(1, this.versamentoRepository.count());
+
+			initailizeJobLauncherTestUtils();
+			JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+			assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+			// la lettura di verifica confirma lo stato DRAFT: va completata la pubblicazione
+			// lasciata in sospeso dalla create, non solo marcata come comunicata.
+			Mockito.verify(gpdActionsApi).publishPositionWithHttpInfo(any(), any(), any());
 
 			assertEquals(1, this.versamentoFullRepository.count());
 			assertEquals(0, VersamentoUtils.countVersamentiDaSpedire(this.versamentoGpdRepository, this.numeroGiorni));

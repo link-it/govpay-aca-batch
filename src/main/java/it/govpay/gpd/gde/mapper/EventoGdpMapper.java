@@ -25,6 +25,7 @@ import it.govpay.gde.client.beans.NuovoEvento;
 import it.govpay.gde.client.beans.RuoloEvento;
 import it.govpay.gpd.client.beans.ProblemJson;
 import it.govpay.gpd.costanti.Costanti;
+import it.govpay.gpd.entity.PosizioneDebitoriaGpdEntity;
 import it.govpay.gpd.entity.VersamentoGpdEntity;
 
 @Mapper(componentModel = "spring")
@@ -36,9 +37,29 @@ public interface EventoGdpMapper {
 	@Mapping(target = "idPendenza", source = "versamentoGpdEntity.codVersamentoEnte")
 	NuovoEvento mapEventoBase(VersamentoGpdEntity versamentoGpdEntity);
 
+	/**
+	 * Evento a grana di posizione debitoria (modello v3), non di singola pendenza.
+	 * Nessun IUV unico a questa grana (una posizione puo' avere piu' opzioni,
+	 * ognuna con piu' rate): {@code idPendenza} porta {@code cod_documento}, stesso
+	 * riuso del campo gia' fatto sopra per {@code cod_versamento_ente} (identificativo
+	 * di business dell'entita' a cui l'evento si riferisce, qualunque essa sia).
+	 */
+	@Mapping(target = "idDominio", source = "posizioneDebitoriaGpdEntity.codDominio")
+	@Mapping(target = "idA2A", source = "posizioneDebitoriaGpdEntity.codApplicazione")
+	@Mapping(target = "idPendenza", source = "posizioneDebitoriaGpdEntity.codDocumento")
+	NuovoEvento mapEventoBase(PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity);
+
 	default NuovoEvento createEvento(VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd){
 		NuovoEvento nuovoEvento = mapEventoBase(versamentoGpdEntity);
+		return completaEvento(nuovoEvento, tipoEvento, transactionId, dataStart, dataEnd);
+	}
 
+	default NuovoEvento createEvento(PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd){
+		NuovoEvento nuovoEvento = mapEventoBase(posizioneDebitoriaGpdEntity);
+		return completaEvento(nuovoEvento, tipoEvento, transactionId, dataStart, dataEnd);
+	}
+
+	private NuovoEvento completaEvento(NuovoEvento nuovoEvento, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd){
 		nuovoEvento.setCategoriaEvento(CategoriaEvento.INTERFACCIA);
 		nuovoEvento.setClusterId(Costanti.GOVPAY_GDE_CLUSTER_ID);
 		nuovoEvento.setDataEvento(dataStart);
@@ -72,6 +93,21 @@ public interface EventoGdpMapper {
 	default NuovoEvento mapEventoKo(VersamentoGpdEntity versamentoGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd,
 			ResponseEntity<?> responseEntity, RestClientException restClientException){
 		NuovoEvento nuovoEvento = createEvento(versamentoGpdEntity, tipoEvento, transactionId, dataStart, dataEnd);
+		estraiInformazioniDaException(responseEntity, restClientException, nuovoEvento);
+
+		return nuovoEvento;
+	}
+
+	default NuovoEvento mapEventoOk(PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd){
+		NuovoEvento nuovoEvento = createEvento(posizioneDebitoriaGpdEntity, tipoEvento, transactionId, dataStart, dataEnd);
+		nuovoEvento.setEsito(EsitoEvento.OK);
+
+		return nuovoEvento;
+	}
+
+	default NuovoEvento mapEventoKo(PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity, String tipoEvento, String transactionId, OffsetDateTime dataStart, OffsetDateTime dataEnd,
+			ResponseEntity<?> responseEntity, RestClientException restClientException){
+		NuovoEvento nuovoEvento = createEvento(posizioneDebitoriaGpdEntity, tipoEvento, transactionId, dataStart, dataEnd);
 		estraiInformazioniDaException(responseEntity, restClientException, nuovoEvento);
 
 		return nuovoEvento;

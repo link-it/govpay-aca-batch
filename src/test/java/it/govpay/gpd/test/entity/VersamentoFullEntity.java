@@ -106,7 +106,15 @@ public class VersamentoFullEntity {
 	
 	@Column(name = "cod_rata")
 	private String codRata;
-	
+
+	// Valorizzata quando il versamento e' una rata di un'opzione del modello v3.
+	@Column(name = "id_opzione_pagamento")
+	private Long idOpzionePagamento;
+
+	@Builder.Default
+	@Column(name = "numero_rata", nullable = false)
+	private Integer numeroRata = -1;
+
 	@Column(name = "data_ultima_modifica_aca")
 	private OffsetDateTime dataUltimaModificaAca;
 
