@@ -128,6 +128,9 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 			if (item.getDataUltimaComunicazioneAca() == null) {
 				return this.createPosition(item);
 			}
+			if (item.getNumDebitoriRimossiDaComunicare() > 0) {
+				return this.updatePositionDopoRimozioneDebitore(item);
+			}
 			return this.updatePosition(item);
 		}
 
@@ -331,6 +334,26 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 
 		return updatePositionEngine(item, paymentPositionModel, dataStart, xRequestId,
 				AGGIORNAMENTO_POSIZIONE_SUL_GPD_COMPLETATO_CON_ESITO, true, true);
+	}
+
+	/**
+	 * Aggiornamento di una posizione da cui e' stato rimosso un debitore: la posizione resta
+	 * pubblicata per gli altri debitori, ma le opzioni del debitore rimosso devono sparire
+	 * dalla cache di pagoPA. Il GPD non dichiara se un PUT sostituisce o unisce le opzioni
+	 * e l'omissione non e' quindi una garanzia: si porta prima la posizione in DRAFT con
+	 * il payload completo (tutte le opzioni, rimosse comprese, come per l'annullamento) e
+	 * poi la si ripubblica con le sole opzioni disponibili.
+	 * <p>Il secondo passo e' l'ordinario {@link #updatePosition}: se fallisce, la posizione
+	 * non avanza {@code data_ultima_comunicazione_aca} e il run successivo ripete il ciclo.
+	 */
+	public PosizioneDebitoriaGpdEntity updatePositionDopoRimozioneDebitore(PosizioneDebitoriaGpdEntity item) {
+		logger.info("Posizione debitoria [IdA2A:{}, CodDocumento:{}] con debitori rimossi: ritiro dal GPD (DRAFT) e ripubblicazione con le sole opzioni disponibili.",
+				item.getCodApplicazione(), item.getCodDocumento());
+
+		if (this.cancelPosition(item) == null) {
+			return esito(Esito.RINVIATA, item);
+		}
+		return this.updatePosition(item);
 	}
 
 	public PosizioneDebitoriaGpdEntity cancelPosition(PosizioneDebitoriaGpdEntity item) {

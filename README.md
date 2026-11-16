@@ -431,16 +431,23 @@ Ogni chiamata al GPD produce un evento nel GDE con richiesta, risposta ed esito.
 
 Secondo step dello stesso job (`spedizionePosizioneDebitoriaStep`), per le posizioni
 debitorie create con il nuovo modello v3 di `govpay-common-pendenze` (tabelle
-`documenti`/`opzioni_pagamento`/`soggetti_debitori`, `versamenti` con
+`documenti`/`pd_debitori`/`debitori`/`opzioni_pagamento`, `versamenti` con
 `id_opzione_pagamento` valorizzato) — a differenza dello step legacy, che lavora a grana
 di singola pendenza, qui l'unità di invio è l'intera posizione (una `PaymentPositionModelV3`
 per documento, contratto GPD v3 `/debt-positions-service/v3`). Le due popolazioni sono
 disgiunte per costruzione (`v_versamenti_gpd` esclude le pendenze con
 `id_opzione_pagamento` valorizzato): nessuna pendenza viene mai spedita due volte.
 
+Una posizione può avere più debitori, ciascuno con le proprie opzioni di pagamento. Nel
+payload GPD il debitore è sull'opzione (`PaymentOptionModelV3.debtor`), quindi ogni opzione
+porta il proprio debitore (`v_opzioni_pagamento_gpd`). L'identificativo della posizione
+(IUPD) è unico per documento.
+
 - **Reader**: legge da `v_posizioni_debitorie_gpd` le posizioni con `data_ultima_modifica_aca`
-  negli ultimi `numeroGiorniPosizioni` giorni e successiva a `data_ultima_comunicazione_aca`
-  (o mai comunicate).
+  negli ultimi `numeroGiorniPosizioni` giorni, non successiva all'istante corrente, e
+  successiva a `data_ultima_comunicazione_aca` (o mai comunicate). Una posizione con data
+  di pubblicazione futura ha la data di ultima modifica posticipata a quel giorno: resta
+  quindi fuori finché la data non è raggiunta.
 - **Processor** (`SendPosizioneDebitoriaToGpdProcessor`): se la posizione ha almeno
   un'opzione `ATTIVATA`, nessun invio (GPD la rende immutabile tramite la ricevuta, qui si
   marca solo come comunicata); altrimenti, se c'è almeno un'opzione `DISPONIBILE`, carica
@@ -450,6 +457,15 @@ disgiunte per costruzione (`v_versamenti_gpd` esclude le pendenze con
   era mai stata). Una rata senza IUV blocca l'intera posizione; un'opzione con tutte le rate
   scadute, o con una data di scadenza anteriore alla propria validity date, viene esclusa
   dal payload.
+  - **Debitore rimosso**: se dopo l'ultima comunicazione è stato rimosso un debitore
+    (`pd_debitori.data_rimozione`) e restano opzioni `DISPONIBILE` per gli altri, la
+    posizione viene prima riportata in `DRAFT` con il payload completo (opzioni del
+    debitore rimosso comprese) e poi ripubblicata con le sole opzioni disponibili. Le
+    opzioni di un debitore rimosso non hanno uno stato scrivibile nel contratto GPD v3 e il
+    contratto non dichiara se un `PUT` sostituisce o unisce le opzioni: omettere le opzioni
+    non è quindi una garanzia che spariscano dalla cache di pagoPA. Se la ripubblicazione
+    fallisce, la posizione non viene marcata come comunicata e il ciclo si ripete
+    all'esecuzione successiva; nel frattempo la posizione non è pagabile.
 - **Writer** (`PosizioneDebitoriaGpdWriter`): imposta `data_ultima_comunicazione_aca` su
   `documenti` e su **tutte** le `versamenti` (rate) della posizione con il valore di
   `data_ultima_modifica_aca` letto dal reader (non l'istante di scrittura): una modifica
@@ -459,6 +475,20 @@ disgiunte per costruzione (`v_versamenti_gpd` esclude le pendenze con
 Entrambi gli step si possono disattivare singolarmente con
 `it.govpay.gpd.batch.jobs.gpdSenderJob.steps.spedizionePendenzaStep.enabled` e
 `...spedizionePosizioneDebitoriaStep.enabled` (default `true`).
+
+#### Migrazione dei dati dal modello v2
+
+Dopo la migrazione le pendenze v2 già comunicate a GPD con lo step legacy rientrano nel
+modello v3 e verrebbero comunicate come posizioni nuove, con un IUPD diverso. Per evitare
+posizioni duplicate su GPD, prima della migrazione si esegue il batch un'ultima volta a
+servizi spenti, in modo che tutto ciò che è da comunicare sia già allineato, e solo dopo si
+migra.
+
+#### Limiti noti
+
+- Le spese di notifica SEND non sono rappresentate nel payload: un avviso presente nella
+  cache di pagoPA alimentata da ACA può essere pagato senza che le spese di notifica SEND
+  siano caricate.
 
 ## Licenza
 

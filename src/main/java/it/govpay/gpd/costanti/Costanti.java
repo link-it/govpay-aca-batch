@@ -79,6 +79,7 @@ public class Costanti {
 	// dei conteggi delle opzioni, gia' nella vista (num_opzioni_disponibili/attivate/annullate).
 	public static final String QUERY_RICERCA_POSIZIONI_DEBITORIE_DA_CARICARE_ACA = "SELECT * FROM v_posizioni_debitorie_gpd " +
             "WHERE data_ultima_modifica_aca >= ? " +
+            "AND data_ultima_modifica_aca <= ? " +
             "AND (data_ultima_modifica_aca > data_ultima_comunicazione_aca OR data_ultima_comunicazione_aca IS NULL) " +
             "ORDER BY data_ultima_modifica_aca ASC";
 }

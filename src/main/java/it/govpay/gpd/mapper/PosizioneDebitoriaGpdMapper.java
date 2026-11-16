@@ -196,7 +196,7 @@ public abstract class PosizioneDebitoriaGpdMapper {
 		// con la propria data_scadenza) non ha bisogno di nessun caso speciale.
 		paymentOption.setSwitchToExpired(opzione.getDataScadenza() != null);
 
-		paymentOption.setDebtor(mapDebtor(posizione));
+		paymentOption.setDebtor(mapDebtor(opzione));
 
 		boolean pianoRateale = opzione.getTipologia() == TipologiaOpzionePagamento.PIANO_RATEALE;
 
@@ -209,21 +209,21 @@ public abstract class PosizioneDebitoriaGpdMapper {
 		return paymentOption;
 	}
 
-	/** GPD v3 ammette un solo debitore per opzione: soggetto di ordine 0. */
-	public DebtorModel mapDebtor(PosizioneDebitoriaGpdEntity posizione) {
+	/** Il debitore e' quello dell'opzione: una posizione puo' averne piu' d'uno. */
+	public DebtorModel mapDebtor(OpzionePagamentoGpdEntity opzione) {
 		DebtorModel debtor = new DebtorModel();
-		if (posizione.getDebitoreTipo() != null) {
-			debtor.setType(DebtorModel.TypeEnum.valueOf(posizione.getDebitoreTipo().name()));
+		if (opzione.getDebitoreTipo() != null) {
+			debtor.setType(DebtorModel.TypeEnum.valueOf(opzione.getDebitoreTipo().name()));
 		}
-		debtor.setFiscalCode(posizione.getDebitoreIdentificativo());
-		debtor.setFullName(posizione.getDebitoreAnagrafica());
-		debtor.setStreetName(posizione.getDebitoreIndirizzo());
-		debtor.setCivicNumber(posizione.getDebitoreCivico());
-		debtor.setPostalCode(posizione.getDebitoreCap());
-		debtor.setCity(posizione.getDebitoreLocalita());
-		debtor.setProvince(posizione.getDebitoreProvincia());
-		debtor.setCountry(posizione.getDebitoreNazione());
-		debtor.setEmail(posizione.getDebitoreEmail());
+		debtor.setFiscalCode(opzione.getDebitoreIdentificativo());
+		debtor.setFullName(opzione.getDebitoreAnagrafica());
+		debtor.setStreetName(opzione.getDebitoreIndirizzo());
+		debtor.setCivicNumber(opzione.getDebitoreCivico());
+		debtor.setPostalCode(opzione.getDebitoreCap());
+		debtor.setCity(opzione.getDebitoreLocalita());
+		debtor.setProvince(opzione.getDebitoreProvincia());
+		debtor.setCountry(opzione.getDebitoreNazione());
+		debtor.setEmail(opzione.getDebitoreEmail());
 		return debtor;
 	}
 

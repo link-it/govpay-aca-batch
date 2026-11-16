@@ -33,11 +33,7 @@ SELECT versamenti.id,
 	JOIN domini ON versamenti.id_dominio = domini.id 
 	JOIN applicazioni ON versamenti.id_applicazione = applicazioni.id
 	LEFT JOIN uo ON versamenti.id_uo = uo.id
-    WHERE versamenti.id_opzione_pagamento IS NULL
-       OR EXISTS (SELECT 1 FROM opzioni_pagamento op
-                   JOIN documenti d ON d.id = op.id_documento
-                  WHERE op.id = versamenti.id_opzione_pagamento
-                    AND d.aca_legacy = true);
+    WHERE versamenti.id_opzione_pagamento IS NULL;
     
     
 CREATE VIEW v_sng_versamenti_gpd AS
@@ -81,8 +77,9 @@ FROM
     
 
 -- Posizione debitoria (documenti) gestita col modello v3 di govpay-common-pendenze:
--- una riga per posizione. Debitore = soggetto di ordine 0 (GPD v3 ammette un solo
--- debitore per opzione).
+-- una riga per posizione. Il debitore non e' sulla posizione ma su ogni opzione
+-- (v_opzioni_pagamento_gpd): una posizione ha uno o piu' debitori, ciascuno con le
+-- proprie opzioni.
 CREATE VIEW v_posizioni_debitorie_gpd AS
 SELECT documenti.id,
     documenti.cod_documento,
@@ -93,47 +90,49 @@ SELECT documenti.id,
     domini.ragione_sociale AS ragione_sociale_dominio,
     uo.cod_uo AS cod_uo,
     uo.uo_denominazione AS uo_denominazione,
-    sd.tipo AS debitore_tipo,
-    sd.identificativo AS debitore_identificativo,
-    sd.anagrafica AS debitore_anagrafica,
-    sd.indirizzo AS debitore_indirizzo,
-    sd.civico AS debitore_civico,
-    sd.cap AS debitore_cap,
-    sd.localita AS debitore_localita,
-    sd.provincia AS debitore_provincia,
-    sd.nazione AS debitore_nazione,
-    sd.email AS debitore_email,
-    (SELECT COUNT(*) FROM opzioni_pagamento op WHERE op.id_documento = documenti.id AND op.stato = 'DISPONIBILE') AS num_opzioni_disponibili,
-    (SELECT COUNT(*) FROM opzioni_pagamento op WHERE op.id_documento = documenti.id AND op.stato = 'ATTIVATA') AS num_opzioni_attivate,
-    (SELECT COUNT(*) FROM opzioni_pagamento op WHERE op.id_documento = documenti.id AND op.stato = 'ANNULLATA') AS num_opzioni_annullate,
+    (SELECT COUNT(*) FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id AND op.stato = 'DISPONIBILE') AS num_opzioni_disponibili,
+    (SELECT COUNT(*) FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id AND op.stato = 'ATTIVATA') AS num_opzioni_attivate,
+    (SELECT COUNT(*) FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id AND op.stato = 'ANNULLATA') AS num_opzioni_annullate,
+    (SELECT COUNT(*) FROM pd_debitori pdd WHERE pdd.id_documento = documenti.id AND pdd.data_rimozione IS NOT NULL AND documenti.data_ultima_comunicazione_aca IS NOT NULL AND pdd.data_rimozione > documenti.data_ultima_comunicazione_aca) AS num_debitori_rimossi_da_comunicare,
     documenti.data_ultima_modifica_aca,
     documenti.data_ultima_comunicazione_aca
     FROM documenti
 	JOIN domini ON documenti.id_dominio = domini.id
 	JOIN applicazioni ON documenti.id_applicazione = applicazioni.id
 	LEFT JOIN uo ON documenti.id_unita_operativa = uo.id
-	LEFT JOIN soggetti_debitori sd ON sd.id_documento = documenti.id AND sd.ordine = 0
-    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op WHERE op.id_documento = documenti.id)
-      AND documenti.aca_legacy = false;
+    WHERE EXISTS (SELECT 1 FROM opzioni_pagamento op JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id WHERE pdd.id_documento = documenti.id);
 
 
 -- Opzioni di pagamento (PaymentOptionModelV3)
 CREATE VIEW v_opzioni_pagamento_gpd AS
 SELECT op.id,
-    op.id_documento,
+    pdd.id_documento,
+    op.id_pd_debitore,
     op.tipologia,
     op.giorni,
     op.stato,
     op.data_inizio_validita,
-    op.data_scadenza
-    FROM opzioni_pagamento op;
+    op.data_scadenza,
+    d.tipo AS debitore_tipo,
+    d.identificativo AS debitore_identificativo,
+    d.anagrafica AS debitore_anagrafica,
+    d.indirizzo AS debitore_indirizzo,
+    d.civico AS debitore_civico,
+    d.cap AS debitore_cap,
+    d.localita AS debitore_localita,
+    d.provincia AS debitore_provincia,
+    d.nazione AS debitore_nazione,
+    d.email AS debitore_email
+    FROM opzioni_pagamento op
+	JOIN pd_debitori pdd ON op.id_pd_debitore = pdd.id
+	JOIN debitori d ON pdd.id_debitore = d.id;
 
 
 -- Pendenze come rate dell'opzione (InstallmentModel)
 CREATE VIEW v_pendenze_gpd AS
 SELECT versamenti.id,
     versamenti.id_opzione_pagamento,
-    opzioni_pagamento.id_documento,
+    pd_debitori.id_documento,
     versamenti.cod_versamento_ente,
     versamenti.numero_rata,
     versamenti.importo_totale,
@@ -146,7 +145,8 @@ SELECT versamenti.id,
     versamenti.data_ultima_modifica_aca,
     versamenti.data_ultima_comunicazione_aca
     FROM versamenti
-	JOIN opzioni_pagamento ON versamenti.id_opzione_pagamento = opzioni_pagamento.id;
+	JOIN opzioni_pagamento ON versamenti.id_opzione_pagamento = opzioni_pagamento.id
+	JOIN pd_debitori ON opzioni_pagamento.id_pd_debitore = pd_debitori.id;
 
 -- Indice per la query di selezione del batch
 CREATE INDEX idx_doc_data_modifica_aca ON documenti (data_ultima_modifica_aca);

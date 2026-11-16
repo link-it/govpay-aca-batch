@@ -31,8 +31,8 @@ public class OpzionePagamentoFullEntity {
 	@Id
 	private Long id;
 
-	@Column(name = "id_documento", nullable = false)
-	private long idDocumento;
+	@Column(name = "id_pd_debitore", nullable = false)
+	private long idPdDebitore;
 
 	@Column(name = "tipologia", nullable = false)
 	@Enumerated(EnumType.STRING)

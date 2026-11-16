@@ -9,13 +9,15 @@ import it.govpay.gpd.test.costanti.Costanti;
 import it.govpay.gpd.test.entity.ApplicazioneEntity;
 import it.govpay.gpd.test.entity.DocumentoFullEntity;
 import it.govpay.gpd.test.entity.OpzionePagamentoFullEntity;
-import it.govpay.gpd.test.entity.SoggettoDebitoreFullEntity;
+import it.govpay.gpd.test.entity.PdDebitoreFullEntity;
+import it.govpay.gpd.test.entity.DebitoreFullEntity;
 import it.govpay.gpd.test.entity.VersamentoFullEntity;
 import it.govpay.gpd.test.repository.ApplicazioneRepository;
 import it.govpay.gpd.test.repository.DocumentoFullRepository;
 import it.govpay.gpd.test.repository.DominioRepository;
 import it.govpay.gpd.test.repository.OpzionePagamentoFullRepository;
-import it.govpay.gpd.test.repository.SoggettoDebitoreFullRepository;
+import it.govpay.gpd.test.repository.DebitoreFullRepository;
+import it.govpay.gpd.test.repository.PdDebitoreFullRepository;
 import it.govpay.gpd.test.repository.VersamentoFullRepository;
 import it.govpay.pendenze.model.StatoOpzionePagamento;
 import it.govpay.pendenze.model.TipoSoggetto;
@@ -53,28 +55,45 @@ public class PosizioneDebitoriaUtils {
 		return documentoFullRepository.save(documento);
 	}
 
-	public static SoggettoDebitoreFullEntity creaSoggettoDebitoreOrdineZero(SoggettoDebitoreFullRepository soggettoDebitoreFullRepository, Long idDocumento) {
-		SoggettoDebitoreFullEntity ultimo = soggettoDebitoreFullRepository.findFirstByOrderByIdDesc();
-		Long id = ultimo != null ? ultimo.getId() + 1 : 1L;
-		SoggettoDebitoreFullEntity soggetto = SoggettoDebitoreFullEntity.builder()
-				.id(id)
-				.idDocumento(idDocumento)
-				.ordine(0)
+	/** Primo debitore della posizione, con i dati di prova standard. */
+	public static PdDebitoreFullEntity creaDebitore(DebitoreFullRepository debitoreFullRepository,
+			PdDebitoreFullRepository pdDebitoreFullRepository, Long idDocumento) {
+		return creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, idDocumento, 0,
+				Costanti.DEBITORE_CF, Costanti.DEBITORE_ANAGRAFICA);
+	}
+
+	/**
+	 * Un debitore della posizione: una riga in {@code debitori} (anagrafica) e una in
+	 * {@code pd_debitori} (legame con la posizione, in ordine di {@code posizione}).
+	 */
+	public static PdDebitoreFullEntity creaDebitore(DebitoreFullRepository debitoreFullRepository,
+			PdDebitoreFullRepository pdDebitoreFullRepository, Long idDocumento, int posizione,
+			String identificativo, String anagrafica) {
+		DebitoreFullEntity ultimoDebitore = debitoreFullRepository.findFirstByOrderByIdDesc();
+		DebitoreFullEntity debitore = debitoreFullRepository.save(DebitoreFullEntity.builder()
+				.id(ultimoDebitore != null ? ultimoDebitore.getId() + 1 : 1L)
 				.tipo(TipoSoggetto.F)
-				.identificativo(Costanti.DEBITORE_CF)
-				.anagrafica(Costanti.DEBITORE_ANAGRAFICA)
-				.build();
-		return soggettoDebitoreFullRepository.save(soggetto);
+				.identificativo(identificativo)
+				.anagrafica(anagrafica)
+				.build());
+
+		PdDebitoreFullEntity ultimoPdDebitore = pdDebitoreFullRepository.findFirstByOrderByIdDesc();
+		return pdDebitoreFullRepository.save(PdDebitoreFullEntity.builder()
+				.id(ultimoPdDebitore != null ? ultimoPdDebitore.getId() + 1 : 1L)
+				.idDocumento(idDocumento)
+				.idDebitore(debitore.getId())
+				.posizione(posizione)
+				.build());
 	}
 
 	public static OpzionePagamentoFullEntity creaOpzione(OpzionePagamentoFullRepository opzionePagamentoFullRepository,
-			Long idDocumento, TipologiaOpzionePagamento tipologia, StatoOpzionePagamento stato) {
+			Long idPdDebitore, TipologiaOpzionePagamento tipologia, StatoOpzionePagamento stato) {
 		OffsetDateTime now = OffsetDateTime.now();
 		OpzionePagamentoFullEntity ultimo = opzionePagamentoFullRepository.findFirstByOrderByIdDesc();
 		Long id = ultimo != null ? ultimo.getId() + 1 : 1L;
 		OpzionePagamentoFullEntity opzione = OpzionePagamentoFullEntity.builder()
 				.id(id)
-				.idDocumento(idDocumento)
+				.idPdDebitore(idPdDebitore)
 				.tipologia(tipologia)
 				.stato(stato)
 				.dataCreazione(now)

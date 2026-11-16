@@ -226,6 +226,8 @@ public class PendenzeGpdSenderJobConfig {
 				Date dateLimit = new Date(cal.getTimeInMillis());
 				logger.debug("Verranno ricercate le posizioni debitorie a partire dal: {}", sdf.format(dateLimit));
 				ps.setDate(1, dateLimit);
+				// posizioni non ancora pubblicate escluse fino alla data di pubblicazione
+				ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
 			}
 		});
 

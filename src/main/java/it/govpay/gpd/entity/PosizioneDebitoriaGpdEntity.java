@@ -5,11 +5,8 @@ import java.time.OffsetDateTime;
 
 import org.hibernate.annotations.Immutable;
 
-import it.govpay.pendenze.model.TipoSoggetto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -18,9 +15,8 @@ import lombok.Setter;
 
 /**
  * Posizione debitoria (modello v3 di govpay-common-pendenze, tabella {@code documenti}),
- * vista {@code v_posizioni_debitorie_gpd}. Debitore = soggetto di ordine 0 (GPD v3
- * ammette un solo debitore per opzione), quindi i campi {@code debitore*} sono
- * nullable: la vista li popola con una LEFT JOIN.
+ * vista {@code v_posizioni_debitorie_gpd}: una riga per posizione. Il debitore non e' sulla
+ * posizione ma su ogni opzione ({@link OpzionePagamentoGpdEntity}).
  */
 @Setter
 @Getter
@@ -57,37 +53,6 @@ public class PosizioneDebitoriaGpdEntity {
 	@Column(name = "uo_denominazione")
 	private String uoDenominazione;
 
-	@Column(name = "debitore_tipo")
-	@Enumerated(EnumType.STRING)
-	private TipoSoggetto debitoreTipo;
-
-	@Column(name = "debitore_identificativo")
-	private String debitoreIdentificativo;
-
-	@Column(name = "debitore_anagrafica")
-	private String debitoreAnagrafica;
-
-	@Column(name = "debitore_indirizzo")
-	private String debitoreIndirizzo;
-
-	@Column(name = "debitore_civico")
-	private String debitoreCivico;
-
-	@Column(name = "debitore_cap")
-	private String debitoreCap;
-
-	@Column(name = "debitore_localita")
-	private String debitoreLocalita;
-
-	@Column(name = "debitore_provincia")
-	private String debitoreProvincia;
-
-	@Column(name = "debitore_nazione")
-	private String debitoreNazione;
-
-	@Column(name = "debitore_email")
-	private String debitoreEmail;
-
 	@Column(name = "num_opzioni_disponibili", nullable = false)
 	private Long numOpzioniDisponibili;
 
@@ -96,6 +61,11 @@ public class PosizioneDebitoriaGpdEntity {
 
 	@Column(name = "num_opzioni_annullate", nullable = false)
 	private Long numOpzioniAnnullate;
+
+	// Debitori rimossi (pd_debitori.data_rimozione) dopo l'ultima comunicazione a GPD: la
+	// posizione e' gia' nota a GPD con le loro opzioni, che vanno fatte sparire.
+	@Column(name = "num_debitori_rimossi_da_comunicare", nullable = false)
+	private Long numDebitoriRimossiDaComunicare;
 
 	@Column(name = "data_ultima_modifica_aca")
 	private OffsetDateTime dataUltimaModificaAca;

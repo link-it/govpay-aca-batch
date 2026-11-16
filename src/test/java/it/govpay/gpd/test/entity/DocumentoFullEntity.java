@@ -59,17 +59,9 @@ public class DocumentoFullEntity {
 	@Column(name = "versione", nullable = false)
 	private Long versione = 0L;
 
-	@Builder.Default
-	@Column(name = "notifica_send", nullable = false)
-	private Boolean notificaSend = false;
-
 	@Column(name = "data_ultima_modifica_aca")
 	private OffsetDateTime dataUltimaModificaAca;
 
 	@Column(name = "data_ultima_comunicazione_aca")
 	private OffsetDateTime dataUltimaComunicazioneAca;
-
-	@Builder.Default
-	@Column(name = "aca_legacy", nullable = false)
-	private Boolean acaLegacy = false;
 }

@@ -14,24 +14,18 @@ import lombok.Setter;
 
 import it.govpay.pendenze.model.TipoSoggetto;
 
-/** Fixture scrivibile su {@code soggetti_debitori} (modello v3). */
+/** Fixture scrivibile su {@code debitori} (modello v3): anagrafica di un debitore. */
 @Setter
 @Getter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "soggetti_debitori")
-public class SoggettoDebitoreFullEntity {
+@Table(name = "debitori")
+public class DebitoreFullEntity {
 
 	@Id
 	private Long id;
-
-	@Column(name = "id_documento", nullable = false)
-	private long idDocumento;
-
-	@Column(name = "ordine", nullable = false)
-	private Integer ordine;
 
 	@Column(name = "tipo", nullable = false)
 	@Enumerated(EnumType.STRING)
