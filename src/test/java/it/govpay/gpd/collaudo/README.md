@@ -4,6 +4,37 @@ Programma da lanciare a mano che esegue su GPD del collaudo un catalogo di casi 
 
 Non fa parte della suite dei test né del jar applicativo. Non usa Spring né il database.
 
+## Prerequisiti
+
+- Java 21 e Maven 3.9, con accesso al repository delle dipendenze. Non servono database né Spring.
+- Un accesso al collaudo pagoPA con la **chiave di abbonamento del prodotto GPD** (la chiave di un altro prodotto, per esempio ACA, dà 401), un ente creditore configurato e l'IBAN di accredito dei suoi trasferimenti.
+- Il codice di segregazione a due cifre dell'ente: se non coincide con quello degli IUV generati, il GPD risponde 403 con un messaggio sugli IUV. Il valore predefinito è `01` e si cambia con `GPD_COLLAUDO_SEGREGAZIONE`.
+
+## Avvio rapido
+
+1. Compilare (vedi *Esecuzione*).
+2. Copiare [gpd-collaudo.env.example](gpd-collaudo.env.example) fuori dal repository, per esempio in `~/gpd-collaudo.env`, compilarlo, proteggerlo con `chmod 600` e caricarlo:
+
+   ```bash
+   source ~/gpd-collaudo.env
+   ```
+
+3. Elencare i casi senza eseguire nulla:
+
+   ```bash
+   java -cp target/test-classes:target/classes:$(cat target/cp.txt) it.govpay.gpd.collaudo.CollaudoGpd --elenca
+   ```
+
+4. Eseguire un solo caso, per controllare la configurazione:
+
+   ```bash
+   java -cp target/test-classes:target/classes:$(cat target/cp.txt) it.govpay.gpd.collaudo.CollaudoGpd --caso=PUT_07_VALID_A_DRAFT
+   ```
+
+5. Eseguire tutto il catalogo con il comando senza opzioni (vedi *Esecuzione*). Al termine il programma scrive la cartella delle registrazioni (vedi *Registrazioni*).
+
+Il programma scrive sul collaudo: crea posizioni debitorie con IUPD che iniziano per `GVPTEST`, le modifica e le cancella. Cancella soltanto quelle create nella stessa esecuzione (vedi *Pulizia*). Il collaudo accetta al massimo 450 chiamate al minuto: con `GPD_COLLAUDO_PAUSA_MILLISECONDI` si può rallentare l'esecuzione.
+
 ## Esecuzione
 
 ```bash
@@ -203,6 +234,38 @@ Il file di un caso contiene: identificativo e versione del caso, gruppo, descriz
 Il riepilogo contiene: identificativo dell'esecuzione, versione del catalogo, revisione del codice (`n/d` se non disponibile, con indicazione di modifiche locali non committate), istanti, configurazione non sensibile, conteggio degli esiti, esito di ogni caso, corrispondenza tra nomi logici e identificativi reali, posizioni eliminate, residue e con esito incerto.
 
 Le registrazioni conservano i valori originali; i nomi logici permettono di confrontare esecuzioni che usano identificativi e date diversi.
+
+### Recuperare richieste e risposte
+
+Ogni file di caso contiene tutte le chiamate fatte, con richiesta e risposta. Con [jq](https://jqlang.github.io/jq/), dalla cartella di una esecuzione:
+
+Elenco dei passi di un caso, senza la pulizia:
+
+```bash
+jq -r '.passi[] | select(.fase != "pulizia") | "\(.passo) \(.fase) \(.metodo) \(.stato)"' PUT_07_VALID_A_DRAFT.json
+```
+
+Richiesta e risposta di un singolo passo (per numero):
+
+```bash
+jq '.passi[] | select(.passo == 3) | {url, richiesta, stato, risposta}' PUT_07_VALID_A_DRAFT.json
+```
+
+Solo le chiamate oggetto del caso, con stato HTTP:
+
+```bash
+jq -r '.passi[] | select(.fase == "prova") | "\(.metodo) \(.url) -> \(.stato)"' DATE_02_VALIDITY_PASSATA.json
+```
+
+Esito di tutti i casi di una esecuzione:
+
+```bash
+jq -r '.casi[] | "\(.caso) \(.esito)"' riepilogo.json
+```
+
+Le fasi `preparazione` descrivono le precondizioni da riprodurre, `prova` l'operazione sotto osservazione e `verifica` la lettura del risultato (vedi *Fasi di ogni caso*). Il corpo di una risposta non JSON è conservato come testo.
+
+Le registrazioni contengono i valori reali dell'esecuzione: codice fiscale dell'ente, IBAN, IUPD, IUV e NAV, identificativi di richiesta (`x-request-id`, `request-context`) e date assolute. Prima di condividerle, per esempio per alimentare un simulatore, vanno sostituiti con segnaposto; le date vanno espresse in rapporto all'istante della chiamata (campo `ora` del passo), perché i valori assoluti non hanno significato in un'altra esecuzione.
 
 ## Pulizia
 
