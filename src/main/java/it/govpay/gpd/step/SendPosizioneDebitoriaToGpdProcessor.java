@@ -363,7 +363,9 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 	 * Porta la posizione in DRAFT sul GPD con il payload completo. Restituisce l'esito del
 	 * ritiro, non la decisione di avanzare la marcatura: {@code INVIATA} se il GPD ha accettato
 	 * la richiesta, {@code NESSUN_INVIO_NECESSARIO} se la posizione non esiste sul GPD (404),
-	 * {@code RINVIATA} per qualunque altro caso, compresi i dati non leggibili.
+	 * {@code RINVIATA} per qualunque altro caso, compresi i dati non leggibili. Se tutte le
+	 * rate sono scadute il payload non ha opzioni e il ritiro e' una eliminazione, vedi
+	 * {@link #eliminaPosizione}.
 	 */
 	private Esito ritiraPosizione(PosizioneDebitoriaGpdEntity item) {
 		OffsetDateTime dataStart = OffsetDateTime.now();
@@ -378,6 +380,10 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 			HttpServerErrorException e1 = new HttpServerErrorException(HttpStatusCode.valueOf(502), "Errore nella deserializzazione dei metadata", new byte[0], Charset.defaultCharset());
 			this.gdeService.salvaUpdatePositionKo(null, xRequestId, dataStart, OffsetDateTime.now(), item, null, e1, false);
 			return Esito.RINVIATA;
+		}
+
+		if (paymentPositionModel.getPaymentOption().isEmpty()) {
+			return this.eliminaPosizione(item);
 		}
 
 		ResponseEntity<PaymentPositionModelV3> responseEntity = null;
@@ -427,8 +433,54 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 			return esito(Esito.SCARTATA_DEFINITIVAMENTE, item);
 		}
 
+		if (paymentPositionModel.getPaymentOption().isEmpty()) {
+			return esito(this.eliminaPosizione(item), item);
+		}
+
 		return updatePositionEngine(item, paymentPositionModel, dataStart, xRequestId,
 				ANNULLAMENTO_POSIZIONE_SUL_GPD_COMPLETATO_CON_ESITO, false, false);
+	}
+
+	/**
+	 * Ritiro di una posizione le cui opzioni sono tutte escluse dal payload (rate scadute):
+	 * il GPD non accetta un PUT senza opzioni e la scadenza non prova che la posizione sia
+	 * stata ritirata, quindi la si elimina con una DELETE. {@code INVIATA} se il GPD l'ha
+	 * eliminata, {@code NESSUN_INVIO_NECESSARIO} se non esiste (404), {@code RINVIATA} per
+	 * qualunque altro caso (409 compreso): la marcatura non avanza e il run successivo ripete.
+	 */
+	private Esito eliminaPosizione(PosizioneDebitoriaGpdEntity item) {
+		logger.info("Posizione debitoria [IdA2A:{}, CodDocumento:{}] senza opzioni inviabili (rate scadute): eliminazione dal GPD.",
+				item.getCodApplicazione(), item.getCodDocumento());
+
+		OffsetDateTime dataStart = OffsetDateTime.now();
+		String xRequestId = Utils.creaXRequestId();
+		ResponseEntity<String> responseEntity = null;
+		try {
+			responseEntity = this.gpdApiService.getGpdApiV3(item.getCodDominio()).deletePositionWithHttpInfo(
+					item.getCodDominio(), Utils.generaIupdPosizione(item), xRequestId);
+			logger.info("Eliminazione Posizione debitoria [IdA2A:{}, CodDocumento:{}] dal GPD completata con esito [{}].",
+					item.getCodApplicazione(), item.getCodDocumento(), responseEntity.getStatusCode().value());
+
+			if (responseEntity.getStatusCode().value() == 200) {
+				this.gdeService.salvaDeletePositionOk(xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity);
+				return Esito.INVIATA;
+			}
+
+			this.gdeService.salvaDeletePositionKo(xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, null);
+			return Esito.RINVIATA;
+		} catch (HttpClientErrorException e) {
+			this.logErrorResponse(e);
+			this.gdeService.salvaDeletePositionKo(xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
+			return e.getStatusCode().value() == 404 ? Esito.NESSUN_INVIO_NECESSARIO : Esito.RINVIATA;
+		} catch (HttpServerErrorException e) {
+			this.logErrorResponse(e);
+			this.gdeService.salvaDeletePositionKo(xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
+			return Esito.RINVIATA;
+		} catch (ResourceAccessException e) {
+			logger.error(MessageFormat.format(ERROR_MSG_GPD_NON_RAGGIUNGIBILE, e.getMessage()), e);
+			this.gdeService.salvaDeletePositionKo(xRequestId, dataStart, OffsetDateTime.now(), item, responseEntity, e);
+			return Esito.RINVIATA;
+		}
 	}
 
 	private PosizioneDebitoriaGpdEntity updatePositionEngine(PosizioneDebitoriaGpdEntity item, PaymentPositionModelV3 paymentPositionModel,

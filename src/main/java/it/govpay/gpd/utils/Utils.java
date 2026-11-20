@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -164,6 +165,37 @@ public class Utils {
 			return LocalDateTime.parse("2999-12-31T23:59:59.999"); //31.12.2999
 		}
 		return estendiDueDate(toReturn);
+	}
+
+	/** Tronca il testo a {@code max} caratteri; {@code null} diventa stringa vuota. */
+	public static String tronca(String testo, int max) {
+		if (testo == null) {
+			return "";
+		}
+		return testo.length() > max ? testo.substring(0, max) : testo;
+	}
+
+	/** {@code true} se la data e' successiva all'istante corrente. */
+	public static boolean isFutura(LocalDateTime data) {
+		return data != null && data.isAfter(LocalDateTime.now());
+	}
+
+	/**
+	 * {@code retentionDate} di un'opzione (modello v3): la piu' tarda tra le due date
+	 * esplicite delle sue rate, {@code null} se nessuna rata ha una scadenza esplicita.
+	 */
+	public static LocalDateTime calcolaRetentionDateOpzione(List<PendenzaGpdEntity> rate, OpzionePagamentoGpdEntity opzione) {
+		LocalDateTime retention = null;
+		for (PendenzaGpdEntity rata : rate) {
+			if (rata.getDataScadenza() == null && opzione.getDataScadenza() == null) {
+				continue;
+			}
+			LocalDateTime dueDate = calcolaDueDateRata(rata, opzione);
+			if (retention == null || dueDate.isAfter(retention)) {
+				retention = dueDate;
+			}
+		}
+		return retention;
 	}
 
 	/**
