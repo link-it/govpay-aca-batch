@@ -94,9 +94,8 @@ public abstract class PosizioneDebitoriaGpdMapper {
 	 * del caricamento/aggiornamento, qui non ci sono opzioni DISPONIBILE da
 	 * spedire (si arriva a questo metodo solo quando sono tutte ANNULLATA) - il contratto
 	 * GPD v3 richiede comunque {@code paymentOption} non vuoto ({@code minItems: 1}),
-	 * quindi si rimappano TUTTE le opzioni della posizione, senza i filtri di
-	 * scadenza/validita' (qui non servono: la richiesta e' un puro cambio di stato verso
-	 * DRAFT, non una pubblicazione).
+	 * quindi si rimappano tutte le opzioni della posizione, a prescindere dal loro stato,
+	 * escludendo le rate scadute e le opzioni rimaste senza rate.
 	 */
 	@Mapping(target = PaymentPositionModelV3.JSON_PROPERTY_IUPD, source = "posizioneDebitoriaGpdEntity", qualifiedByName = "mapIupd")
 	@Mapping(target = PaymentPositionModelV3.JSON_PROPERTY_PAY_STAND_IN, source = "standIn")
@@ -136,7 +135,8 @@ public abstract class PosizioneDebitoriaGpdMapper {
 	 * Una {@code PaymentOptionModelV3} per ogni opzione {@link StatoOpzionePagamento#DISPONIBILE}
 	 * della posizione — le altre (ATTIVATA/ANNULLATA) non vengono mai spedite nel payload.
 	 * Esclude le opzioni con tutte le rate scadute, o con una rata la cui due date precede
-	 * la validity date dell'opzione (controlli pre-invio): un'eventuale mancanza di IUV,
+	 * la validity date dell'opzione (controlli pre-invio); le rate scadute non vengono
+	 * inviate. Un'eventuale mancanza di IUV,
 	 * che invece blocca l'INTERA posizione, e'
 	 * gia' stata verificata dal chiamante prima di arrivare qui (vedi
 	 * {@code SendPosizioneDebitoriaToGpdProcessor}).
@@ -155,6 +155,10 @@ public abstract class PosizioneDebitoriaGpdMapper {
 		for (OpzionePagamentoGpdEntity opzione : opzioni) {
 			List<PendenzaGpdEntity> rate = this.pendenzaGpdRepository.findByIdOpzionePagamentoOrderByNumeroRataAsc(opzione.getId());
 			if (soloDisponibiliEValide && opzioneEsclusaPerScadenza(rate, opzione, posizioneDebitoriaGpdEntity)) {
+				continue;
+			}
+			rate = rate.stream().filter(rata -> Utils.isValidDueDate(rata, opzione)).toList();
+			if (rate.isEmpty()) {
 				continue;
 			}
 			list.add(opzionePagamentoGpdToPaymentOptionModelV3(opzione, posizioneDebitoriaGpdEntity, rate));
@@ -185,11 +189,11 @@ public abstract class PosizioneDebitoriaGpdMapper {
 	public PaymentOptionModelV3 opzionePagamentoGpdToPaymentOptionModelV3(OpzionePagamentoGpdEntity opzione, PosizioneDebitoriaGpdEntity posizione, List<PendenzaGpdEntity> rate) throws IOException {
 		PaymentOptionModelV3 paymentOption = new PaymentOptionModelV3();
 
-		paymentOption.setDescription(posizione.getDescrizione());
+		paymentOption.setDescription(Utils.tronca(posizione.getDescrizione(), Costanti.LUNGHEZZA_MAX_DESCRIZIONE_GPD));
 
 		LocalDateTime validityDate = Utils.calcolaValidityDatePosizione(posizione, opzione);
-		paymentOption.setValidityDate(Utils.toOffsetDateTimeCet(validityDate));
-		paymentOption.setRetentionDate(Utils.toOffsetDateTimeCet(validityDate));
+		paymentOption.setValidityDate(Utils.isFutura(validityDate) ? Utils.toOffsetDateTimeCet(validityDate) : null);
+		paymentOption.setRetentionDate(Utils.toOffsetDateTimeCet(Utils.calcolaRetentionDateOpzione(rate, opzione)));
 
 		// true solo se l'opzione ha una propria scadenza: si applica per-opzione, non
 		// per-posizione, cosi' il modello CdS ENTRO/OLTRE (un'opzione per soglia, ognuna
@@ -240,9 +244,10 @@ public abstract class PosizioneDebitoriaGpdMapper {
 			descrizione = posizione.getDescrizione();
 		}
 		if (pianoRateale && rata.getNumeroRata() != null) {
-			descrizione = (descrizione != null ? descrizione : "") + " - rata " + rata.getNumeroRata();
+			String suffisso = " - rata " + rata.getNumeroRata();
+			descrizione = Utils.tronca(descrizione, Costanti.LUNGHEZZA_MAX_DESCRIZIONE_GPD - suffisso.length()) + suffisso;
 		}
-		installment.setDescription(descrizione);
+		installment.setDescription(Utils.tronca(descrizione, Costanti.LUNGHEZZA_MAX_DESCRIZIONE_GPD));
 
 		LocalDateTime dueDate = Utils.calcolaDueDateRata(rata, opzione);
 		installment.setDueDate(Utils.toOffsetDateTimeCet(dueDate));

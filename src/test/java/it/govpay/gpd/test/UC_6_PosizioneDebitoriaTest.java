@@ -1,6 +1,8 @@
 package it.govpay.gpd.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -207,7 +210,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Annullamento totale (tutte ANNULLATA, gia' comunicata): PUT toPublish=false")
 	void UC_6_03_AnnullamentoTotale() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-003", comunicataIeri);
 		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
 		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
@@ -235,7 +238,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Aggiornamento con 404 (posizione mai creata sul GPD): recupero tramite creazione")
 	void UC_6_04_Aggiornamento404_RecuperaConCreazione() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-004", comunicataIeri);
 		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
 		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
@@ -266,7 +269,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Annullamento con 404 (nulla da ritirare): scarto definitivo, nessun recupero tramite creazione")
 	void UC_6_05_Annullamento404_NessunRecupero() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-005", comunicataIeri);
 		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
 		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
@@ -404,7 +407,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Debitore rimosso dopo l'ultima comunicazione: la posizione va in DRAFT con tutte le opzioni e viene ripubblicata con le sole opzioni del debitore rimasto")
 	void UC_6_10_DebitoreRimosso_RitiroERipubblicazione() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-010", comunicataIeri);
 		PdDebitoreFullEntity debitoreA = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 0, "RSSMRA80A01H501U", "Mario Rossi");
 		PdDebitoreFullEntity debitoreB = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 1, "VRDLGI85B41F205Z", "Luigia Verdi");
@@ -444,7 +447,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Debitore rimosso gia' comunicato a GPD: nessun ritiro, un normale aggiornamento")
 	void UC_6_11_DebitoreRimossoGiaComunicato_SoloAggiornamento() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-011", comunicataIeri);
 		PdDebitoreFullEntity debitoreA = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 0, "RSSMRA80A01H501U", "Mario Rossi");
 		PdDebitoreFullEntity debitoreB = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 1, "VRDLGI85B41F205Z", "Luigia Verdi");
@@ -515,8 +518,8 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	}
 
 	@Test
-	@DisplayName("Pubblicazione raggiunta: la posizione viene inviata e la validityDate dell'opzione e' la data di pubblicazione")
-	void UC_6_14_PubblicazioneRaggiunta_InviataConValidityDate() throws Exception {
+	@DisplayName("Pubblicazione raggiunta: la posizione viene inviata senza validityDate")
+	void UC_6_14_PubblicazioneRaggiunta_InviataSenzaValidityDate() throws Exception {
 		LocalDate ieri = LocalDate.now(ZoneId.of("Europe/Rome")).minusDays(1);
 		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-014", null);
 		documento.setDataPubblicazione(ieri.atStartOfDay());
@@ -537,7 +540,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 
 		ArgumentCaptor<PaymentPositionModelV3> modelCaptor = ArgumentCaptor.forClass(PaymentPositionModelV3.class);
 		verify(gpdApiV3).createPositionWithHttpInfo(any(), modelCaptor.capture(), any(), any());
-		assertEquals(ieri, modelCaptor.getValue().getPaymentOption().get(0).getValidityDate().toLocalDate());
+		assertNull(modelCaptor.getValue().getPaymentOption().get(0).getValidityDate());
 	}
 
 	/** Posizione con due debitori, il secondo rimosso dopo l'ultima comunicazione. */
@@ -564,7 +567,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Ritiro fallito per errore del GPD (500): nessuna ripubblicazione e nessuna marcatura come comunicata")
 	void UC_6_15_RitiroFallito_NonRipubblica() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = creaPosizioneConDebitoreRimosso("DOC-015", comunicataIeri);
 
 		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), org.mockito.ArgumentMatchers.eq(false), any()))
@@ -583,7 +586,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Ritiro con 404 (posizione non presente sul GPD): nulla da ritirare, si prosegue e la posizione viene creata")
 	void UC_6_16_Ritiro404_ProseguiConCreazione() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = creaPosizioneConDebitoreRimosso("DOC-016", comunicataIeri);
 
 		Mockito.lenient().when(gpdApiV3.updatePositionWithHttpInfo(any(), any(), any(), any(), any()))
@@ -607,7 +610,7 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 	@Test
 	@DisplayName("Ritiro con dati non leggibili (metadata di una rata dell'opzione rimossa): nessuna chiamata al GPD e nessuna marcatura come comunicata")
 	void UC_6_17_RitiroConMetadataNonLeggibili_NonRipubblica() throws Exception {
-		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1);
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
 		DocumentoFullEntity documento = creaPosizioneConDebitoreRimosso("DOC-017", comunicataIeri);
 
 		VersamentoFullEntity rataRimossa = versamentoFullRepository.findAll().stream()
@@ -722,6 +725,109 @@ class UC_6_PosizioneDebitoriaTest extends UC_00_BaseTest {
 
 		assertEquals(1, payload.getPaymentOption().size());
 		assertEquals(2500L, payload.getPaymentOption().get(0).getInstallments().get(0).getAmount());
+	}
+
+	private VersamentoFullEntity creaRataScaduta(Long idOpzione, String codVersamentoEnte, StatoVersamento stato) {
+		VersamentoFullEntity rata = PosizioneDebitoriaUtils.creaRata(versamentoFullRepository, applicazioneRepository, dominioRepository,
+				idOpzione, codVersamentoEnte, 1, 10.00, stato);
+		rata.setDataScadenza(OffsetDateTime.now().minusDays(5));
+		return versamentoFullRepository.save(rata);
+	}
+
+	@Test
+	@DisplayName("Annullamento con tutte le rate scadute: nessun PUT senza opzioni, la posizione viene eliminata con una DELETE")
+	void UC_6_22_AnnullamentoRateScadute_Delete() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-022", comunicataIeri);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
+		creaRataScaduta(opzione.getId(), "DOC-022", StatoVersamento.ANNULLATO);
+
+		Mockito.lenient().when(gpdApiV3.deletePositionWithHttpInfo(any(), any(), any())).thenReturn(ResponseEntity.ok("deleted"));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, times(1)).deletePositionWithHttpInfo(any(), any(), any());
+		verify(gpdApiV3, never()).updatePositionWithHttpInfo(any(), any(), any(), any(), any());
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertTrue(documentoAggiornato.getDataUltimaComunicazioneAca().isAfter(comunicataIeri));
+	}
+
+	@Test
+	@DisplayName("Annullamento con tutte le rate scadute e DELETE rifiutata (409): la marcatura non avanza e si ritenta")
+	void UC_6_23_AnnullamentoRateScadute_DeleteRifiutata_Rinviata() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-023", comunicataIeri);
+		PdDebitoreFullEntity debitore = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId());
+		OpzionePagamentoFullEntity opzione = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitore.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
+		creaRataScaduta(opzione.getId(), "DOC-023", StatoVersamento.ANNULLATO);
+
+		Mockito.lenient().when(gpdApiV3.deletePositionWithHttpInfo(any(), any(), any()))
+				.thenThrow(new org.springframework.web.client.HttpClientErrorException(org.springframework.http.HttpStatus.CONFLICT));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, times(1)).deletePositionWithHttpInfo(any(), any(), any());
+		verify(gpdApiV3, never()).updatePositionWithHttpInfo(any(), any(), any(), any(), any());
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertFalse(documentoAggiornato.getDataUltimaComunicazioneAca().isAfter(comunicataIeri));
+	}
+
+	@Test
+	@DisplayName("Debitore rimosso con tutte le rate scadute: il ritiro e' una DELETE, nessun PUT senza opzioni")
+	void UC_6_24_DebitoreRimossoRateScadute_Delete() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-024", comunicataIeri);
+		PdDebitoreFullEntity debitoreA = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 0, "RSSMRA80A01H501U", "Mario Rossi");
+		PdDebitoreFullEntity debitoreB = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 1, "VRDLGI85B41F205Z", "Luigia Verdi");
+		debitoreB.setDataRimozione(OffsetDateTime.now());
+		pdDebitoreFullRepository.save(debitoreB);
+		OpzionePagamentoFullEntity opzioneA = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitoreA.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		OpzionePagamentoFullEntity opzioneB = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitoreB.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
+		creaRataScaduta(opzioneA.getId(), "DOC-024-A", StatoVersamento.NON_ESEGUITO);
+		creaRataScaduta(opzioneB.getId(), "DOC-024-B", StatoVersamento.ANNULLATO);
+
+		Mockito.lenient().when(gpdApiV3.deletePositionWithHttpInfo(any(), any(), any())).thenReturn(ResponseEntity.ok("deleted"));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, times(1)).deletePositionWithHttpInfo(any(), any(), any());
+		verify(gpdApiV3, never()).updatePositionWithHttpInfo(any(), any(), any(), any(), any());
+	}
+
+	@Test
+	@DisplayName("Debitore rimosso con rate scadute e DELETE rifiutata (500): nessuna ripubblicazione, la marcatura non avanza")
+	void UC_6_25_DebitoreRimossoRateScadute_DeleteFallita_NonRipubblica() throws Exception {
+		OffsetDateTime comunicataIeri = OffsetDateTime.now().minusDays(1).truncatedTo(ChronoUnit.MILLIS);
+		DocumentoFullEntity documento = PosizioneDebitoriaUtils.creaDocumento(documentoFullRepository, applicazioneRepository, dominioRepository, "DOC-025", comunicataIeri);
+		PdDebitoreFullEntity debitoreA = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 0, "RSSMRA80A01H501U", "Mario Rossi");
+		PdDebitoreFullEntity debitoreB = PosizioneDebitoriaUtils.creaDebitore(debitoreFullRepository, pdDebitoreFullRepository, documento.getId(), 1, "VRDLGI85B41F205Z", "Luigia Verdi");
+		debitoreB.setDataRimozione(OffsetDateTime.now());
+		pdDebitoreFullRepository.save(debitoreB);
+		OpzionePagamentoFullEntity opzioneA = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitoreA.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.DISPONIBILE);
+		OpzionePagamentoFullEntity opzioneB = PosizioneDebitoriaUtils.creaOpzione(opzionePagamentoFullRepository, debitoreB.getId(),
+				TipologiaOpzionePagamento.SOLUZIONE_UNICA, StatoOpzionePagamento.ANNULLATA);
+		creaRataScaduta(opzioneA.getId(), "DOC-025-A", StatoVersamento.NON_ESEGUITO);
+		creaRataScaduta(opzioneB.getId(), "DOC-025-B", StatoVersamento.ANNULLATO);
+
+		Mockito.lenient().when(gpdApiV3.deletePositionWithHttpInfo(any(), any(), any()))
+				.thenThrow(new org.springframework.web.client.HttpServerErrorException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR));
+
+		JobExecution jobExecution = jobLauncherTestUtils.launchJob();
+		assertEquals("COMPLETED", jobExecution.getExitStatus().getExitCode());
+
+		verify(gpdApiV3, times(1)).deletePositionWithHttpInfo(any(), any(), any());
+		verify(gpdApiV3, never()).updatePositionWithHttpInfo(any(), any(), any(), any(), any());
+		DocumentoFullEntity documentoAggiornato = documentoFullRepository.findById(documento.getId()).orElseThrow();
+		assertFalse(documentoAggiornato.getDataUltimaComunicazioneAca().isAfter(comunicataIeri));
 	}
 
 	@Test

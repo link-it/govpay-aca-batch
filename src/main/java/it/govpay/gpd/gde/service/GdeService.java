@@ -130,6 +130,8 @@ public class GdeService extends AbstractGdeService {
 			return HttpMethod.PUT.name();
 		case Costanti.PUBLISH_POSITION:
 			return HttpMethod.POST.name();
+		case Costanti.DELETE_POSITION:
+			return HttpMethod.DELETE.name();
 		case Costanti.GET_ORGANIZATION_DEBT_POSITION_BY_IUPD:
 			return HttpMethod.GET.name();
 		default:
@@ -263,6 +265,24 @@ public class GdeService extends AbstractGdeService {
 		NuovoEvento nuovoEvento = this.creaEventoKO(posizioneDebitoriaGpdEntity, Costanti.UPDATE_POSITION, xRequestId, dataStart, dataEnd, response, e);
 
 		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, request, response, e);
+	}
+
+	public void salvaDeletePositionOk(String xRequestId,
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity, ResponseEntity<String> response) {
+		String basePath = getGpdBasePathV3(posizioneDebitoriaGpdEntity);
+		String url = GdeUtils.creaUrlUpdatePosition(posizioneDebitoriaGpdEntity.getCodDominio(), Utils.generaIupdPosizione(posizioneDebitoriaGpdEntity), basePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, null);
+		NuovoEvento nuovoEvento = this.creaEventoOK(posizioneDebitoriaGpdEntity, Costanti.DELETE_POSITION, xRequestId, dataStart, dataEnd);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, null, response, null);
+	}
+
+	public void salvaDeletePositionKo(String xRequestId,
+			OffsetDateTime dataStart, OffsetDateTime dataEnd, PosizioneDebitoriaGpdEntity posizioneDebitoriaGpdEntity, ResponseEntity<String> response, RestClientException e) {
+		String basePath = getGpdBasePathV3(posizioneDebitoriaGpdEntity);
+		String url = GdeUtils.creaUrlUpdatePosition(posizioneDebitoriaGpdEntity.getCodDominio(), Utils.generaIupdPosizione(posizioneDebitoriaGpdEntity), basePath, Costanti.ORGANIZATIONS_DEBT_POSITIONS_IUPD, null);
+		NuovoEvento nuovoEvento = this.creaEventoKO(posizioneDebitoriaGpdEntity, Costanti.DELETE_POSITION, xRequestId, dataStart, dataEnd, response, e);
+
+		this.salvaInvio(nuovoEvento, dataEnd, url, xRequestId, null, response, e);
 	}
 
 	public void salvaPublishPositionOk(String xRequestId,
