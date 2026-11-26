@@ -462,9 +462,10 @@ porta il proprio debitore (`v_opzioni_pagamento_gpd`). L'identificativo della po
     (`pd_debitori.data_rimozione`) e restano opzioni `DISPONIBILE` per gli altri, la
     posizione viene prima riportata in `DRAFT` con il payload completo (opzioni del
     debitore rimosso comprese) e poi ripubblicata con le sole opzioni disponibili. Le
-    opzioni di un debitore rimosso non hanno uno stato scrivibile nel contratto GPD v3 e il
-    contratto non dichiara se un `PUT` sostituisce o unisce le opzioni: omettere le opzioni
-    non è quindi una garanzia che spariscano dalla cache di pagoPA. Se la ripubblicazione
+    opzioni di un debitore rimosso non hanno uno stato scrivibile nel contratto GPD v3. Il
+    `PUT` sostituisce le opzioni della posizione (comportamento osservato sul collaudo
+    pagoPA, non dichiarato dal contratto); il passaggio in `DRAFT` copre anche la cache di
+    pagoPA, su cui l'effetto della sola omissione non è verificabile. Se la ripubblicazione
     fallisce, la posizione non viene marcata come comunicata e il ciclo si ripete
     all'esecuzione successiva; nel frattempo la posizione non è pagabile.
 - **Writer** (`PosizioneDebitoriaGpdWriter`): imposta `data_ultima_comunicazione_aca` su
