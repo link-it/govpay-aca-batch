@@ -22,8 +22,11 @@ import it.govpay.common.entity.StazioneEntity;
 import it.govpay.common.entity.batch.BatchJobExecutionEntity;
 import it.govpay.common.entity.batch.BatchJobExecutionParamEntity;
 import it.govpay.common.entity.batch.BatchJobInstanceEntity;
+import it.govpay.pendenze.config.GeneratoreIuvAutoConfiguration;
 
-@SpringBootApplication(scanBasePackages = {"it.govpay.gpd", "it.govpay.common.client"})
+/** Il batch non genera IUV: la generazione offerta da govpay-common-pendenze e' esclusa. */
+@SpringBootApplication(scanBasePackages = {"it.govpay.gpd", "it.govpay.common.client"},
+		exclude = GeneratoreIuvAutoConfiguration.class)
 @EnableJpaRepositories(basePackages = {"it.govpay.gpd"})
 public class Application extends SpringBootServletInitializer {
 

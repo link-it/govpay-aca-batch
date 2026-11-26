@@ -75,8 +75,7 @@ import it.govpay.pendenze.service.PosizioneDebitoriaService;
 @TestPropertySource(properties = {
 		"spring.datasource.url=jdbc:h2:mem:govpaylibreria;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false;MODE=PostgreSQL",
 		"spring.sql.init.schema-locations=classpath:schema-libreria.sql,classpath:schema-libreria-batch.sql,classpath:create-views.sql",
-		"spring.sql.init.data-locations=classpath:data-libreria.sql",
-		"spring.autoconfigure.exclude=it.govpay.pendenze.config.GeneratoreIuvAutoConfiguration" })
+		"spring.sql.init.data-locations=classpath:data-libreria.sql" })
 @DisplayName("Test Invio GPD - Dalla libreria al batch")
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 @ActiveProfiles("test")
