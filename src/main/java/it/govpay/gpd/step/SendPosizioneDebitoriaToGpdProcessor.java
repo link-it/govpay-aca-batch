@@ -339,10 +339,9 @@ public class SendPosizioneDebitoriaToGpdProcessor implements ItemProcessor<Posiz
 	/**
 	 * Aggiornamento di una posizione da cui e' stato rimosso un debitore: la posizione resta
 	 * pubblicata per gli altri debitori, ma le opzioni del debitore rimosso devono sparire
-	 * dalla cache di pagoPA. Il GPD non dichiara se un PUT sostituisce o unisce le opzioni
-	 * e l'omissione non e' quindi una garanzia: si porta prima la posizione in DRAFT con
-	 * il payload completo (tutte le opzioni, rimosse comprese, come per l'annullamento) e
-	 * poi la si ripubblica con le sole opzioni disponibili.
+	 * dalla cache di pagoPA: si porta prima la posizione in DRAFT con il payload completo
+	 * (tutte le opzioni, rimosse comprese, come per l'annullamento) e poi la si ripubblica
+	 * con le sole opzioni disponibili.
 	 * <p>La ripubblicazione parte solo se il ritiro e' stato eseguito o se non c'era nulla da
 	 * ritirare (404, posizione non presente sul GPD). In ogni altro caso, errori di dati
 	 * compresi, la posizione non avanza {@code data_ultima_comunicazione_aca} e il run
