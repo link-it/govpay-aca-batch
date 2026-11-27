@@ -33,6 +33,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import it.govpay.common.batch.runner.JobExecutionHelper;
 import it.govpay.gpd.Application;
 import it.govpay.gpd.service.GpdApiService;
+import java.sql.Connection;
+import java.sql.SQLException;
+import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
 
 /**
  * Verifica end-to-end dell'esposizione delle metriche Prometheus:
@@ -154,5 +158,19 @@ class PrometheusScrapeIntegrationTest {
                 .GET()
                 .build();
         return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Autowired
+    private DataSource dataSource;
+
+    /**
+     * #73: il pool usa READ_COMMITTED come il core GovPay, non il default del database.
+     */
+    @Test
+    void isolamentoReadCommitted() throws SQLException {
+        assertThat(dataSource.unwrap(HikariDataSource.class).getTransactionIsolation()).isEqualTo("TRANSACTION_READ_COMMITTED");
+        try (Connection connection = dataSource.getConnection()) {
+            assertThat(connection.getTransactionIsolation()).isEqualTo(Connection.TRANSACTION_READ_COMMITTED);
+        }
     }
 }
