@@ -126,7 +126,7 @@ URL, autenticazione e versione delle API del GPD e del GDE non sono proprietà d
 | `spring.datasource.driver-class-name` | `SPRING_DATASOURCE_DRIVERCLASSNAME` | dedotto dall'URL | Classe del driver JDBC |
 | `spring.jpa.database-platform` | `SPRING_JPA_DATABASEPLATFORM` | dedotto dal driver | Dialetto Hibernate |
 | `spring.jpa.properties.hibernate.dialect` | `SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT` | dedotto dal driver | Dialetto Hibernate |
-| `spring.jpa.properties.hibernate.jdbc.time_zone` | - | `Europe/Rome` | Fuso orario con cui Hibernate legge e scrive le date |
+| `spring.jpa.properties.hibernate.jdbc.time_zone` | - | `Europe/Rome` | Impostata da `govpay-common`, insieme a `hibernate.timezone.default_storage=NORMALIZE`: le colonne temporali contengono l'ora `Europe/Rome` (vedi [Date sul database](https://github.com/link-it/govpay-common/blob/3.11.x/README.md#date-sul-database)). Le letture JDBC del batch seguono la stessa regola |
 | `spring.jpa.hibernate.ddl-auto` | `SPRING_JPA_HIBERNATE_DDLAUTO` | `none` (`create-drop` con database embedded) | Gestione dello schema: lasciare `none` o `validate`, lo schema è di GovPay |
 | `spring.jpa.open-in-view` | `SPRING_JPA_OPENINVIEW` | `false` | Sessione JPA limitata al servizio, non estesa alla vista |
 | `spring.datasource.hikari.minimum-idle` | `SPRING_DATASOURCE_HIKARI_MINIMUMIDLE` | `10` (`2` nel container) | Connessioni minime inattive del pool |

@@ -2,12 +2,9 @@ package it.govpay.gpd.config;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.concurrent.Future;
 
@@ -36,11 +33,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.convert.support.DefaultConversionService;
-import org.springframework.core.convert.support.GenericConversionService;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -139,17 +133,8 @@ public class PendenzeGpdSenderJobConfig {
 
 		logger.debug("Le pendenze da spedire verranno scelte con la seguente query: {}", Costanti.QUERY_RICERCA_PENDENZE_DA_CARICARE_ACA);
 
-		GenericConversionService cs = new DefaultConversionService();
-		cs.addConverter(Timestamp.class, OffsetDateTime.class, ts -> {
-		    if (ts == null) {
-		        return null;
-		    }
-		    return ts.toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime();
-		});
-
 		// Imposta il RowMapper per convertire il ResultSet in oggetti VersamentoGpdEntity
 		LoggingBeanPropertyRowMapper<VersamentoGpdEntity> rowMapper = new LoggingBeanPropertyRowMapper<>(VersamentoGpdEntity.class);
-		rowMapper.setConversionService(cs);
 
 		// In Spring Batch 6 JdbcCursorItemReader non ha piu' il costruttore vuoto:
 		// dataSource, query e rowMapper vanno passati al costruttore.
@@ -204,16 +189,7 @@ public class PendenzeGpdSenderJobConfig {
 
 		logger.debug("Le posizioni debitorie da spedire verranno scelte con la seguente query: {}", Costanti.QUERY_RICERCA_POSIZIONI_DEBITORIE_DA_CARICARE_ACA);
 
-		GenericConversionService cs = new DefaultConversionService();
-		cs.addConverter(Timestamp.class, OffsetDateTime.class, ts -> {
-		    if (ts == null) {
-		        return null;
-		    }
-		    return ts.toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime();
-		});
-
-		BeanPropertyRowMapper<PosizioneDebitoriaGpdEntity> rowMapper = new BeanPropertyRowMapper<>(PosizioneDebitoriaGpdEntity.class);
-		rowMapper.setConversionService(cs);
+		LoggingBeanPropertyRowMapper<PosizioneDebitoriaGpdEntity> rowMapper = new LoggingBeanPropertyRowMapper<>(PosizioneDebitoriaGpdEntity.class);
 
 		JdbcCursorItemReader<PosizioneDebitoriaGpdEntity> reader = new JdbcCursorItemReader<>(dataSource,
 				Costanti.QUERY_RICERCA_POSIZIONI_DEBITORIE_DA_CARICARE_ACA, rowMapper);
@@ -363,34 +339,4 @@ public class PendenzeGpdSenderJobConfig {
 			}
 		}
 	}
-	public class LoggingBeanPropertyRowMapper<T> extends BeanPropertyRowMapper<T> {
-
-		public LoggingBeanPropertyRowMapper(Class<T> arg0) {
-			super(arg0);
-		}
-
-		@Override
-		public T mapRow(ResultSet rs, int rowNum) throws SQLException {
-			LoggerFactory.getLogger(getClass()).debug("Inizio mapping per rowNum {}. ResultSet metaData: {}", rowNum, rs.getMetaData());
-			try {
-				T result = super.mapRow(rs, rowNum);
-				if (result instanceof VersamentoGpdEntity versamentoGpdEntity) {
-					LoggerFactory.getLogger(getClass()).debug("Pendenza letta: id[{},{}], dataUltimaModificaACA={}", versamentoGpdEntity.getCodApplicazione(), versamentoGpdEntity.getCodVersamentoEnte(),
-							versamentoGpdEntity.getDataUltimaModificaAca());
-				} else {
-					LoggerFactory.getLogger(getClass()).trace("Mapping riga {}: {}", rowNum, result);
-				}
-				return result;
-			} catch (SQLException e) {
-				logError("Errore nel mapping della row {}: {}", rowNum, e.getMessage(), e);
-				throw e;
-			}
-		}
-		
-		private void logError(String msg, Object... args) {
-			LoggerFactory.getLogger(getClass()).error(msg, args);
-		}
-	}
-
-
 }
