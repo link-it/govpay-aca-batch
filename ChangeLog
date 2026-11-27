@@ -1,3 +1,19 @@
+2026-11-27  Giuliano Pintori <pintori@link.it>
+
+	* [Database] Isolamento delle transazioni READ_COMMITTED, come il core
+	GovPay (#73): spring.datasource.hikari.transaction-isolation impostata in
+	application.properties. Prima il pool usava il default del database
+	(REPEATABLE-READ su MySQL).
+	Nei Dockerfile SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT diventa
+	SPRING_DATASOURCE_HIKARI_CONNECTIONTIMEOUT: con il trattino basso Spring
+	Boot cerca anche la proprieta' connection del pool, apre una connessione
+	durante il binding e l'impostazione dell'isolamento fallisce con "The
+	configuration of the pool is sealed once started". Chi usa la vecchia
+	variabile nella propria configurazione deve rinominarla.
+	README: isolamento nella tabella del database e nota sui nomi delle
+	variabili spring.datasource.hikari.connection-*. Nuovo test
+	PrometheusScrapeIntegrationTest.isolamentoReadCommitted.
+
 2026-11-14  Giuliano Pintori <pintori@link.it>
 
 	* [Batch] Pendenze con data di pubblicazione futura inviate a GPD solo
